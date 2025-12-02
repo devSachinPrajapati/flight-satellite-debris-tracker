@@ -11,12 +11,22 @@ export const tleToGeoJSON = (
 ): GeoJSON.Feature | null => {
   try {
     const satrec = satellite.twoline2satrec(tle.line1, tle.line2);
+    
+    if (satrec.error !== 0) {
+      return null;
+    }
+
     const positionAndVelocity = satellite.propagate(satrec, date);
 
     if (positionAndVelocity?.position && typeof positionAndVelocity.position !== 'boolean') {
       const positionEci = positionAndVelocity.position;
       const gmst = satellite.gstime(date);
       const positionGd = satellite.eciToGeodetic(positionEci, gmst);
+
+
+      if (positionGd.latitude > Math.PI / 2 || positionGd.latitude < -Math.PI / 2) {
+        return null;
+      }
 
       const latitude = satellite.degreesLat(positionGd.latitude);
       const longitude = satellite.degreesLong(positionGd.longitude);
@@ -29,6 +39,7 @@ export const tleToGeoJSON = (
       }
 
       const noradId = tle.line2.substring(2, 7).trim();
+      const inclination = (satrec.inclo * 180) / Math.PI;
 
       return {
         type: 'Feature',
@@ -38,7 +49,7 @@ export const tleToGeoJSON = (
           object_type: objectType,
           altitude: altitude,
           velocity: velocity,
-          inclination: satellite.degreesLat(satrec.inclo),
+          inclination: inclination,
           period_minutes: (2 * Math.PI) / satrec.no,
           visible: altitude > 500,
         },
@@ -63,26 +74,37 @@ export const generateOrbitPath = (
   numPoints: number = 100
 ): [number, number][] => {
   const points: [number, number][] = [];
-  const satrec = satellite.twoline2satrec(tle.line1, tle.line2);
-  const period = (2 * Math.PI) / satrec.no; // Period in minutes
-  const startTime = new Date();
-
-  for (let i = 0; i < numPoints; i++) {
-    const timeOffset = (period * i) / numPoints;
-    const time = new Date(startTime.getTime() + timeOffset * 60 * 1000);
+  
+  try {
+    const satrec = satellite.twoline2satrec(tle.line1, tle.line2);
     
-    const positionAndVelocity = satellite.propagate(satrec, time);
-
-    if (positionAndVelocity?.position && typeof positionAndVelocity.position !== 'boolean') {
-      const positionEci = positionAndVelocity.position;
-      const gmst = satellite.gstime(time);
-      const positionGd = satellite.eciToGeodetic(positionEci, gmst);
-
-      const latitude = satellite.degreesLat(positionGd.latitude);
-      const longitude = satellite.degreesLong(positionGd.longitude);
-
-      points.push([longitude, latitude]);
+    if (satrec.error !== 0) {
+      return points;
     }
+
+    const period = (2 * Math.PI) / satrec.no; // Period in minutes
+    const startTime = new Date();
+
+    for (let i = 0; i < numPoints; i++) {
+      const timeOffset = (period * i) / numPoints;
+      const time = new Date(startTime.getTime() + timeOffset * 60 * 1000);
+      
+      const positionAndVelocity = satellite.propagate(satrec, time);
+
+      if (positionAndVelocity?.position && typeof positionAndVelocity.position !== 'boolean') {
+        const positionEci = positionAndVelocity.position;
+        const gmst = satellite.gstime(time);
+        const positionGd = satellite.eciToGeodetic(positionEci, gmst);
+
+        if (positionGd.latitude <= Math.PI / 2 && positionGd.latitude >= -Math.PI / 2) {
+          const latitude = satellite.degreesLat(positionGd.latitude);
+          const longitude = satellite.degreesLong(positionGd.longitude);
+          points.push([longitude, latitude]);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error generating orbit path:', error);
   }
 
   return points;
@@ -100,6 +122,11 @@ export const calculateLookAngles = (
 ) => {
   try {
     const satrec = satellite.twoline2satrec(tle.line1, tle.line2);
+    
+    if (satrec.error !== 0) {
+      return null;
+    }
+
     const positionAndVelocity = satellite.propagate(satrec, date);
 
     if (positionAndVelocity?.position && typeof positionAndVelocity.position !== 'boolean') {

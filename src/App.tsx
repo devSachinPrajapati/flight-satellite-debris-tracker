@@ -1,272 +1,251 @@
-// import "./App.css";
-// import { useState, useRef, useEffect } from "react";
-// import { Map, Marker } from "@maptiler/sdk";
-// import MainLayout from "./components/Layout/MainLayout";
-// import MapContainer from "./components/Map/MapContainer";
-// import ViewModeToggle from "./components/UI/ViewModeToggle";
-// import StatsPanel from "./components/UI/StatsPanel";
-// import ObjectDetailsCard from "./components/UI/ObjectDetailsCard";
-// import { useAircraftData } from "./hooks/useAircraftData";
-// import { useSatelliteData } from "./hooks/useSatelliteData";
-// import { useMapControls } from "./hooks/useMapControls";
-// import type { Aircraft, SatelliteObject } from "./types";
-
-// const App = () => {
-//   const mapRef = useRef<Map | null>(null);
-//   const markersRef = useRef<Marker[]>([]);
-
-//   const { aircraft, isLoading: aircraftLoading } = useAircraftData();
-//   const {
-//     satellites,
-//     debris,
-//     isLoading: satelliteLoading,
-//   } = useSatelliteData();
-//   const { viewMode, selectedObject, handleViewModeChange, handleObjectSelect } =
-//     useMapControls();
-
-//   const [isMapLoaded, setIsMapLoaded] = useState(false);
-
-//   const handleMapLoad = (map: Map) => {
-//     mapRef.current = map;
-//     setIsMapLoaded(true);
-//   };
-
-//   // Update markers whenever data or view mode changes
-//   useEffect(() => {
-//     if (!mapRef.current || !isMapLoaded) return;
-
-//     // Clear existing markers
-//     markersRef.current.forEach((marker) => marker.remove());
-//     markersRef.current = [];
-
-//     const createMarker = (
-//       lat: number,
-//       lng: number,
-//       color: string,
-//       type: "aircraft" | "satellite" | "debris",
-//       data: Aircraft | SatelliteObject
-//     ) => {
-//       const el = document.createElement("div");
-//       const size = type === "debris" ? "16px" : "24px";
-
-//       el.className = "marker";
-//       el.style.width = size;
-//       el.style.height = size;
-//       el.style.borderRadius = "50%";
-//       el.style.backgroundColor = color;
-//       el.style.border = "2px solid white";
-//       el.style.cursor = "pointer";
-//       el.style.transition = "transform 0.2s";
-//       el.style.boxShadow = "0 2px 4px rgba(0,0,0,0.3)";
-
-//       el.addEventListener("mouseenter", () => {
-//         el.style.transform = "scale(1.3)";
-//       });
-
-//       el.addEventListener("mouseleave", () => {
-//         el.style.transform = "scale(1)";
-//       });
-
-//       el.addEventListener("click", () => {
-//         handleObjectSelect({ type, data });
-//       });
-
-//       const marker = new Marker({ element: el })
-//         .setLngLat([lng, lat])
-//         .addTo(mapRef.current!);
-
-//       markersRef.current.push(marker);
-//     };
-
-//     // Add markers based on view mode
-//     if (viewMode === "all" || viewMode === "aircraft") {
-//       aircraft.forEach((ac) => {
-//         createMarker(ac.lat, ac.lng, "#3b82f6", "aircraft", ac);
-//       });
-//     }
-
-//     if (viewMode === "all" || viewMode === "satellite") {
-//       satellites.forEach((sat) => {
-//         createMarker(sat.lat, sat.lng, "#10b981", "satellite", sat);
-//       });
-//     }
-
-//     if (viewMode === "all" || viewMode === "debris") {
-//       debris.forEach((deb) => {
-//         createMarker(deb.lat, deb.lng, "#ef4444", "debris", deb);
-//       });
-//     }
-//   }, [aircraft, satellites, debris, viewMode, isMapLoaded, handleObjectSelect]);
-
-//   const isLoading = aircraftLoading || satelliteLoading;
-
-//   return (
-//     <MainLayout>
-//       <MapContainer onMapLoad={handleMapLoad} />
-
-//       {/* View Mode Toggle */}
-//       <div className="absolute top-4 right-4 z-10">
-//         <ViewModeToggle
-//           viewMode={viewMode}
-//           onViewModeChange={handleViewModeChange}
-//         />
-//       </div>
-
-//       {/* Stats Panel */}
-//       <div className="absolute top-4 left-4 z-10">
-//         <StatsPanel
-//           aircraftCount={aircraft.length}
-//           satelliteCount={satellites.length}
-//           debrisCount={debris.length}
-//         />
-//       </div>
-
-//       {/* Selected Object Details */}
-//       {selectedObject && (
-//         <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-10">
-//           <ObjectDetailsCard
-//             selectedObject={selectedObject}
-//             onClose={() => handleObjectSelect(null)}
-//           />
-//         </div>
-//       )}
-
-//       {/* Loading State */}
-//       {isLoading && (
-//         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
-//           <div className="bg-white rounded-lg p-6 text-center">
-//             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-//             <p className="text-gray-700 font-medium">Loading tracker data...</p>
-//           </div>
-//         </div>
-//       )}
-//     </MainLayout>
-//   );
-// };
-
-// export default App;
+import { useState, useRef, useEffect, useCallback } from "react";
+import * as maptilersdk from "@maptiler/sdk";
+import MainLayout from "./components/Layout/MainLayout";
+import MapContainer from "./components/Map/MapContainer";
+import ViewModeToggle from "./components/UI/ViewModeToggle";
+import StatsPanel from "./components/UI/StatsPanel";
+import ObjectDetailsCard from "./components/UI/ObjectDetailsCard";
+import { useAircraftData } from "./hooks/useAircraftData";
+import { useSatelliteData } from "./hooks/useSatelliteData";
+import { useMapControls } from "./hooks/useMapControls";
+import type { Aircraft, SatelliteObject } from "./types";
 
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Map, Marker } from '@maptiler/sdk';
-import MainLayout from './components/Layout/MainLayout';
-import MapContainer from './components/Map/MapContainer';
-import ViewModeToggle from './components/UI/ViewModeToggle';
-import StatsPanel from './components/UI/StatsPanel';
-import ObjectDetailsCard from './components/UI/ObjectDetailsCard';
-import { useAircraftData } from './hooks/useAircraftData';
-import { useSatelliteData } from './hooks/useSatelliteData';
-import { useMapControls } from './hooks/useMapControls';
-import type { Aircraft, SatelliteObject } from './types';
+const App = () => {
+  const mapRef = useRef<maptilersdk.Map | null>(null);
+  const markersRef = useRef<Map<string, maptilersdk.Marker>>(new Map());
 
-const App: React.FC = () => {
-  const mapRef = useRef<Map | null>(null);
-  const markersRef = useRef<Marker[]>([]);
-  
-  const { aircraft, isLoading: aircraftLoading, refresh: refreshAircraft } = useAircraftData();
-  const { 
-    satellites, 
-    debris, 
-    isLoading: satelliteLoading, 
+  const {
+    aircraft,
+    isLoading: aircraftLoading,
+    refresh: refreshAircraft,
+  } = useAircraftData(5000); 
+
+  const {
+    satellites,
+    debris,
+    isLoading: satelliteLoading,
     lastFetchTime,
-    refresh: refreshSatellites 
-  } = useSatelliteData();
-  
-  const { viewMode, selectedObject, handleViewModeChange, handleObjectSelect } = useMapControls();
+    refresh: refreshSatellites,
+  } = useSatelliteData(2000); // Update positions every 2 seconds
+
+  const { viewMode, selectedObject, handleViewModeChange, handleObjectSelect } =
+    useMapControls();
 
   const [isMapLoaded, setIsMapLoaded] = useState(false);
 
-  const handleMapLoad = (map: Map) => {
+  const handleMapLoad = useCallback((map: maptilersdk.Map) => {
     mapRef.current = map;
     setIsMapLoaded(true);
-  };
+    console.log("✅ Map ready for markers");
+  }, []);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
+    console.log("🔄 Manual refresh triggered");
     refreshAircraft();
     refreshSatellites();
-  };
+  }, [refreshAircraft, refreshSatellites]);
 
-  // Update markers whenever data or view mode changes
+  // Environment check
   useEffect(() => {
-    if (!mapRef.current || !isMapLoaded) return;
+    console.log("🔍 Environment Check:");
+    console.log(
+      "MapTiler Key:",
+      import.meta.env.VITE_MAPTILER_API_KEY ? "✅ Present" : "❌ Missing"
+    );
+    console.log(
+      "AirLabs Key:",
+      import.meta.env.VITE_AIRLABS_API_KEY ? "✅ Present" : "❌ Missing"
+    );
+  }, []);
 
-    // Clear existing markers
-    markersRef.current.forEach(marker => marker.remove());
-    markersRef.current = [];
-
-    const createMarker = (
+  // Create or update marker
+  const createOrUpdateMarker = useCallback(
+    (
+      id: string,
       lat: number,
       lng: number,
       color: string,
-      type: 'aircraft' | 'satellite' | 'debris',
+      type: "aircraft" | "satellite" | "debris",
       data: Aircraft | SatelliteObject
     ) => {
-      const el = document.createElement('div');
-      const size = type === 'debris' ? '16px' : '24px';
-      
-      el.className = 'marker';
-      el.style.width = size;
-      el.style.height = size;
-      el.style.borderRadius = '50%';
-      el.style.backgroundColor = color;
-      el.style.border = '2px solid white';
-      el.style.cursor = 'pointer';
-      el.style.transition = 'transform 0.2s';
-      el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+      if (!mapRef.current) return;
 
-      el.addEventListener('mouseenter', () => {
-        el.style.transform = 'scale(1.3)';
-        el.style.zIndex = '1000';
+      // Validate coordinates
+      if (
+        isNaN(lat) ||
+        isNaN(lng) ||
+        Math.abs(lat) > 90 ||
+        Math.abs(lng) > 180
+      ) {
+        return;
+      }
+
+      const existingMarker = markersRef.current.get(id);
+
+      if (existingMarker) {
+        // Update existing marker position
+        existingMarker.setLngLat([lng, lat]);
+      } else {
+        // Create new marker
+        const el = document.createElement("div");
+        const size = type === "debris" ? 16 : 24;
+
+        el.className = "marker";
+        el.style.width = `${size}px`;
+        el.style.height = `${size}px`;
+        el.style.borderRadius = "50%";
+        el.style.backgroundColor = color;
+        el.style.border = "2px solid white";
+        el.style.cursor = "pointer";
+        el.style.transition = "all 0.3s ease";
+        el.style.boxShadow = "0 2px 8px rgba(0,0,0,0.4)";
+
+        
+        if (type === "aircraft") {
+          el.innerHTML = '<div style="font-size: 12px; text-align: center; line-height: 20px;">✈️</div>';
+        } else if (type === "satellite") {
+          el.innerHTML = '<div style="font-size: 10px; text-align: center; line-height: 20px;">🛰️</div>';
+        }
+
+        el.addEventListener("mouseenter", () => {
+          el.style.transform = "scale(1.5)";
+          el.style.zIndex = "1000";
+        });
+
+        el.addEventListener("mouseleave", () => {
+          el.style.transform = "scale(1)";
+          el.style.zIndex = "1";
+        });
+
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          handleObjectSelect({ type, data });
+        });
+
+        const marker = new maptilersdk.Marker({ element: el })
+          .setLngLat([lng, lat])
+          .addTo(mapRef.current);
+
+        markersRef.current.set(id, marker);
+      }
+    },
+    [handleObjectSelect]
+  );
+
+  // Remove markers that are no longer visible
+  const removeInvalidMarkers = useCallback(
+    (validIds: Set<string>) => {
+      const currentIds = Array.from(markersRef.current.keys());
+      currentIds.forEach((id) => {
+        if (!validIds.has(id)) {
+          const marker = markersRef.current.get(id);
+          if (marker) {
+            marker.remove();
+            markersRef.current.delete(id);
+          }
+        }
       });
+    },
+    []
+  );
 
-      el.addEventListener('mouseleave', () => {
-        el.style.transform = 'scale(1)';
-        el.style.zIndex = '1';
+  // Update markers whenever data or view mode changes
+  useEffect(() => {
+    if (!mapRef.current || !isMapLoaded) {
+      return;
+    }
+
+    const validIds = new Set<string>();
+
+    // Add aircraft markers
+    if (viewMode === "all" || viewMode === "aircraft") {
+      aircraft.forEach((ac) => {
+        const id = `aircraft-${ac.hex}`;
+        validIds.add(id);
+        createOrUpdateMarker(
+          id,
+          ac.lat,
+          ac.lng,
+          "#3b82f6",
+          "aircraft",
+          ac
+        );
       });
+    }
 
-      el.addEventListener('click', () => {
-        handleObjectSelect({ type, data });
+    // Add satellite markers
+    if (viewMode === "all" || viewMode === "satellite") {
+      satellites.forEach((sat) => {
+        const id = `satellite-${sat.norad_id}`;
+        validIds.add(id);
+        createOrUpdateMarker(
+          id,
+          sat.lat,
+          sat.lng,
+          "#10b981",
+          "satellite",
+          sat
+        );
       });
+    }
 
-      const marker = new Marker({ element: el })
-        .setLngLat([lng, lat])
-        .addTo(mapRef.current!);
+    // Add debris markers
+    if (viewMode === "all" || viewMode === "debris") {
+      debris.forEach((deb) => {
+        const id = `debris-${deb.norad_id}`;
+        validIds.add(id);
+        createOrUpdateMarker(
+          id,
+          deb.lat,
+          deb.lng,
+          "#ef4444",
+          "debris",
+          deb
+        );
+      });
+    }
 
-      markersRef.current.push(marker);
+    // Remove markers not in current view
+    removeInvalidMarkers(validIds);
+
+    console.log(`📍 Active markers: ${markersRef.current.size}`);
+  }, [
+    aircraft,
+    satellites,
+    debris,
+    viewMode,
+    isMapLoaded,
+    createOrUpdateMarker,
+    removeInvalidMarkers,
+  ]);
+
+  // Clean up 
+  useEffect(() => {
+    return () => {
+      markersRef.current.forEach((marker) => marker.remove());
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      markersRef.current.clear();
     };
+  }, []);
 
-    // Add markers based on view mode
-    if (viewMode === 'all' || viewMode === 'aircraft') {
-      aircraft.forEach(ac => {
-        createMarker(ac.lat, ac.lng, '#3b82f6', 'aircraft', ac);
-      });
-    }
-
-    if (viewMode === 'all' || viewMode === 'satellite') {
-      satellites.forEach(sat => {
-        createMarker(sat.lat, sat.lng, '#10b981', 'satellite', sat);
-      });
-    }
-
-    if (viewMode === 'all' || viewMode === 'debris') {
-      debris.forEach(deb => {
-        createMarker(deb.lat, deb.lng, '#ef4444', 'debris', deb);
-      });
-    }
-  }, [aircraft, satellites, debris, viewMode, isMapLoaded, handleObjectSelect]);
-
-  const isLoading = aircraftLoading || satelliteLoading;
+  const isLoading = (aircraftLoading || satelliteLoading) && 
+                    aircraft.length === 0 && 
+                    satellites.length === 0;
 
   return (
     <MainLayout>
       <MapContainer onMapLoad={handleMapLoad} />
 
-      {/* View Mode Toggle - Top Right */}
+      {/* View Mode Toggle */}
       <div className="absolute top-4 right-4 z-10">
-        <ViewModeToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
+        <ViewModeToggle
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+        />
       </div>
 
-      {/* Stats Panel - Top Left */}
+      {/* Stats Panel */}
       <div className="absolute top-4 left-4 z-10">
         <StatsPanel
           aircraftCount={aircraft.length}
@@ -279,7 +258,7 @@ const App: React.FC = () => {
 
       {/* Selected Object Details */}
       {selectedObject && (
-        <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-10">
+        <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-10 max-w-xl">
           <ObjectDetailsCard
             selectedObject={selectedObject}
             onClose={() => handleObjectSelect(null)}
@@ -293,7 +272,9 @@ const App: React.FC = () => {
           <div className="bg-white rounded-lg p-6 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
             <p className="text-gray-700 font-medium">Loading tracker data...</p>
-            <p className="text-gray-500 text-sm mt-2">Fetching TLE data from CelesTrak</p>
+            <p className="text-gray-500 text-sm mt-2">
+              Initializing live tracking system...
+            </p>
           </div>
         </div>
       )}

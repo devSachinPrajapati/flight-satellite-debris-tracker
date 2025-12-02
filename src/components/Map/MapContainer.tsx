@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { Map } from '@maptiler/sdk';
-import { apiConfig } from '../../services/api';
+import * as maptilersdk from '@maptiler/sdk';
 import '@maptiler/sdk/dist/maptiler-sdk.css';
 
 interface MapContainerProps {
@@ -16,8 +16,11 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
 
     const map = new Map({
       container: mapContainerRef.current,
-      apiKey: apiConfig.mapTiler.apiKey,
-      style: 'https://api.maptiler.com/maps/hybrid/style.json',
+      apiKey: import.meta.env.VITE_MAPTILER_API_KEY,
+      style: maptilersdk.MapStyle.HYBRID,
+      // apiKey: apiConfig.mapTiler.apiKey,
+      // style: maptilersdk.MapStyle.SATELLITE,
+      // style: 'https://api.maptiler.com/maps/hybrid/style.json',
       center: [0, 20],
       zoom: 2,
       pitch: 0,
@@ -25,8 +28,12 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
     });
 
     map.on('load', () => {
+      console.log('✅ Map loaded successfully');
       mapRef.current = map;
       onMapLoad(map);
+    });
+    map.on('error', (e) => {
+      console.error('❌ Map error:', e);
     });
 
     return () => {
