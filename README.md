@@ -67,7 +67,7 @@ src/
 
 ## 🛠️ Tech Stack
 
-- **React 18** + **TypeScript**
+- **React 19.2** + **TypeScript**
 - **Vite** - Build tool
 - **MapTiler SDK** - Map visualization
 - **Tailwind CSS** - Styling
