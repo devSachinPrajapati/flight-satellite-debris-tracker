@@ -112,15 +112,15 @@ We selected **CelesTrak** instead of LeoLabs because:
 flowchart TD
 
     subgraph API_Sources["External Data Sources"]
-        A1["AirLabs API\nLive Aircraft Data"]
-        A2["CelesTrak TLE Feeds\nSatellites & Debris"]
+        A1["AirLabs API - Live Aircraft Data"]
+        A2["CelesTrak TLE Feeds - Satellites & Debris"]
     end
 
-    subgraph Frontend["Frontend Application\nReact + TypeScript + Vite"]
-        F1["Data Fetching Layer\nCustom Hooks"]
-        F2["Satellite.js\nTLE Propagation"]
-        F3["Data Normalization\nUnified Object Model"]
-        F4["Map Rendering\nMapTiler + MapLibre"]
+    subgraph Frontend["Frontend Application - React + TypeScript + Vite"]
+        F1["Data Fetching Layer - Custom Hooks"]
+        F2["Satellite.js - TLE Propagation"]
+        F3["Data Normalization - Unified Object Model"]
+        F4["Map Rendering - MapTiler + MapLibre"]
     end
 
     A1 -->|Aircraft JSON| F1

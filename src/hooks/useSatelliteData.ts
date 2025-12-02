@@ -8,6 +8,8 @@ export const useSatelliteData = (positionUpdateInterval = 2000) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastFetchTime, setLastFetchTime] = useState<Date>(new Date());
+  const [status, setStatus] = useState<'idle' | 'ok' | 'error'>('idle');
+
   
   const satellitesRef = useRef<SatelliteObject[]>([]);
   const debrisRef = useRef<SatelliteObject[]>([]);
@@ -25,11 +27,13 @@ export const useSatelliteData = (positionUpdateInterval = 2000) => {
       setSatellites(data.satellites);
       setDebris(data.debris);
       setLastFetchTime(new Date());
+      setStatus('ok');
       setError(null);
       
       console.log(`✅ Loaded ${data.satellites.length} satellites and ${data.debris.length} debris`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load satellite data');
+      setStatus('error');
       console.error('Satellite fetch error:', err);
     } finally {
       setIsLoading(false);
@@ -79,6 +83,7 @@ export const useSatelliteData = (positionUpdateInterval = 2000) => {
     isLoading, 
     error, 
     lastFetchTime,
+    status,              // new
     refresh: loadSatelliteData 
   };
 };

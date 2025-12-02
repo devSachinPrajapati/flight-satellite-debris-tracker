@@ -8,7 +8,9 @@ import ObjectDetailsCard from "./components/UI/ObjectDetailsCard";
 import { useAircraftData } from "./hooks/useAircraftData";
 import { useSatelliteData } from "./hooks/useSatelliteData";
 import { useMapControls } from "./hooks/useMapControls";
+import useFPS from "./hooks/useFPS";
 import type { Aircraft, SatelliteObject } from "./types";
+
 
 
 const App = () => {
@@ -18,6 +20,8 @@ const App = () => {
   const {
     aircraft,
     isLoading: aircraftLoading,
+    lastFetchTime: aircraftLastFetch,   // optional timestamp
+    status: aircraftStatus,             // 'idle' | 'ok' | 'error'
     refresh: refreshAircraft,
   } = useAircraftData(5000); 
 
@@ -26,11 +30,15 @@ const App = () => {
     debris,
     isLoading: satelliteLoading,
     lastFetchTime,
+    status: satelliteStatus,
     refresh: refreshSatellites,
   } = useSatelliteData(2000); // Update positions every 2 seconds
 
   const { viewMode, selectedObject, handleViewModeChange, handleObjectSelect } =
     useMapControls();
+
+  // lightweight FPS estimation for Debug UI
+  const fps = useFPS();
 
   const [isMapLoaded, setIsMapLoaded] = useState(false);
 
@@ -251,7 +259,11 @@ const App = () => {
           aircraftCount={aircraft.length}
           satelliteCount={satellites.length}
           debrisCount={debris.length}
-          lastUpdate={lastFetchTime}
+          lastUpdate={aircraftLastFetch ?? lastFetchTime}
+          aircraftStatus={aircraftStatus}
+          satelliteStatus={satelliteStatus}
+          debrisStatus={satelliteStatus} // or debrisStatus if available
+          fps={fps}
           onRefresh={handleRefresh}
         />
       </div>
