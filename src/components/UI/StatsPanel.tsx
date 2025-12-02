@@ -47,7 +47,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
         {onRefresh && (
           <button
             onClick={onRefresh}
-            className="text-blue-500 hover:text-blue-700 transition"
+            className="text-blue-500 hover:text-blue-700 transition cursor-pointer"
             title="Refresh data"
           >
             <RefreshCw size={16} />
