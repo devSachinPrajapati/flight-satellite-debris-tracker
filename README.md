@@ -111,16 +111,16 @@ We selected **CelesTrak** instead of LeoLabs because:
 ```mermaid
 flowchart TD
 
-    subgraph API_Sources[External Data Sources]
-        A1[AirLabs API<br/>Live Aircraft Data]
-        A2[CelesTrak TLE Feeds<br/>Satellites & Debris]
+    subgraph API_Sources["External Data Sources"]
+        A1["AirLabs API\nLive Aircraft Data"]
+        A2["CelesTrak TLE Feeds\nSatellites & Debris"]
     end
 
-    subgraph Frontend[Frontend Application<br/>React + TypeScript + Vite]
-        F1[Data Fetching Layer<br/>Custom Hooks]
-        F2[Satellite.js<br/>TLE Propagation]
-        F3[Data Normalization<br/>Unified Object Model]
-        F4[Map Rendering<br/>MapTiler + MapLibre]
+    subgraph Frontend["Frontend Application\nReact + TypeScript + Vite"]
+        F1["Data Fetching Layer\nCustom Hooks"]
+        F2["Satellite.js\nTLE Propagation"]
+        F3["Data Normalization\nUnified Object Model"]
+        F4["Map Rendering\nMapTiler + MapLibre"]
     end
 
     A1 -->|Aircraft JSON| F1
