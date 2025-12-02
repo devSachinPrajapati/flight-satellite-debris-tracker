@@ -41,7 +41,7 @@ const ViewModeToggle = ({
           <button
             key={mode}
             onClick={() => onViewModeChange(mode)}
-            className={`flex items-center space-x-2 px-4 py-2 rounded transition ${getButtonClass(
+            className={`flex items-center space-x-2 px-4 py-2 rounded transition cursor-pointer ${getButtonClass(
               mode,
               color
             )}`}
