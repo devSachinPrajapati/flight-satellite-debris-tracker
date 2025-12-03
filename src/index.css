@@ -28,9 +28,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-} */
-
-/* .marker:hover {
+} 
+   .marker:hover {
   transform: scale(1.5) !important;
   z-index: 1000 !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
