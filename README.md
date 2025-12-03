@@ -105,6 +105,38 @@ We selected **CelesTrak** instead of LeoLabs because:
 - Satellite data: Every 10 seconds
 - Map markers: Real-time rendering
 
+### 🌍 Globe View (3D Earth Mode)
+
+The application now supports a **switchable Globe View** using MapTiler SDK’s native 3D projection mode.  
+This enables a more realistic visualization of **satellite orbits**, **space debris**, and **aircraft movement** across the Earth.
+
+- Uses MapTiler’s **built-in globe projection** (`globe` mode)
+- Smooth toggle between **2D Map View** and **3D Globe View**
+- All existing aircraft, satellite, and debris markers remain fully functional
+- Live tracking continues seamlessly in both views
+- No extra rendering engines (Three.js, Three-Globe, Cesium, etc.)
+- Zero breaking changes to the existing codebase
+
+**Satellite orbits look more realistic on a 3D globe**, compared to a flat Web Mercator CRS map.  
+
+Switching to Globe View enhances the visual understanding of trajectories and orbital paths.
+
+#### 🧠 How It Works
+- We reuse the **same MapContainer** and **same markers**
+- When the user selects “Globe” view:
+  - `map.setProjection({ name: "globe" })` is applied
+  - Camera pitch & zoom are adjusted for a 3D experience
+- When switching back to "Map" view:
+  - Projection returns to `mercator`
+  - Camera resets to flat-view defaults
+
+No additional APIs or libraries were required.
+
+#### 🖼 UI Update
+A new **Globe / Map toggle** was added to the ViewMode selector:
+Map | Globe
+This allows users to switch instantly between views.
+
 ---
 
 ## Architecture (High Level)
