@@ -11,8 +11,6 @@ import { useMapControls } from "./hooks/useMapControls";
 import useFPS from "./hooks/useFPS";
 import type { Aircraft, SatelliteObject } from "./types";
 
-
-
 const App = () => {
   const mapRef = useRef<maptilersdk.Map | null>(null);
   const markersRef = useRef<Map<string, maptilersdk.Marker>>(new Map());
@@ -20,10 +18,10 @@ const App = () => {
   const {
     aircraft,
     isLoading: aircraftLoading,
-    lastFetchTime: aircraftLastFetch,   // optional timestamp
-    status: aircraftStatus,             // 'idle' | 'ok' | 'error'
+    lastFetchTime: aircraftLastFetch, // optional timestamp
+    status: aircraftStatus, // 'idle' | 'ok' | 'error'
     refresh: refreshAircraft,
-  } = useAircraftData(5000); 
+  } = useAircraftData(5000);
 
   const {
     satellites,
@@ -37,7 +35,7 @@ const App = () => {
   const { viewMode, selectedObject, handleViewModeChange, handleObjectSelect } =
     useMapControls();
 
-  // lightweight FPS estimation for Debug UI
+  // lightweight FPS
   const fps = useFPS();
 
   const [isMapLoaded, setIsMapLoaded] = useState(false);
@@ -97,6 +95,12 @@ const App = () => {
       } else {
         // Create new marker
         const el = document.createElement("div");
+        el.style.width = "0px";
+        el.style.height = "0px";
+        el.style.display = "flex";
+        el.style.alignItems = "center";
+        el.style.justifyContent = "center";
+
         const size = type === "debris" ? 16 : 24;
 
         el.className = "marker";
@@ -109,11 +113,12 @@ const App = () => {
         el.style.transition = "all 0.3s ease";
         el.style.boxShadow = "0 2px 8px rgba(0,0,0,0.4)";
 
-        
         if (type === "aircraft") {
-          el.innerHTML = '<div style="font-size: 12px; text-align: center; line-height: 20px;">✈️</div>';
+          el.innerHTML =
+            '<div style="font-size: 12px; text-align: center; line-height: 20px;">✈️</div>';
         } else if (type === "satellite") {
-          el.innerHTML = '<div style="font-size: 10px; text-align: center; line-height: 20px;">🛰️</div>';
+          el.innerHTML =
+            '<div style="font-size: 10px; text-align: center; line-height: 20px;">🛰️</div>';
         }
 
         el.addEventListener("mouseenter", () => {
@@ -142,21 +147,18 @@ const App = () => {
   );
 
   // Remove markers that are no longer visible
-  const removeInvalidMarkers = useCallback(
-    (validIds: Set<string>) => {
-      const currentIds = Array.from(markersRef.current.keys());
-      currentIds.forEach((id) => {
-        if (!validIds.has(id)) {
-          const marker = markersRef.current.get(id);
-          if (marker) {
-            marker.remove();
-            markersRef.current.delete(id);
-          }
+  const removeInvalidMarkers = useCallback((validIds: Set<string>) => {
+    const currentIds = Array.from(markersRef.current.keys());
+    currentIds.forEach((id) => {
+      if (!validIds.has(id)) {
+        const marker = markersRef.current.get(id);
+        if (marker) {
+          marker.remove();
+          markersRef.current.delete(id);
         }
-      });
-    },
-    []
-  );
+      }
+    });
+  }, []);
 
   // Update markers whenever data or view mode changes
   useEffect(() => {
@@ -171,14 +173,7 @@ const App = () => {
       aircraft.forEach((ac) => {
         const id = `aircraft-${ac.hex}`;
         validIds.add(id);
-        createOrUpdateMarker(
-          id,
-          ac.lat,
-          ac.lng,
-          "#3b82f6",
-          "aircraft",
-          ac
-        );
+        createOrUpdateMarker(id, ac.lat, ac.lng, "#3b82f6", "aircraft", ac);
       });
     }
 
@@ -187,14 +182,7 @@ const App = () => {
       satellites.forEach((sat) => {
         const id = `satellite-${sat.norad_id}`;
         validIds.add(id);
-        createOrUpdateMarker(
-          id,
-          sat.lat,
-          sat.lng,
-          "#10b981",
-          "satellite",
-          sat
-        );
+        createOrUpdateMarker(id, sat.lat, sat.lng, "#10b981", "satellite", sat);
       });
     }
 
@@ -203,14 +191,7 @@ const App = () => {
       debris.forEach((deb) => {
         const id = `debris-${deb.norad_id}`;
         validIds.add(id);
-        createOrUpdateMarker(
-          id,
-          deb.lat,
-          deb.lng,
-          "#ef4444",
-          "debris",
-          deb
-        );
+        createOrUpdateMarker(id, deb.lat, deb.lng, "#ef4444", "debris", deb);
       });
     }
 
@@ -228,7 +209,7 @@ const App = () => {
     removeInvalidMarkers,
   ]);
 
-  // Clean up 
+  // Clean up
   useEffect(() => {
     return () => {
       markersRef.current.forEach((marker) => marker.remove());
@@ -237,9 +218,10 @@ const App = () => {
     };
   }, []);
 
-  const isLoading = (aircraftLoading || satelliteLoading) && 
-                    aircraft.length === 0 && 
-                    satellites.length === 0;
+  const isLoading =
+    (aircraftLoading || satelliteLoading) &&
+    aircraft.length === 0 &&
+    satellites.length === 0;
 
   return (
     <MainLayout>

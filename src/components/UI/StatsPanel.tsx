@@ -81,7 +81,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
           <strong className="text-gray-900">{debrisCount ?? 0}</strong>
         </div>
 
-        {/* Total */}
+        {/* Total Object */}
         <div className="pt-2 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <span className="text-gray-600">Total Objects</span>

@@ -1,4 +1,3 @@
-// src/hooks/useFPS.ts
 import { useEffect, useRef, useState } from "react";
 
 /**
