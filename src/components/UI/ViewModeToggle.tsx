@@ -35,7 +35,7 @@ const ViewModeToggle = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-2">
+    <div className="bg-white rounded-lg shadow-lg p-2 absolute top-10 right-10 z-10">
       <div className="flex flex-col space-y-2">
         {buttons.map(({ mode, icon: Icon, label, color }) => (
           <button

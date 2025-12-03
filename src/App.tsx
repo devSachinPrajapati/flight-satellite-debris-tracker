@@ -10,10 +10,23 @@ import { useSatelliteData } from "./hooks/useSatelliteData";
 import { useMapControls } from "./hooks/useMapControls";
 import useFPS from "./hooks/useFPS";
 import type { Aircraft, SatelliteObject } from "./types";
+import MapViewToggle from "./components/UI/MapViewToggle";
 
 const App = () => {
   const mapRef = useRef<maptilersdk.Map | null>(null);
   const markersRef = useRef<Map<string, maptilersdk.Marker>>(new Map());
+
+  // Inside App component, add:
+  const [isGlobeView, setIsGlobeView] = useState(true);
+
+  const toggleGlobeView = useCallback(() => {
+    if (mapRef.current) {
+      const newProjection = isGlobeView ? "mercator" : "globe";
+      mapRef.current.setProjection(newProjection as maptilersdk.ProjectionSpecification);
+      setIsGlobeView(!isGlobeView);
+      console.log(`🌍 Switched to ${newProjection} view`);
+    }
+  }, [isGlobeView]);
 
   const {
     aircraft,
@@ -259,6 +272,14 @@ const App = () => {
           />
         </div>
       )}
+
+      <div className="absolute top-64 right-4 z-10 flex flex-col space-y-2">
+        <MapViewToggle isGlobeView={isGlobeView} onToggle={toggleGlobeView} />
+        {/* <ViewModeToggle
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+        /> */}
+      </div>
 
       {/* Loading State */}
       {isLoading && (

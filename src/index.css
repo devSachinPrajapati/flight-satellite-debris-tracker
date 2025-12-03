@@ -9,6 +9,7 @@ body {
 }
 
 /* MapTiler SDK styles */
+/* 
 .maplibregl-map {
   width: 100%;
   height: 100%;
@@ -22,7 +23,7 @@ body {
   height: 100% !important;
 }
 
-/* .marker {
+.marker {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   display: flex;
@@ -39,7 +40,7 @@ body {
   transform: scale(1.3) !important;
 } */
 
-.marker {
+/* .marker {
   transform-origin: center center;
 }
 
@@ -91,4 +92,134 @@ body {
 
 .animate-spin {
   animation: spin 1s linear infinite;
+} */
+
+/* MapTiler SDK styles - Globe View */
+.maplibregl-map {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: #0B1026 !important; /* Space background */
+}
+
+.maplibregl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.maplibregl-canvas-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Globe view specific styles */
+.maplibregl-ctrl-attrib {
+  background: rgba(0, 0, 0, 0.5) !important;
+  color: white !important;
+}
+
+/* Enhanced marker styles for globe view */
+.marker {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  user-select: none;
+  -webkit-user-select: none;
+  position: relative;
+  z-index: 1;
+  /* Add glow effect for space theme */
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
+}
+
+.marker:hover {
+  z-index: 1000 !important;
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.6));
+}
+
+.marker:active {
+  transform: scale(1.2) !important;
+}
+
+/* Ensure icon inside marker doesn't capture clicks */
+.marker > * {
+  pointer-events: none !important;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* MapTiler controls styling */
+.maplibregl-ctrl-top-right,
+.maplibregl-ctrl-top-left,
+.maplibregl-ctrl-bottom-right,
+.maplibregl-ctrl-bottom-left {
+  z-index: 5;
+}
+
+.maplibregl-ctrl button {
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Ensure MapTiler markers are clickable */
+.maplibregl-marker {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Pulse animation for selected markers */
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 15px rgba(59, 130, 246, 0);
+  }
+}
+
+.marker-selected {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Orbital trail effect */
+@keyframes orbit-trail {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.orbit-trail {
+  animation: orbit-trail 3s ease-in-out infinite;
 }
