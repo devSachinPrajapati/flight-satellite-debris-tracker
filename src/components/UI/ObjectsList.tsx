@@ -125,7 +125,7 @@ const ObjectsList: React.FC<ObjectsListProps> = ({
         {/* Toggle Button */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="absolute -left-10 top-1/3 cursor-pointer transform -translate-y-1/2 bg-white rounded-l-lg shadow-lg p-3 hover:bg-gray-50 transition"
+          className="absolute -left-10 bottom-12 cursor-pointer transform -translate-y-1/2 bg-white rounded-l-lg shadow-lg p-3 hover:bg-gray-50 transition"
         >
           {isExpanded ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>

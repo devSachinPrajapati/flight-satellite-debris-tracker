@@ -31,7 +31,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch }) => {
   };
 
   return (
-    <div className="absolute top-2 right-52 z-10 bg-white rounded-lg shadow-lg p-4 w-80">
+    <div className="absolute top-2 right-16 z-10 bg-white rounded-lg shadow-lg p-4 w-80">
       {/* Search Input */}
       <div className="mb-3">
         <div className="flex items-center space-x-2">
