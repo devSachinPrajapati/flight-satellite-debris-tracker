@@ -10,7 +10,7 @@ const MapViewToggle: React.FC<MapViewToggleProps> = ({ isGlobeView, onToggle }) 
   return (
     <button
       onClick={onToggle}
-      className="bg-white rounded-lg shadow-lg p-3 hover:bg-gray-50 transition-colors"
+      className="bg-white rounded-lg shadow-lg p-3 hover:bg-gray-50 transition-colors cursor-pointer"
       title={isGlobeView ? "Switch to Flat Map" : "Switch to Globe View"}
     >
       {isGlobeView ? (
