@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Search, Filter, X } from 'lucide-react';
 
 export interface FilterOptions {
@@ -13,7 +13,7 @@ interface SearchPanelProps {
   onSearch: (query: string, filters: FilterOptions) => void;
 }
 
-const SearchPanel: React.FC<SearchPanelProps> = ({ onSearch }) => {
+const SearchPanel = ({ onSearch } : SearchPanelProps) => {
   const [query, setQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({

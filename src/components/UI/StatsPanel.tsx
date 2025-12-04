@@ -1,4 +1,3 @@
-import React from "react";
 import { RefreshCw } from "lucide-react";
 
 interface StatsPanelProps {
@@ -14,7 +13,7 @@ interface StatsPanelProps {
   fps?: number;
 }
 
-const StatsPanel: React.FC<StatsPanelProps> = ({
+const StatsPanel = ({
   aircraftCount = 0,
   satelliteCount = 0,
   debrisCount = 0,
@@ -24,7 +23,7 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
   satelliteStatus = "idle",
   debrisStatus = "idle",
   fps,
-}) => {
+}: StatsPanelProps) => {
   const formatTime = (date: Date) =>
     date.toLocaleTimeString("en-US", {
       hour: "2-digit",
@@ -36,14 +35,18 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
     if (!s || s === "idle")
       return <span className="inline-block w-2 h-2 rounded-full bg-gray-300" />;
     if (s === "ok")
-      return <span className="inline-block w-2 h-2 rounded-full bg-green-500" />;
+      return (
+        <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+      );
     return <span className="inline-block w-2 h-2 rounded-full bg-red-500" />;
   };
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-4 w-72">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-700">Live Tracking Stats</h3>
+        <h3 className="text-sm font-semibold text-gray-700">
+          Live Tracking Stats
+        </h3>
         {onRefresh && (
           <button
             onClick={onRefresh}
@@ -117,7 +120,8 @@ const StatsPanel: React.FC<StatsPanelProps> = ({
           {/* FPS */}
           <div className="flex items-center justify-between mt-2">
             <div className="text-xs text-gray-500">
-              FPS: <span className="font-medium text-gray-700">{fps ?? "—"}</span>
+              FPS:{" "}
+              <span className="font-medium text-gray-700">{fps ?? "—"}</span>
             </div>
             <div />
           </div>

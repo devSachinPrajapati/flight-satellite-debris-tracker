@@ -14,6 +14,7 @@ import MapViewToggle from "./components/UI/MapViewToggle";
 import ObjectsList from "./components/UI/ObjectsList";
 import SearchPanel from "./components/UI/SearchPanel";
 import { useSearch } from "./hooks/useSearch";
+import LoadingOverlay from "./components/Tracker/LoadingOverlay";
 
 const App = () => {
   const mapRef = useRef<maptilersdk.Map | null>(null);
@@ -31,7 +32,6 @@ const App = () => {
       console.log(`🌍 Switched to ${newProjection} view`);
     }
   }, [isGlobeView]);
-
 
 
   const {
@@ -250,8 +250,8 @@ const App = () => {
     <MainLayout>
       <MapContainer onMapLoad={handleMapLoad} />
 
-      {/* View Mode Toggle */}
-      <div className="absolute top-[19rem] left-4 z-10">
+      {/* View Mode Toggle | top-[19rem]*/}
+      <div className="absolute top-76 left-4 z-10">
         <ViewModeToggle
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
@@ -310,19 +310,12 @@ const App = () => {
       )}
 
       {/* Loading State */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
-          <div className="bg-white rounded-lg p-6 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-gray-700 font-medium">Loading tracker data...</p>
-            <p className="text-gray-500 text-sm mt-2">
-              Initializing live tracking system...
-            </p>
-          </div>
-        </div>
-      )}
+      <LoadingOverlay isLoading={isLoading} />
     </MainLayout>
   );
 };
 
 export default App;
+
+
+

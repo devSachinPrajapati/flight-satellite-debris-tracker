@@ -10,7 +10,7 @@ export const useSatelliteData = (positionUpdateInterval = 2000) => {
   const [lastFetchTime, setLastFetchTime] = useState<Date>(new Date());
   const [status, setStatus] = useState<'idle' | 'ok' | 'error'>('idle');
 
-  
+
   const satellitesRef = useRef<SatelliteObject[]>([]);
   const debrisRef = useRef<SatelliteObject[]>([]);
 

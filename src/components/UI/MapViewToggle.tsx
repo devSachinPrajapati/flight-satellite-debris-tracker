@@ -1,4 +1,3 @@
-import React from 'react';
 import { Globe, Map as MapIcon } from 'lucide-react';
 
 interface MapViewToggleProps {
@@ -6,7 +5,7 @@ interface MapViewToggleProps {
   onToggle: () => void;
 }
 
-const MapViewToggle: React.FC<MapViewToggleProps> = ({ isGlobeView, onToggle }) => {
+const MapViewToggle = ({ isGlobeView, onToggle } : MapViewToggleProps) => {
   return (
     <button
       onClick={onToggle}

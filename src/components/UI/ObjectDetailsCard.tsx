@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, Plane, Satellite, Trash2, Radio } from 'lucide-react';
 import type { SelectedObject, Aircraft, SatelliteObject } from '../../types';
 import { parseTLEInfo } from '../../utils/tleParser';
@@ -8,7 +7,7 @@ interface ObjectDetailsCardProps {
   onClose: () => void;
 }
 
-const ObjectDetailsCard: React.FC<ObjectDetailsCardProps> = ({ selectedObject, onClose }) => {
+const ObjectDetailsCard = ({ selectedObject, onClose }: ObjectDetailsCardProps) => {
   const { type, data } = selectedObject;
 
   const renderAircraftDetails = (aircraft: Aircraft) => (
