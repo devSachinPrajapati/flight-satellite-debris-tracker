@@ -275,7 +275,7 @@ const App = () => {
 
       {/* Selected Object Details */}
       {selectedObject && (
-        <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-10 max-w-xl">
+        <div className="absolute top-4 bottom-24 left-1/2 transform -translate-x-1/2 z-10 max-w-xl">
           <ObjectDetailsCard
             selectedObject={selectedObject}
             onClose={() => handleObjectSelect(null)}
@@ -298,16 +298,6 @@ const App = () => {
         onSelectObject={(data, type) => handleObjectSelect({ type, data })}
         selectedObject={selectedObject}
       />
-
-      {/* Selected Object Details */}
-      {selectedObject && (
-        <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-10 max-w-xl">
-          <ObjectDetailsCard
-            selectedObject={selectedObject}
-            onClose={() => handleObjectSelect(null)}
-          />
-        </div>
-      )}
 
       {/* Loading State */}
       <LoadingOverlay isLoading={isLoading} />
