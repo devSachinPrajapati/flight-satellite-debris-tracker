@@ -466,3 +466,70 @@ docker-compose up -d --scale backend=3
 }
 ```
 
+
+# Navigate to backend directory
+cd backend
+
+# Create __init__.py files
+touch app/__init__.py
+touch app/api/__init__.py
+touch app/api/v1/__init__.py
+touch app/models/__init__.py
+touch app/schemas/__init__.py
+touch app/services/__init__.py
+touch app/repositories/__init__.py
+touch app/tasks/__init__.py
+touch app/utils/__init__.py
+
+# Create main application files
+touch app/main.py
+touch app/config.py
+touch app/database.py
+
+# Create model files
+touch app/models/aircraft.py
+touch app/models/satellite.py
+touch app/models/debris.py
+
+# Create schema files
+touch app/schemas/aircraft.py
+touch app/schemas/satellite.py
+
+# Create service files
+touch app/services/airlabs_service.py
+touch app/services/celestrak_service.py
+touch app/services/orbit_calculator.py
+
+# Create repository files
+touch app/repositories/aircraft_repo.py
+touch app/repositories/satellite_repo.py
+
+# Create API endpoint files
+touch app/api/v1/aircraft.py
+touch app/api/v1/satellites.py
+touch app/api/v1/websocket.py
+
+# Create task files
+touch app/tasks/fetch_aircraft.py
+touch app/tasks/fetch_satellites.py
+
+# Create utility files
+touch app/utils/logger.py
+touch app/utils/validators.py
+
+# Create configuration files
+touch requirements.txt
+touch Dockerfile
+touch docker-compose.yml
+touch .env
+touch .env.example
+touch .gitignore
+touch README.md
+
+# Create scripts
+touch scripts/start.sh
+touch scripts/stop.sh
+touch scripts/reset.sh
+
+# Make scripts executable
+chmod +x scripts/*.sh
