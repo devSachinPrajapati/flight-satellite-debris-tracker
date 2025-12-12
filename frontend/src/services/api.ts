@@ -14,9 +14,18 @@ export const apiConfig = {
   },
 };
 
+// ============================================
+// FETCH WITH TIMEOUT
+// ============================================
+
+interface FetchWithTimeoutOptions extends RequestInit {
+  timeout?: number;
+}
+
 export const fetchWithTimeout = async (
   url: string,
-  options: RequestInit = {},
+ options: FetchWithTimeoutOptions = {},
+  // options: RequestInit = {},
   timeout = 10000
 ): Promise<Response> => {
   const controller = new AbortController();

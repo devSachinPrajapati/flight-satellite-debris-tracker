@@ -105,6 +105,24 @@ We selected **CelesTrak** instead of LeoLabs because:
 - Satellite data: Every 10 seconds
 - Map markers: Real-time rendering
 
+### ✔ Nearby Flight Tracking
+- Displays all aircraft within a specified radius from a selected location
+- Real-time distance calculation using great-circle distance formula
+- Configurable search radius (5 km, 10 km, 25 km, 50 km, etc.)
+- Dynamic filtering as aircraft move in and out of range
+- Shows relative bearing and distance to nearby flights
+- Useful for monitoring airspace around airports or regions of interest
+
+### ✔ Aircraft Live Board
+- Comprehensive live tabular view of all tracked aircraft
+- Sortable columns: Flight number, Altitude, Speed, Direction, Status, etc.
+- Real-time updates reflecting current aircraft positions
+- Quick search/filter by flight number, airline, or registration
+- Color-coded status indicators (Active, Landed, Taxiing)
+- Click-to-track integration with map (sync with marker selection)
+- Detailed aircraft metrics including vertical speed, bearing, and ETA
+- Export capabilities for flight data analysis
+
 ### 🌍 Globe View (3D Earth Mode)
 
 The application now supports a **switchable Globe View** using MapTiler SDK’s native 3D projection mode.  
