@@ -185,3 +185,77 @@ body {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
+
+
+/* CSS for new Feature */
+
+/* Replay Marker Animation */
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(147, 51, 234, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(147, 51, 234, 0.6);
+    transform: scale(1.05);
+  }
+}
+
+.replay-marker {
+  animation: pulse 2s infinite;
+  transition: all 0.3s ease;
+}
+
+.replay-marker:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 6px 16px rgba(147, 51, 234, 0.6) !important;
+}
+
+.replay-popup .maplibregl-popup-content {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 2px solid #9333ea;
+}
+
+.replay-popup .maplibregl-popup-tip {
+  border-top-color: #9333ea;
+}
+
+/* Performance Dashboard Scrollbar */
+.performance-dashboard::-webkit-scrollbar {
+  width: 6px;
+}
+
+.performance-dashboard::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.performance-dashboard::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.performance-dashboard::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Satellite Panel Tabs */
+.satellite-tab {
+  transition: all 0.2s ease;
+}
+
+.satellite-tab:hover {
+  background-color: rgba(20, 184, 166, 0.1);
+}
+
+/* Orbit Visualizer Line Animation */
+@keyframes dash {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.orbit-line {
+  stroke-dasharray: 5, 5;
+  animation: dash 20s linear infinite;
+}
