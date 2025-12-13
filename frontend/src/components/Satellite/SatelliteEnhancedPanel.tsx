@@ -30,7 +30,7 @@ const SatelliteEnhancedPanel: React.FC<SatelliteEnhancedPanelProps> = ({
   }
 
   return (
-    <div className="fixed right-4 top-20 bg-white dark:bg-gray-800 rounded-lg shadow-xl w-[500px] max-h-[80vh] overflow-hidden">
+    <div className="fixed right-16 top-40 z-30 bg-white dark:bg-gray-800 rounded-lg shadow-xl w-[500px] max-h-[80vh] overflow-hidden">
       {/* Header */}
       <div className="bg-linear-to-r from-teal-600 to-teal-800 px-6 py-4">
         <div className="flex justify-between items-start">
@@ -40,7 +40,7 @@ const SatelliteEnhancedPanel: React.FC<SatelliteEnhancedPanelProps> = ({
               NORAD ID: {satellite.norad_id}
             </p>
           </div>
-          <button onClick={onClose} className="text-white hover:text-gray-200">
+          <button onClick={onClose} className="text-white hover:text-gray-200 cursor-pointer">
             <svg
               className="w-6 h-6"
               fill="none"
@@ -84,30 +84,30 @@ const SatelliteEnhancedPanel: React.FC<SatelliteEnhancedPanelProps> = ({
       <div className="flex border-b border-gray-200 dark:border-gray-700">
         <button
           onClick={() => setSelectedTab("info")}
-          className={`flex-1 px-4 py-3 text-sm font-medium ${
+          className={`flex-1 px-4 py-3 text-sm font-medium cursor-pointer ${
             selectedTab === "info"
               ? "border-b-2 border-teal-500 text-teal-600"
-              : "text-gray-600 hover:text-gray-800 dark:text-gray-400"
+              : "text-gray-600 hover:text-gray-200 dark:text-gray-400"
           }`}
         >
           Info
         </button>
         <button
           onClick={() => setSelectedTab("trail")}
-          className={`flex-1 px-4 py-3 text-sm font-medium ${
+          className={`flex-1 px-4 py-3 text-sm font-medium cursor-pointer ${
             selectedTab === "trail"
               ? "border-b-2 border-teal-500 text-teal-600"
-              : "text-gray-600 hover:text-gray-800 dark:text-gray-400"
+              : "text-gray-600 hover:text-gray-200 dark:text-gray-400"
           }`}
         >
           Trail
         </button>
         <button
           onClick={() => setSelectedTab("footprint")}
-          className={`flex-1 px-4 py-3 text-sm font-medium ${
+          className={`flex-1 px-4 py-3 text-sm font-medium cursor-pointer ${
             selectedTab === "footprint"
               ? "border-b-2 border-teal-500 text-teal-600"
-              : "text-gray-600 hover:text-gray-800 dark:text-gray-400"
+              : "text-gray-600 hover:text-gray-200 dark:text-gray-400"
           }`}
         >
           Footprint
@@ -203,19 +203,19 @@ const SatelliteEnhancedPanel: React.FC<SatelliteEnhancedPanelProps> = ({
             </div>
 
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              <div className="text-xs text-gray-100 dark:text-gray-400 mb-2">
                 Trail Statistics
               </div>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
+                <div className="flex justify-between text-gray-100">
                   <span>Total Points:</span>
                   <span className="font-medium">{trail.positions.length}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-gray-100">
                   <span>Time Span:</span>
                   <span className="font-medium">90 minutes</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-gray-100">
                   <span>Update Interval:</span>
                   <span className="font-medium">30 seconds</span>
                 </div>

@@ -111,7 +111,7 @@ const OrbitVisualizerPanel: React.FC<OrbitVisualizerPanelProps> = ({
   }
 
   return (
-    <div className="fixed right-4 top-20 bg-white dark:bg-gray-800 rounded-lg shadow-xl w-96">
+    <div className="fixed right-16 top-24 bg-white dark:bg-gray-800 rounded-lg shadow-xl w-96">
       {/* Header */}
       <div className="bg-linear-to-r from-indigo-600 to-indigo-800 px-6 py-4 rounded-t-lg">
         <div className="flex justify-between items-start">
@@ -119,7 +119,7 @@ const OrbitVisualizerPanel: React.FC<OrbitVisualizerPanelProps> = ({
             <h2 className="text-xl font-bold text-white">Orbit Visualizer</h2>
             <p className="text-indigo-100 text-sm">{satellite.name}</p>
           </div>
-          <button onClick={onClose} className="text-white hover:text-gray-200">
+          <button onClick={onClose} className="text-white hover:text-gray-200 cursor-pointer">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>

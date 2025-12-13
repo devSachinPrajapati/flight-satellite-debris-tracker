@@ -48,20 +48,6 @@ const NearbyFlightsPanel: React.FC<NearbyFlightsPanelProps> = ({
   }, []);
 
 
-  // useEffect(() => {
-  //   const getLocation = async () => {
-  //     const result = await getUserLocation();
-  //     if (result.success && result.data) {
-  //       setUserLocation(result.data);
-  //       setLocationError(null);
-  //     } else {
-  //       setLocationError(result.error || "Location unavailable");
-  //     }
-  //   };
-
-  //   getLocation();
-  // }, []);
-
   useEffect(() => {
     if (!userLocation) return;
 
@@ -100,12 +86,6 @@ const NearbyFlightsPanel: React.FC<NearbyFlightsPanelProps> = ({
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             {locationError}
           </p>
-          {/* <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 cursor-pointer"
-          >
-            Enable Location
-          </button> */}
           <button
             onClick={requestLocation}
             disabled={isRequestingLocation}

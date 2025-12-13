@@ -138,7 +138,7 @@ const FlightReplayControl: React.FC<FlightReplayControlProps> = ({
         </div>
         <button
           onClick={onClose}
-          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-pointer"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -169,7 +169,7 @@ const FlightReplayControl: React.FC<FlightReplayControlProps> = ({
       <div className="flex items-center justify-center gap-4">
         <button
           onClick={handleRestart}
-          className="p-3 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+          className="p-3 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors cursor-pointer"
           title="Restart"
         >
           <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,7 +179,7 @@ const FlightReplayControl: React.FC<FlightReplayControlProps> = ({
 
         <button
           onClick={handlePlayPause}
-          className="p-4 rounded-full bg-blue-500 hover:bg-blue-600 text-white transition-colors shadow-lg"
+          className="p-4 rounded-full bg-blue-500 hover:bg-blue-600 text-white transition-colors shadow-lg cursor-pointer"
         >
           {replayState.isPlaying ? (
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -197,7 +197,7 @@ const FlightReplayControl: React.FC<FlightReplayControlProps> = ({
             <button
               key={speed}
               onClick={() => handleSpeedChange(speed)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 replayState.speed === speed
                   ? 'bg-blue-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'

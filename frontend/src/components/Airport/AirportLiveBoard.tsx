@@ -77,25 +77,24 @@ const AirportLiveBoard: React.FC<AirportLiveBoardProps> = ({ iataCode, onClose }
       <td className="px-4 py-3">
         {schedule.arr_time || schedule.dep_time
           ? new Date(schedule.arr_time || schedule.dep_time!).toLocaleTimeString(
-              'en-US',
-              {
-                hour: '2-digit',
-                minute: '2-digit',
-              }
-            )
+            'en-US',
+            {
+              hour: '2-digit',
+              minute: '2-digit',
+            }
+          )
           : 'N/A'}
       </td>
       <td className="px-4 py-3">
         <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${
-            schedule.status === 'active'
+          className={`px-2 py-1 rounded-full text-xs font-medium ${schedule.status === 'active'
               ? 'bg-green-100 text-green-800'
               : schedule.status === 'landed'
-              ? 'bg-blue-100 text-blue-800'
-              : schedule.status === 'cancelled'
-              ? 'bg-red-100 text-red-800'
-              : 'bg-gray-100 text-gray-800'
-          }`}
+                ? 'bg-blue-100 text-blue-800'
+                : schedule.status === 'cancelled'
+                  ? 'bg-red-100 text-red-800'
+                  : 'bg-gray-100 text-gray-800'
+            }`}
         >
           {schedule.status}
         </span>
@@ -177,31 +176,28 @@ const AirportLiveBoard: React.FC<AirportLiveBoardProps> = ({ iataCode, onClose }
       <div className="flex border-b border-gray-200 dark:border-gray-700">
         <button
           onClick={() => setActiveTab('arrivals')}
-          className={`flex-1 px-6 py-3 text-sm font-medium ${
-            activeTab === 'arrivals'
+          className={`flex-1 px-6 py-3 text-sm font-medium ${activeTab === 'arrivals'
               ? 'border-b-2 border-blue-500 text-blue-600'
               : 'text-gray-600 hover:text-gray-800 dark:text-gray-400'
-          }`}
+            }`}
         >
           Arrivals ({arrivals.length})
         </button>
         <button
           onClick={() => setActiveTab('departures')}
-          className={`flex-1 px-6 py-3 text-sm font-medium ${
-            activeTab === 'departures'
+          className={`flex-1 px-6 py-3 text-sm font-medium ${activeTab === 'departures'
               ? 'border-b-2 border-blue-500 text-blue-600'
               : 'text-gray-600 hover:text-gray-800 dark:text-gray-400'
-          }`}
+            }`}
         >
           Departures ({departures.length})
         </button>
         <button
           onClick={() => setActiveTab('delayed')}
-          className={`flex-1 px-6 py-3 text-sm font-medium ${
-            activeTab === 'delayed'
+          className={`flex-1 px-6 py-3 text-sm font-medium ${activeTab === 'delayed'
               ? 'border-b-2 border-red-500 text-red-600'
               : 'text-gray-600 hover:text-gray-800 dark:text-gray-400'
-          }`}
+            }`}
         >
           Delayed ({delayed.length})
         </button>
@@ -241,10 +237,10 @@ const AirportLiveBoard: React.FC<AirportLiveBoardProps> = ({ iataCode, onClose }
         {((activeTab === 'arrivals' && arrivals.length === 0) ||
           (activeTab === 'departures' && departures.length === 0) ||
           (activeTab === 'delayed' && delayed.length === 0)) && (
-          <div className="text-center py-12 text-gray-500">
-            No {activeTab} flights available
-          </div>
-        )}
+            <div className="text-center py-12 text-gray-500">
+              No {activeTab} flights available
+            </div>
+          )}
       </div>
     </div>
   );
