@@ -1125,3 +1125,438 @@ Every 6 hours:
    - Manual refresh button
 
 5. **Tooltips**: Hover over markers to see object names and key info
+
+---
+
+## 🎯 New Features
+
+### ✅ **1. Flight Replay - Time Travel for Flights** 🔄
+**What it does:** Records the last 24 hours of every aircraft's position and allows you to replay the flight like watching a video.
+
+**Key Features:**
+- 24-hour position history recording
+- Interactive timeline slider
+- Speed controls (1x, 2x, 4x, 8x)
+- Smooth position interpolation
+- Visual replay marker with heading indicator
+- Flight path visualization
+
+**How to use:**
+1. Click on any aircraft marker
+2. Wait 1-2 minutes for history to accumulate
+3. Click "🔄 Replay Flight" button
+4. Use slider to scrub through timeline
+5. Adjust playback speed as needed
+
+**User Benefits:**
+- ✅ Investigate flight delays and diversions
+- ✅ Analyze approach and landing patterns
+- ✅ Educational tool for aviation students
+- ✅ Understand weather-related route changes
+
+---
+
+### ✅ **2. Airport Live Board - Real-Time Airport Dashboard** ✈️
+**What it does:** Shows a complete real-time dashboard of any airport in the world with arrivals, departures, delays, and gate information.
+
+**Key Features:**
+- Real-time flight schedules
+- Three-tab interface (Arrivals, Departures, Delayed)
+- Live status updates (On Time, Delayed, Landed, Cancelled)
+- Gate information
+- Delay duration tracking
+- Airport statistics dashboard
+- Auto-refresh every minute
+
+**Information Displayed:**
+- Flight numbers and airline codes
+- Origin/Destination airports
+- Scheduled vs actual times
+- Current status with color coding
+- Gate and terminal numbers
+- Aircraft types
+- Real-time delay metrics
+
+**How to use:**
+1. Click "✈️ Airport Board" button
+2. View default airport (JFK) or change code
+3. Switch between Arrivals/Departures/Delayed tabs
+4. Click on any flight for details
+
+**User Benefits:**
+- ✅ Track loved ones' flights
+- ✅ Plan airport pickups with accurate timing
+- ✅ Monitor airport congestion
+- ✅ Identify delay patterns
+
+---
+
+### ✅ **3. Nearby Flights Around You - Personal Air Traffic Control** 📍
+**What it does:** Uses your GPS location to show all flights within a customizable radius (100-1000 km).
+
+**Key Features:**
+- Geolocation-based flight search
+- Adjustable search radius
+- Three highlighted categories:
+  - **Closest Flight:** Nearest aircraft to you
+  - **Fastest Flight:** Fastest aircraft nearby
+  - **Lowest Flight:** Lowest altitude aircraft
+- Distance and bearing calculations
+- Compass direction indicators
+- Click to select and track flights
+
+**Information Displayed:**
+- Flight identification
+- Distance from your location (km)
+- Cardinal direction (N, NE, E, etc.)
+- Altitude in feet
+- Speed in knots
+- Aircraft type and airline
+
+**How to use:**
+1. Click "📍 Nearby Flights" button
+2. Allow browser location permission
+3. Select search radius (100-1000 km)
+4. View nearby flights sorted by distance
+5. Click any flight to track on map
+
+**User Benefits:**
+- ✅ Identify planes overhead
+- ✅ Plane spotting and aviation enthusiasm
+- ✅ Monitor local air traffic
+- ✅ Educational for children and students
+
+---
+
+### ✅ **4. Aircraft Performance Dashboard - Flight Health Monitor** 📊
+**What it does:** Tracks and visualizes aircraft performance metrics in real-time with interactive charts.
+
+**Key Features:**
+- Real-time data recording
+- Interactive line charts
+- Speed over time visualization
+- Altitude curve tracking
+- Climb/descent rate analysis
+- Statistical calculations (avg, max, min)
+- Performance metrics grid
+
+**Metrics Tracked:**
+- Average speed (knots)
+- Maximum speed achieved
+- Average altitude (feet)
+- Maximum altitude reached
+- Average climb rate (ft/min)
+- Average descent rate (ft/min)
+- Data point tracking (up to 200 points)
+
+**How to use:**
+1. Select any aircraft on the map
+2. Click "📊 Performance" button
+3. View real-time charts and statistics
+4. Monitor performance changes over time
+
+**User Benefits:**
+- ✅ Understand aircraft behavior
+- ✅ Educational tool for aviation students
+- ✅ Detect unusual flight patterns
+- ✅ Analyze fuel efficiency
+
+---
+
+### ✅ **5. Enhanced Satellite Tracker - Space Observer** 🛰️
+**What it does:** Provides detailed satellite information including orbital trails, ground coverage, and technical specifications.
+
+**Key Features:**
+- Three-tab interface (Info, Trail, Footprint)
+- Orbital trail visualization (last 90 minutes)
+- Ground footprint calculations
+- Coverage area analysis
+- Collision risk warnings
+- Operator information
+- Visibility status
+
+**Info Tab:**
+- Satellite operator (SpaceX, NASA, etc.)
+- Object type (Satellite/Debris)
+- Orbital period
+- Ground visibility status
+- Collision risk alerts
+- Technical specifications
+
+**Trail Tab:**
+- Last 90 minutes of orbital positions
+- Trail rendered as dashed line on map
+- 30-second position intervals
+- Trail statistics
+
+**Footprint Tab:**
+- Coverage radius (km)
+- Total coverage area (km²)
+- Center position coordinates
+- Ground visibility explanation
+
+**How to use:**
+1. Select any satellite on the map
+2. Click "🛰️ Sat Tracker" button
+3. Switch between Info/Trail/Footprint tabs
+4. View detailed satellite information
+
+**User Benefits:**
+- ✅ Track International Space Station (ISS)
+- ✅ Monitor Starlink satellites
+- ✅ Understand satellite coverage
+- ✅ Space debris awareness
+
+---
+
+### ✅ **6. Orbit Visualizer - Future Path Predictor** 🪐
+**What it does:** Predicts and visualizes satellite future positions (30-180 minutes) with orbital path rendering.
+
+**Key Features:**
+- Orbital path prediction
+- Adjustable duration (30-180 minutes)
+- SGP4 propagation algorithm
+- Orbit type classification (LEO/MEO/GEO/HEO)
+- Next pass predictions
+- Visual path rendering on map
+- Green dashed line visualization
+
+**Orbit Types Explained:**
+- **LEO (160-2,000 km):** ISS, Starlink, imaging satellites
+- **MEO (2,000-35,786 km):** GPS satellites
+- **GEO (~35,786 km):** TV/Weather satellites
+- **HEO (>35,786 km):** Research satellites
+
+**Next Pass Information:**
+- AOS (Acquisition of Signal): Rise time
+- LOS (Loss of Signal): Set time
+- Max Elevation: Highest angle in sky
+
+**How to use:**
+1. Select any satellite on the map
+2. Click "🪐 Orbit" button
+3. Choose prediction duration
+4. View predicted path on map
+5. Check next pass timing
+
+**User Benefits:**
+- ✅ Plan satellite observations
+- ✅ Amateur radio communications
+- ✅ Astrophotography timing
+- ✅ Space science education
+
+---
+
+## 📊 Feature Comparison Table
+
+| Feature | Data Source | Update Rate | Primary Use | Best For |
+|---------|------------|-------------|-------------|----------|
+| **Flight Replay** | Recorded positions | Last 24 hours | Historical analysis | Delay investigation, route analysis |
+| **Airport Board** | AirLabs API | Real-time | Airport monitoring | Travel planning, pickups |
+| **Nearby Flights** | AirLabs + Geolocation | Real-time | Local awareness | Plane spotting, curiosity |
+| **Performance Dashboard** | Live tracking | Continuous | Metrics analysis | Aviation students, enthusiasts |
+| **Satellite Tracker** | CelesTrak TLE | Real-time | Satellite info | Space enthusiasts |
+| **Orbit Visualizer** | SGP4 Propagation | Predictive | Path planning | Astrophotography, observations |
+
+---
+
+## 🎯 User Personas & Benefits
+
+### 🔵 Aviation Enthusiast
+**Uses:** Nearby Flights, Flight Replay, Performance Dashboard  
+**Benefits:** Identify overhead planes, track flights, learn aircraft behavior
+
+### 🟢 Frequent Traveler
+**Uses:** Airport Board, Flight Replay  
+**Benefits:** Track flight status, plan arrivals, understand delays
+
+### 🟡 Aviation Student
+**Uses:** Performance Dashboard, Flight Replay  
+**Benefits:** Study flight patterns, analyze procedures, learn metrics
+
+### 🟣 Space Enthusiast
+**Uses:** Satellite Tracker, Orbit Visualizer  
+**Benefits:** Track ISS, understand orbits, plan satellite viewing
+
+### 🔴 Family Member
+**Uses:** Airport Board, Nearby Flights  
+**Benefits:** Real-time pickups, delay notifications
+
+---
+
+
+## 🎮 Usage Guide
+
+### Basic Navigation
+1. **View Modes**: Toggle between All/Aircraft/Satellite/Debris
+2. **Globe/Map**: Switch between 2D flat map and 3D globe
+3. **Click Markers**: Select any object for detailed information
+4. **Stats Panel**: View live counts and system status
+
+### Feature Access
+1. **Flight Replay**: Select aircraft → "🔄 Replay Flight"
+2. **Airport Board**: Click "✈️ Airport Board" button
+3. **Nearby Flights**: Click "📍 Nearby Flights" → Allow location
+4. **Performance**: Select aircraft → "📊 Performance"
+5. **Satellite Tracker**: Select satellite → "🛰️ Sat Tracker"
+6. **Orbit Visualizer**: Select satellite → "🪐 Orbit"
+
+---
+
+## 🔧 Data Sources & Design Decisions
+
+### ✈️ Aircraft Data — *AirLabs API*
+**Why AirLabs:**
+- Free tier available (1000 requests/day)
+- Simple REST endpoints  
+- Good global coverage (~500 aircraft visible)
+- No backend proxying required
+
+**Tradeoffs:**
+- Fewer metadata fields than premium services
+- Lower refresh frequency
+- Occasional rate limits in free tier
+
+---
+
+### 🛰️ Satellite & Debris Data — *CelesTrak (TLE)*
+**Why CelesTrak:**
+- Free and unlimited access
+- Reliable TLE datasets
+- Perfect for orbital propagation  
+- Works well for educational/POC scale
+
+**Tradeoffs:**
+- TLEs updated every ~12-24 hours  
+- Lower real-time accuracy vs paid services
+- No advanced collision warnings
+
+---
+
+## 📈 Performance Metrics
+
+- **Refresh Rates:**
+  - Aircraft: Every 5 seconds
+  - Satellite positions: Every 2 seconds
+  - TLE data: Every 6 hours
+  - Airport schedules: Every 60 seconds
+
+- **Data Limits:**
+  - Flight history: 24 hours per aircraft
+  - Performance data: 200 points per aircraft
+  - Nearby flights: 20 displayed results
+  - Orbital predictions: Up to 180 minutes
+
+---
+
+## 🐛 Troubleshooting
+
+### Flight Replay Not Working
+**Issue:** "Not enough history data"  
+**Solution:** Wait 1-2 minutes after selecting aircraft for positions to record
+
+### Geolocation Not Working
+**Issue:** "Location unavailable"  
+**Solution:** 
+- Enable HTTPS (required for geolocation)
+- Allow browser location permission
+- Check device location services
+
+### Performance Dashboard Empty
+**Issue:** No data showing  
+**Solution:** Select aircraft and wait a few seconds for data collection
+
+### Satellite Trail Not Visible
+**Issue:** Trail not rendering on map  
+**Solution:** 
+- Ensure satellite has TLE data
+- Check map zoom level (zoom in if needed)
+- Toggle Satellite Tracker off and on
+
+---
+
+## 📁 Project Structure with New Feature
+```
+src/
+├── components/
+│   ├── Airport/
+│   │   └── AirportLiveBoard.tsx          # Airport dashboard
+│   ├── FlightReplay/
+│   │   └── FlightReplayControl.tsx       # Flight replay UI
+│   ├── Nearby/
+│   │   └── NearbyFlightsPanel.tsx        # Nearby flights panel
+│   ├── Performance/
+│   │   └── PerformanceDashboard.tsx      # Performance charts
+│   ├── Satellite/
+│   │   └── SatelliteEnhancedPanel.tsx    # Satellite details
+│   ├── Orbit/
+│   │   └── OrbitVisualizerPanel.tsx      # Orbit predictions
+│   ├── Map/
+│   │   ├── MapContainer.tsx              # Map integration
+│   │   └── MapMarker.tsx                 # Marker rendering
+│   ├── Layout/
+│   │   └── MainLayout.tsx                # App layout
+│   └── UI/
+│       ├── StatsPanel.tsx                # Statistics
+│       ├── ObjectDetailsCard.tsx         # Object info
+│       ├── ViewModeToggle.tsx            # View selector
+│       └── MapViewToggle.tsx             # 2D/3D toggle
+├── services/
+│   ├── api.ts                            # API config
+│   ├── aircraftService.ts                # Aircraft data
+│   ├── satelliteService.ts               # Satellite data
+│   ├── airportService.ts                 # Airport data
+│   ├── flightHistoryService.ts           # History recording
+│   ├── nearbyFlightsService.ts           # Nearby search
+│   └── satelliteEnhancedService.ts       # Satellite features
+├── hooks/
+│   ├── useAircraftData.ts                # Aircraft hook
+│   ├── useSatelliteData.ts               # Satellite hook
+│   ├── useFlightHistory.ts               # History hook
+│   ├── useNearbyFlights.ts               # Nearby hook
+│   ├── useAirportData.ts                 # Airport hook
+│   ├── useAircraftPerformance.ts         # Performance hook
+│   └── useSatelliteEnhanced.ts           # Satellite hook
+├── types/
+│   └── index.ts                          # TypeScript types
+├── utils/
+│   ├── coordinates.ts                    # Coordinate utils
+│   ├── formatting.ts                     # Formatting utils
+│   └── tleParser.ts                      # TLE parsing
+└── App.tsx                               # Main app
+```
+
+---
+
+## 📞 Support
+
+- **Issues:** Open GitHub issue
+- **Discussions:** GitHub Discussions
+- **Email:** your-email@example.com
+
+---
+
+## 🎯 Roadmap
+
+### Planned Features
+- [ ] Weather layer integration
+- [ ] Historical flight data export
+- [ ] Custom alert notifications
+- [ ] Multi-language support
+- [ ] Mobile app version
+- [ ] Premium API integrations
+- [ ] Advanced analytics dashboard
+- [ ] User accounts and favorites
+
+---
+
+## 📊 Statistics
+
+- **Total Features:** 6+ advanced features
+- **Data Sources:** 2 primary APIs
+- **Update Frequency:** Real-time (2-5 second intervals)
+- **Coverage:** Global (500+ aircraft, 150+ satellites)
+- **Technologies:** 10+ modern libraries
+- **Lines of Code:** 4000+
+
+---
