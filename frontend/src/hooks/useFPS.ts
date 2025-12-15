@@ -19,7 +19,9 @@ export default function useFPS(sampleIntervalMs = 500) {
 
     const id = setInterval(() => {
       if (!mounted) return;
-      setFps(Math.max(0, Math.round((framesRef.current * 1000) / sampleIntervalMs)));
+      setFps(
+        Math.max(0, Math.round((framesRef.current * 1000) / sampleIntervalMs))
+      );
       framesRef.current = 0;
     }, sampleIntervalMs);
 

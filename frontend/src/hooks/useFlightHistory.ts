@@ -1,11 +1,11 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useState, useEffect, useCallback } from 'react';
-import type { FlightHistory } from '../types';
+import { useState, useEffect, useCallback } from "react";
+import type { FlightHistory } from "../types";
 import {
   getFlightHistory,
   getAllFlightHistories,
-} from '../services/flightHistoryService';
+} from "../services/flightHistoryService";
 
 export const useFlightHistory = (aircraftHex?: string) => {
   const [history, setHistory] = useState<FlightHistory | null>(null);
@@ -22,7 +22,7 @@ export const useFlightHistory = (aircraftHex?: string) => {
     if (result.success && result.data) {
       setHistory(result.data);
     } else {
-      setError(result.error || 'History not available');
+      setError(result.error || "History not available");
       setHistory(null);
     }
 

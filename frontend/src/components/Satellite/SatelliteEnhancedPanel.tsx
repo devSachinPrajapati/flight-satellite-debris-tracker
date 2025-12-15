@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import type { SatelliteObject } from "../../types";
 import { useSatelliteEnhanced } from "../../hooks/useSatelliteEnhanced";
 
@@ -7,10 +7,10 @@ interface SatelliteEnhancedPanelProps {
   onClose: () => void;
 }
 
-const SatelliteEnhancedPanel: React.FC<SatelliteEnhancedPanelProps> = ({
+const SatelliteEnhancedPanel = ({
   satellite,
   onClose,
-}) => {
+}: SatelliteEnhancedPanelProps) => {
   const { trail, footprint, loading } = useSatelliteEnhanced(satellite);
   const [selectedTab, setSelectedTab] = useState<
     "info" | "trail" | "footprint"
@@ -40,7 +40,10 @@ const SatelliteEnhancedPanel: React.FC<SatelliteEnhancedPanelProps> = ({
               NORAD ID: {satellite.norad_id}
             </p>
           </div>
-          <button onClick={onClose} className="text-white hover:text-gray-200 cursor-pointer">
+          <button
+            onClick={onClose}
+            className="text-white hover:text-gray-200 cursor-pointer"
+          >
             <svg
               className="w-6 h-6"
               fill="none"

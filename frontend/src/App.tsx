@@ -17,7 +17,7 @@ import SearchPanel from "./components/UI/SearchPanel";
 import { useSearch } from "./hooks/useSearch";
 import LoadingOverlay from "./components/Tracker/LoadingOverlay";
 
-// New IMPORTS for New Premium Features 
+// New IMPORTS for New Premium Features
 import { recordFlightPosition } from "./services/flightHistoryService";
 import { getFlightHistory } from "./services/flightHistoryService";
 import FlightReplayControl from "./components/FlightReplay/FlightReplayControl";
@@ -48,9 +48,12 @@ const App = () => {
   const [showAircraftPerformance, setShowAircraftPerformance] = useState(false);
   const [showSatelliteTracker, setShowSatelliteTracker] = useState(false);
   const [showOrbitVisualizer, setShowOrbitVisualizer] = useState(false);
-  const [selectedPerformanceAircraft, setSelectedPerformanceAircraft] = useState<Aircraft | null>(null);
-  const [selectedSatelliteTracker, setSelectedSatelliteTracker] = useState<SatelliteObject | null>(null);
-  const [selectedOrbitSatellite, setSelectedOrbitSatellite] = useState<SatelliteObject | null>(null);
+  const [selectedPerformanceAircraft, setSelectedPerformanceAircraft] =
+    useState<Aircraft | null>(null);
+  const [selectedSatelliteTracker, setSelectedSatelliteTracker] =
+    useState<SatelliteObject | null>(null);
+  const [selectedOrbitSatellite, setSelectedOrbitSatellite] =
+    useState<SatelliteObject | null>(null);
 
   // Cleanup replay marker when closing replay
   useEffect(() => {
@@ -450,7 +453,7 @@ const App = () => {
             lastUpdate={aircraftLastFetch ?? lastFetchTime}
             aircraftStatus={aircraftStatus}
             satelliteStatus={satelliteStatus}
-            debrisStatus={satelliteStatus} 
+            debrisStatus={satelliteStatus}
             fps={fps}
             onRefresh={handleRefresh}
           />
@@ -518,7 +521,9 @@ const App = () => {
         <button
           onClick={() => {
             if (selectedObject?.type === "satellite") {
-              setSelectedSatelliteTracker(selectedObject.data as SatelliteObject);
+              setSelectedSatelliteTracker(
+                selectedObject.data as SatelliteObject
+              );
               setShowSatelliteTracker(!showSatelliteTracker);
             } else {
               alert("Please select a satellite first");

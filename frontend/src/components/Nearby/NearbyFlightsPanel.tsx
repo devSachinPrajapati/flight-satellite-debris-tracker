@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import type { Aircraft, NearbyFlight, UserLocation } from "../../types";
 import {
   findNearbyFlights,
@@ -17,11 +17,11 @@ interface NearbyFlightsPanelProps {
   onClose?: () => void;
 }
 
-const NearbyFlightsPanel: React.FC<NearbyFlightsPanelProps> = ({
+const NearbyFlightsPanel = ({
   allAircraft,
   onSelectFlight,
   onClose,
-}) => {
+}: NearbyFlightsPanelProps) => {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [nearbyFlights, setNearbyFlights] = useState<NearbyFlight[]>([]);
   const [radiusKm, setRadiusKm] = useState(500);
@@ -46,7 +46,6 @@ const NearbyFlightsPanel: React.FC<NearbyFlightsPanelProps> = ({
   useEffect(() => {
     requestLocation();
   }, []);
-
 
   useEffect(() => {
     if (!userLocation) return;
@@ -91,7 +90,7 @@ const NearbyFlightsPanel: React.FC<NearbyFlightsPanelProps> = ({
             disabled={isRequestingLocation}
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isRequestingLocation ? 'Requesting...' : 'Request Location'}
+            {isRequestingLocation ? "Requesting..." : "Request Location"}
           </button>
         </div>
       </div>

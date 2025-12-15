@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from 'react';
-import type { SatelliteObject, OrbitalPrediction } from '../../types';
-import { predictOrbitalPath } from '../../services/satelliteEnhancedService';
+import React, { useEffect, useState } from "react";
+import type { SatelliteObject, OrbitalPrediction } from "../../types";
+import { predictOrbitalPath } from "../../services/satelliteEnhancedService";
 
 interface OrbitVisualizerProps {
   satellite: SatelliteObject;
@@ -30,36 +30,36 @@ const OrbitVisualizer: React.FC<OrbitVisualizerProps> = ({
           pos.lat,
         ]);
 
-        if (map.getLayer('orbit-path')) {
-          map.removeLayer('orbit-path');
+        if (map.getLayer("orbit-path")) {
+          map.removeLayer("orbit-path");
         }
-        if (map.getSource('orbit-path')) {
-          map.removeSource('orbit-path');
+        if (map.getSource("orbit-path")) {
+          map.removeSource("orbit-path");
         }
 
-        map.addSource('orbit-path', {
-          type: 'geojson',
+        map.addSource("orbit-path", {
+          type: "geojson",
           data: {
-            type: 'Feature',
+            type: "Feature",
             properties: {
               norad_id: satellite.norad_id,
             },
             geometry: {
-              type: 'LineString',
+              type: "LineString",
               coordinates,
             },
           },
         });
 
         map.addLayer({
-          id: 'orbit-path',
-          type: 'line',
-          source: 'orbit-path',
+          id: "orbit-path",
+          type: "line",
+          source: "orbit-path",
           paint: {
-            'line-color': '#10B981',
-            'line-width': 2,
-            'line-opacity': 0.7,
-            'line-dasharray': [2, 2],
+            "line-color": "#10B981",
+            "line-width": 2,
+            "line-opacity": 0.7,
+            "line-dasharray": [2, 2],
           },
         });
       }
@@ -70,11 +70,11 @@ const OrbitVisualizer: React.FC<OrbitVisualizerProps> = ({
     loadPrediction();
 
     return () => {
-      if (map.getLayer('orbit-path')) {
-        map.removeLayer('orbit-path');
+      if (map.getLayer("orbit-path")) {
+        map.removeLayer("orbit-path");
       }
-      if (map.getSource('orbit-path')) {
-        map.removeSource('orbit-path');
+      if (map.getSource("orbit-path")) {
+        map.removeSource("orbit-path");
       }
     };
   }, [satellite, map, duration]);
@@ -114,7 +114,9 @@ const OrbitVisualizer: React.FC<OrbitVisualizerProps> = ({
         </div>
 
         <div className="flex justify-between">
-          <span className="text-gray-600 dark:text-gray-400">Path Duration:</span>
+          <span className="text-gray-600 dark:text-gray-400">
+            Path Duration:
+          </span>
           <span className="font-medium text-gray-900 dark:text-white">
             {duration} minutes
           </span>
@@ -133,6 +135,11 @@ const OrbitVisualizer: React.FC<OrbitVisualizerProps> = ({
               Next Pass:
             </div>
             <div className="space-y-1 text-xs">
+              {/* 
+              AOS = Acquisition of Signal: This is the moment when the satellite first becomes visible to your ground station — i.e., it rises above the local horizon and you can start receiving its signal.
+              LOS = Loss of Signal: This is the moment when the satellite is no longer visible — i.e., it sets below the horizon and the signal is lost. 
+              Max Elevation → satellite reaches its highest point in the sky
+              */}
               <div>
                 AOS: {new Date(prediction.next_pass.aos).toLocaleTimeString()}
               </div>

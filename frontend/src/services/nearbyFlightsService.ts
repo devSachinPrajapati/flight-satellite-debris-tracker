@@ -1,4 +1,4 @@
-// services/nearbyFlightsService.ts - Nearby Flights Around You Feature
+// Nearby Flights Around You Feature
 
 import type {
   Aircraft,

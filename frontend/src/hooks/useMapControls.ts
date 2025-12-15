@@ -9,7 +9,7 @@ export const useMapControls = () => {
 
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     setViewMode(mode);
-    setSelectedObject(null); 
+    setSelectedObject(null);
   }, []);
 
   const handleObjectSelect = useCallback((object: SelectedObject | null) => {

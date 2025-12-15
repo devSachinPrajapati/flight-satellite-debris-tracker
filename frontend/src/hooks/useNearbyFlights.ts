@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
-import type { Aircraft, NearbyFlight, UserLocation } from '../types';
+import { useState, useEffect } from "react";
+import type { Aircraft, NearbyFlight, UserLocation } from "../types";
 import {
   findNearbyFlights,
   findLowestAltitudeAircraft,
   findFastestAircraft,
   findClosestAircraft,
   getUserLocation,
-} from '../services/nearbyFlightsService';
+} from "../services/nearbyFlightsService";
 
 export const useNearbyFlights = (
   allAircraft: Aircraft[],
@@ -26,7 +26,7 @@ export const useNearbyFlights = (
         setUserLocation(result.data);
         setError(null);
       } else {
-        setError(result.error || 'Location unavailable');
+        setError(result.error || "Location unavailable");
       }
 
       setLoading(false);

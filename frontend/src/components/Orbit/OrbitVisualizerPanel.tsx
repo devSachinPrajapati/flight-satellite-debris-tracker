@@ -36,7 +36,6 @@ const OrbitVisualizerPanel: React.FC<OrbitVisualizerPanelProps> = ({
           const sourceId = `orbit-path-${satellite.norad_id}`;
           const layerId = `${sourceId}-layer`;
 
-          // Remove existing
           if (map.getLayer(layerId)) {
             map.removeLayer(layerId);
           }
@@ -44,7 +43,7 @@ const OrbitVisualizerPanel: React.FC<OrbitVisualizerPanelProps> = ({
             map.removeSource(sourceId);
           }
 
-          // Add new
+          // Add new source and layer
           map.addSource(sourceId, {
             type: 'geojson',
             data: {
@@ -112,7 +111,8 @@ const OrbitVisualizerPanel: React.FC<OrbitVisualizerPanelProps> = ({
 
   return (
     <div className="fixed right-16 top-24 bg-white dark:bg-gray-800 rounded-lg shadow-xl w-96">
-      {/* Header */}
+
+      {/* Header Part */}
       <div className="bg-linear-to-r from-indigo-600 to-indigo-800 px-6 py-4 rounded-t-lg">
         <div className="flex justify-between items-start">
           <div>
@@ -129,6 +129,7 @@ const OrbitVisualizerPanel: React.FC<OrbitVisualizerPanelProps> = ({
 
       {/* Content */}
       <div className="p-6 space-y-4">
+
         {/* Orbit Type */}
         <div className="bg-linear-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
           <div className="text-xs text-indigo-600 dark:text-indigo-400 mb-1">ORBIT TYPE</div>

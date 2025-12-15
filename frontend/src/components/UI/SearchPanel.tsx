@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { Search, Filter, X } from 'lucide-react';
+import { useState } from "react";
+import { Search, Filter, X } from "lucide-react";
 
 export interface FilterOptions {
   minAltitude?: number;
   maxAltitude?: number;
-  objectType?: 'aircraft' | 'satellite' | 'debris' | 'all';
+  objectType?: "aircraft" | "satellite" | "debris" | "all";
   operator?: string;
   minSpeed?: number;
 }
@@ -13,11 +13,11 @@ interface SearchPanelProps {
   onSearch: (query: string, filters: FilterOptions) => void;
 }
 
-const SearchPanel = ({ onSearch } : SearchPanelProps) => {
-  const [query, setQuery] = useState('');
+const SearchPanel = ({ onSearch }: SearchPanelProps) => {
+  const [query, setQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({
-    objectType: 'all'
+    objectType: "all",
   });
 
   const handleSearch = () => {
@@ -25,9 +25,9 @@ const SearchPanel = ({ onSearch } : SearchPanelProps) => {
   };
 
   const handleClearFilters = () => {
-    setFilters({ objectType: 'all' });
-    setQuery('');
-    onSearch('', { objectType: 'all' });
+    setFilters({ objectType: "all" });
+    setQuery("");
+    onSearch("", { objectType: "all" });
   };
 
   return (
@@ -36,7 +36,10 @@ const SearchPanel = ({ onSearch } : SearchPanelProps) => {
       <div className="mb-3">
         <div className="flex items-center space-x-2">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={18}
+            />
             <input
               type="text"
               value={query}
@@ -50,8 +53,8 @@ const SearchPanel = ({ onSearch } : SearchPanelProps) => {
             {query && (
               <button
                 onClick={() => {
-                  setQuery('');
-                  onSearch('', filters);
+                  setQuery("");
+                  onSearch("", filters);
                 }}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
@@ -62,7 +65,9 @@ const SearchPanel = ({ onSearch } : SearchPanelProps) => {
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`p-2 rounded-lg transition ${
-              showFilters ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer'
+              showFilters
+                ? "bg-blue-500 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
             }`}
           >
             <Filter size={18} />
@@ -74,7 +79,9 @@ const SearchPanel = ({ onSearch } : SearchPanelProps) => {
       {showFilters && (
         <div className="space-y-3 border-t pt-3 animate-fadeIn">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-gray-700">Advanced Filters</span>
+            <span className="text-sm font-semibold text-gray-700">
+              Advanced Filters
+            </span>
             <button
               onClick={handleClearFilters}
               className="text-xs text-red-500 hover:text-red-700 cursor-pointer"
@@ -85,12 +92,17 @@ const SearchPanel = ({ onSearch } : SearchPanelProps) => {
 
           {/* Object Type Filter */}
           <div>
-            <label className="text-xs text-gray-600 block mb-1">Object Type</label>
+            <label className="text-xs text-gray-600 block mb-1">
+              Object Type
+            </label>
             <select
-              value={filters.objectType || 'all'}
+              value={filters.objectType || "all"}
               onChange={(e) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const newFilters = { ...filters, objectType: e.target.value as any };
+                const newFilters = {
+                  ...filters,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  objectType: e.target.value as any,
+                };
                 setFilters(newFilters);
                 onSearch(query, newFilters);
               }}
@@ -105,14 +117,19 @@ const SearchPanel = ({ onSearch } : SearchPanelProps) => {
 
           {/* Altitude Range */}
           <div>
-            <label className="text-xs text-gray-600 block mb-1">Altitude Range (km)</label>
+            <label className="text-xs text-gray-600 block mb-1">
+              Altitude Range (km)
+            </label>
             <div className="flex space-x-2">
               <input
                 type="number"
                 placeholder="Min"
-                value={filters.minAltitude || ''}
+                value={filters.minAltitude || ""}
                 onChange={(e) => {
-                  const newFilters = { ...filters, minAltitude: Number(e.target.value) || undefined };
+                  const newFilters = {
+                    ...filters,
+                    minAltitude: Number(e.target.value) || undefined,
+                  };
                   setFilters(newFilters);
                 }}
                 className="w-1/2 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
@@ -120,9 +137,12 @@ const SearchPanel = ({ onSearch } : SearchPanelProps) => {
               <input
                 type="number"
                 placeholder="Max"
-                value={filters.maxAltitude || ''}
+                value={filters.maxAltitude || ""}
                 onChange={(e) => {
-                  const newFilters = { ...filters, maxAltitude: Number(e.target.value) || undefined };
+                  const newFilters = {
+                    ...filters,
+                    maxAltitude: Number(e.target.value) || undefined,
+                  };
                   setFilters(newFilters);
                 }}
                 className="w-1/2 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
@@ -134,9 +154,12 @@ const SearchPanel = ({ onSearch } : SearchPanelProps) => {
           <div>
             <label className="text-xs text-gray-600 block mb-1">Operator</label>
             <select
-              value={filters.operator || ''}
+              value={filters.operator || ""}
               onChange={(e) => {
-                const newFilters = { ...filters, operator: e.target.value || undefined };
+                const newFilters = {
+                  ...filters,
+                  operator: e.target.value || undefined,
+                };
                 setFilters(newFilters);
                 onSearch(query, newFilters);
               }}
@@ -154,14 +177,19 @@ const SearchPanel = ({ onSearch } : SearchPanelProps) => {
 
           {/* Speed Filter */}
           <div>
-            <label className="text-xs text-gray-600 block mb-1">Min Speed (km/s)</label>
+            <label className="text-xs text-gray-600 block mb-1">
+              Min Speed (km/s)
+            </label>
             <input
               type="number"
               step="0.1"
               placeholder="e.g., 7.0"
-              value={filters.minSpeed || ''}
+              value={filters.minSpeed || ""}
               onChange={(e) => {
-                const newFilters = { ...filters, minSpeed: Number(e.target.value) || undefined };
+                const newFilters = {
+                  ...filters,
+                  minSpeed: Number(e.target.value) || undefined,
+                };
                 setFilters(newFilters);
               }}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"

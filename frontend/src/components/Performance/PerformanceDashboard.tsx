@@ -1,21 +1,31 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import React, { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import type { Aircraft} from '../../types';
-import { useAircraftPerformance } from '../../hooks/useAircraftPerformance';
+import { useEffect, useState } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import type { Aircraft } from "../../types";
+import { useAircraftPerformance } from "../../hooks/useAircraftPerformance";
 
 interface PerformanceDashboardProps {
   aircraft: Aircraft;
   onClose: () => void;
 }
 
-const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
+const PerformanceDashboard = ({
   aircraft,
   onClose,
-}) => {
-  const { performance, recordPerformanceData } = useAircraftPerformance(aircraft.hex);
+}: PerformanceDashboardProps) => {
+  const { performance, recordPerformanceData } = useAircraftPerformance(
+    aircraft.hex
+  );
   const [chartData, setChartData] = useState<any[]>([]);
 
   useEffect(() => {
@@ -27,7 +37,7 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
       const data = performance.data_points.map((point, index) => ({
         time: index,
         speed: point.speed,
-        altitude: point.altitude / 100, // Scale down for better visualization
+        altitude: point.altitude / 100, // Scale down for chart visibility like altitude/100 ft to altitude/500 ft
         vSpeed: point.v_speed || 0,
       }));
       setChartData(data);
@@ -62,8 +72,18 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
           onClick={onClose}
           className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-pointer"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -71,28 +91,36 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
       {/* Statistics Grid */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-          <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">AVG SPEED</div>
+          <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+            AVG SPEED
+          </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-white">
             {performance.avg_speed.toFixed(0)} kts
           </div>
         </div>
 
         <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-          <div className="text-xs text-green-600 dark:text-green-400 font-medium">MAX SPEED</div>
+          <div className="text-xs text-green-600 dark:text-green-400 font-medium">
+            MAX SPEED
+          </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-white">
             {performance.max_speed.toFixed(0)} kts
           </div>
         </div>
 
         <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
-          <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">AVG ALTITUDE</div>
+          <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+            AVG ALTITUDE
+          </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-white">
             {performance.avg_altitude.toLocaleString()} ft
           </div>
         </div>
 
         <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
-          <div className="text-xs text-orange-600 dark:text-orange-400 font-medium">MAX ALTITUDE</div>
+          <div className="text-xs text-orange-600 dark:text-orange-400 font-medium">
+            MAX ALTITUDE
+          </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-white">
             {performance.max_altitude.toLocaleString()} ft
           </div>
@@ -110,7 +138,13 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
             <XAxis dataKey="time" hide />
             <YAxis />
             <Tooltip />
-            <Line type="monotone" dataKey="speed" stroke="#3b82f6" strokeWidth={2} dot={false} />
+            <Line
+              type="monotone"
+              dataKey="speed"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              dot={false}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -126,29 +160,40 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
             <XAxis dataKey="time" hide />
             <YAxis />
             <Tooltip />
-            <Line type="monotone" dataKey="altitude" stroke="#10b981" strokeWidth={2} dot={false} />
+            <Line
+              type="monotone"
+              dataKey="altitude"
+              stroke="#10b981"
+              strokeWidth={2}
+              dot={false}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
       {/* Vertical Speed */}
-      {performance.climb_rate_avg !== undefined && performance.descent_rate_avg !== undefined && (
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-            <div className="text-xs text-gray-600 dark:text-gray-400">AVG CLIMB RATE</div>
-            <div className="text-lg font-bold text-green-600">
-              +{performance.climb_rate_avg.toFixed(0)} ft/min
+      {performance.climb_rate_avg !== undefined &&
+        performance.descent_rate_avg !== undefined && (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                AVG CLIMB RATE
+              </div>
+              <div className="text-lg font-bold text-green-600">
+                +{performance.climb_rate_avg.toFixed(0)} ft/min
+              </div>
             </div>
-          </div>
 
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-            <div className="text-xs text-gray-600 dark:text-gray-400">AVG DESCENT RATE</div>
-            <div className="text-lg font-bold text-red-600">
-              {performance.descent_rate_avg.toFixed(0)} ft/min
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                AVG DESCENT RATE
+              </div>
+              <div className="text-lg font-bold text-red-600">
+                {performance.descent_rate_avg.toFixed(0)} ft/min
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Data Points Info */}
       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">

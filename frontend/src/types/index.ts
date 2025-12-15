@@ -1,4 +1,3 @@
-
 export interface AirLabsResponse {
   response: Aircraft[];
 }
@@ -33,7 +32,7 @@ export interface SatelliteObject {
   inclination?: number;
   period_minutes?: number;
   operator?: string;
-  object_type: 'satellite' | 'debris';
+  object_type: "satellite" | "debris";
   visible: boolean;
   epoch?: string;
   conjunction_risk?: boolean;
@@ -56,11 +55,11 @@ export interface TLEData {
   argumentOfPerigee?: number;
 }
 
-export type ViewMode = 'all' | 'aircraft' | 'satellite' | 'debris';
-export type MapProjection = 'mercator' | 'globe';
+export type ViewMode = "all" | "aircraft" | "satellite" | "debris";
+export type MapProjection = "mercator" | "globe";
 
 export interface SelectedObject {
-  type: 'aircraft' | 'satellite' | 'debris';
+  type: "aircraft" | "satellite" | "debris";
   data: Aircraft | SatelliteObject;
 }
 
@@ -120,7 +119,13 @@ export interface AirportSchedule {
   arr_icao?: string;
   arr_time?: string;
   arr_time_ts?: number;
-  status: 'scheduled' | 'active' | 'landed' | 'cancelled' | 'incident' | 'diverted';
+  status:
+    | "scheduled"
+    | "active"
+    | "landed"
+    | "cancelled"
+    | "incident"
+    | "diverted";
   delayed?: number;
   arr_terminal?: string;
   arr_gate?: string;
@@ -132,15 +137,15 @@ export interface AirportSchedule {
 
 export interface AirportWeather {
   temp: number;
-  temp_unit: 'C' | 'F';
+  temp_unit: "C" | "F";
   wind_speed: number;
   wind_dir: number;
-  wind_unit: 'kts' | 'mph' | 'kmh';
+  wind_unit: "kts" | "mph" | "kmh";
   visibility: number;
-  visibility_unit: 'km' | 'mi';
+  visibility_unit: "km" | "mi";
   clouds: string;
   pressure: number;
-  pressure_unit: 'mb' | 'inHg';
+  pressure_unit: "mb" | "inHg";
   humidity: number;
   dewpoint?: number;
   metar?: string;
@@ -214,7 +219,7 @@ export interface OrbitalPrediction {
     timestamp: number;
     velocity: number;
   }>;
-  orbit_type: 'LEO' | 'MEO' | 'GEO' | 'HEO';
+  orbit_type: "LEO" | "MEO" | "GEO" | "HEO";
   next_pass?: {
     aos: number;
     los: number;
@@ -249,7 +254,7 @@ export interface FilterOptions {
 }
 
 export interface SearchResult {
-  type: 'aircraft' | 'satellite' | 'debris' | 'airport';
+  type: "aircraft" | "satellite" | "debris" | "airport";
   id: string;
   name: string;
   data: Aircraft | SatelliteObject | Airport;
@@ -303,7 +308,7 @@ export interface TimeSeriesData {
 // Notification System
 export interface Notification {
   id: string;
-  type: 'info' | 'warning' | 'error' | 'success';
+  type: "info" | "warning" | "error" | "success";
   title: string;
   message: string;
   timestamp: number;
@@ -317,10 +322,10 @@ export interface Notification {
 // Settings & Preferences
 export interface UserPreferences {
   units: {
-    speed: 'kts' | 'mph' | 'kmh';
-    altitude: 'ft' | 'm';
-    distance: 'km' | 'mi' | 'nm';
-    temperature: 'C' | 'F';
+    speed: "kts" | "mph" | "kmh";
+    altitude: "ft" | "m";
+    distance: "km" | "mi" | "nm";
+    temperature: "C" | "F";
   };
   map: {
     default_zoom: number;
@@ -336,5 +341,5 @@ export interface UserPreferences {
     flight_alerts: boolean;
     satellite_pass_alerts: boolean;
   };
-  theme: 'light' | 'dark' | 'auto';
+  theme: "light" | "dark" | "auto";
 }

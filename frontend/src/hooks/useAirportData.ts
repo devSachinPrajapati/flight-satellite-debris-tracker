@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
-import type { Airport, AirportSchedule, AirportStats } from '../types';
+import { useState, useEffect, useCallback } from "react";
+import type { Airport, AirportSchedule, AirportStats } from "../types";
 import {
   fetchAirportByCode,
   fetchAirportSchedules,
   fetchDelayedFlights,
   calculateAirportStats,
-} from '../services/airportService';
+} from "../services/airportService";
 
 export const useAirportData = (iataCode?: string) => {
   const [airport, setAirport] = useState<Airport | null>(null);
@@ -24,8 +24,8 @@ export const useAirportData = (iataCode?: string) => {
       const [airportRes, arrivalsRes, departuresRes, delayedRes] =
         await Promise.all([
           fetchAirportByCode(code),
-          fetchAirportSchedules(code, 'arrivals'),
-          fetchAirportSchedules(code, 'departures'),
+          fetchAirportSchedules(code, "arrivals"),
+          fetchAirportSchedules(code, "departures"),
           fetchDelayedFlights(code),
         ]);
 
@@ -40,10 +40,15 @@ export const useAirportData = (iataCode?: string) => {
       setDepartures(departuresData);
       setDelayed(delayedRes.data || []);
 
-      const calculatedStats = calculateAirportStats(arrivalsData, departuresData);
+      const calculatedStats = calculateAirportStats(
+        arrivalsData,
+        departuresData
+      );
       setStats(calculatedStats);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load airport data');
+      setError(
+        err instanceof Error ? err.message : "Failed to load airport data"
+      );
     } finally {
       setLoading(false);
     }

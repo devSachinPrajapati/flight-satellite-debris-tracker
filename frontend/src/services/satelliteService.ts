@@ -1,12 +1,12 @@
-import type { SatelliteObject, TLEData } from '../types';
-import { apiConfig, fetchWithTimeout } from './api';
-import * as satellite from 'satellite.js';
+import type { SatelliteObject, TLEData } from "../types";
+import { apiConfig, fetchWithTimeout } from "./api";
+import * as satellite from "satellite.js";
 
 /**
  * Parse TLE text data into structured format
  */
 const parseTLEData = (tleText: string): TLEData[] => {
-  const lines = tleText.trim().split('\n');
+  const lines = tleText.trim().split("\n");
   const tleObjects: TLEData[] = [];
 
   for (let i = 0; i < lines.length; i += 3) {
@@ -15,7 +15,7 @@ const parseTLEData = (tleText: string): TLEData[] => {
       const line1 = lines[i + 1].trim();
       const line2 = lines[i + 2].trim();
 
-      if (line1.startsWith('1 ') && line2.startsWith('2 ')) {
+      if (line1.startsWith("1 ") && line2.startsWith("2 ")) {
         tleObjects.push({ name, line1, line2 });
       }
     }
@@ -41,8 +41,11 @@ const calculateSatellitePosition = (tle: TLEData, date: Date = new Date()) => {
     // Propagate satellite using current time
     const positionAndVelocity = satellite.propagate(satrec, date);
 
-    // ❗️Check if propagation failed
-    if (!positionAndVelocity?.position || typeof positionAndVelocity.position === "boolean") {
+    // Check if propagation failed
+    if (
+      !positionAndVelocity?.position ||
+      typeof positionAndVelocity.position === "boolean"
+    ) {
       return null;
     }
 
@@ -76,7 +79,10 @@ const calculateSatellitePosition = (tle: TLEData, date: Date = new Date()) => {
 
     // Calculate velocity
     let velocity = 0;
-    if (positionAndVelocity.velocity && typeof positionAndVelocity.velocity !== 'boolean') {
+    if (
+      positionAndVelocity.velocity &&
+      typeof positionAndVelocity.velocity !== "boolean"
+    ) {
       const vel = positionAndVelocity.velocity;
       velocity = Math.sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
     }
@@ -94,7 +100,12 @@ const calculateSatellitePosition = (tle: TLEData, date: Date = new Date()) => {
       period_minutes: period,
     };
   } catch (error) {
-    console.error('Error calculating satellite position for', tle.name, ':', error);
+    console.error(
+      "Error calculating satellite position for",
+      tle.name,
+      ":",
+      error
+    );
     return null;
   }
 };
@@ -102,17 +113,24 @@ const calculateSatellitePosition = (tle: TLEData, date: Date = new Date()) => {
 /**
  * Determine if object is a satellite or debris
  */
-const categorizeObject = (name: string): 'satellite' | 'debris' => {
-  const debrisKeywords = ['DEB', 'DEBRIS', 'FRAG', 'R/B', 'ROCKET BODY', 'PAYLOAD'];
+const categorizeObject = (name: string): "satellite" | "debris" => {
+  const debrisKeywords = [
+    "DEB",
+    "DEBRIS",
+    "FRAG",
+    "R/B",
+    "ROCKET BODY",
+    "PAYLOAD",
+  ];
   const nameUpper = name.toUpperCase();
 
   for (const keyword of debrisKeywords) {
     if (nameUpper.includes(keyword)) {
-      return 'debris';
+      return "debris";
     }
   }
 
-  return 'satellite';
+  return "satellite";
 };
 
 /**
@@ -120,22 +138,23 @@ const categorizeObject = (name: string): 'satellite' | 'debris' => {
  */
 const getOperator = (name: string): string => {
   const nameUpper = name.toUpperCase();
-  
-  if (nameUpper.includes('STARLINK')) return 'SpaceX';
-  if (nameUpper.includes('ONEWEB')) return 'OneWeb';
-  if (nameUpper.includes('ISS') || nameUpper.includes('ZARYA')) return 'International Space Station';
-  if (nameUpper.includes('COSMOS')) return 'Russia';
-  if (nameUpper.includes('GPS')) return 'USA (GPS)';
-  if (nameUpper.includes('GALILEO')) return 'European Union';
-  if (nameUpper.includes('GLONASS')) return 'Russia';
-  if (nameUpper.includes('BEIDOU')) return 'China';
-  if (nameUpper.includes('SENTINEL')) return 'ESA';
-  if (nameUpper.includes('LANDSAT')) return 'NASA/USGS';
-  if (nameUpper.includes('NOAA')) return 'NOAA';
-  if (nameUpper.includes('GOES')) return 'NOAA';
-  if (nameUpper.includes('IRIDIUM')) return 'Iridium Communications';
-  
-  return 'Unknown';
+
+  if (nameUpper.includes("STARLINK")) return "SpaceX";
+  if (nameUpper.includes("ONEWEB")) return "OneWeb";
+  if (nameUpper.includes("ISS") || nameUpper.includes("ZARYA"))
+    return "International Space Station";
+  if (nameUpper.includes("COSMOS")) return "Russia";
+  if (nameUpper.includes("GPS")) return "USA (GPS)";
+  if (nameUpper.includes("GALILEO")) return "European Union";
+  if (nameUpper.includes("GLONASS")) return "Russia";
+  if (nameUpper.includes("BEIDOU")) return "China";
+  if (nameUpper.includes("SENTINEL")) return "ESA";
+  if (nameUpper.includes("LANDSAT")) return "NASA/USGS";
+  if (nameUpper.includes("NOAA")) return "NOAA";
+  if (nameUpper.includes("GOES")) return "NOAA";
+  if (nameUpper.includes("IRIDIUM")) return "Iridium Communications";
+
+  return "Unknown";
 };
 
 /**
@@ -153,7 +172,7 @@ const fetchTLEFromCelesTrak = async (group: string): Promise<TLEData[]> => {
   try {
     const { baseUrl } = apiConfig.celestrak;
     const url = `${baseUrl}?GROUP=${group}&FORMAT=TLE`;
-    
+
     console.log(`Fetching TLE data from: ${url}`);
     const response = await fetchWithTimeout(url, {}, 15000);
 
@@ -164,7 +183,7 @@ const fetchTLEFromCelesTrak = async (group: string): Promise<TLEData[]> => {
     const text = await response.text();
     const parsed = parseTLEData(text);
     console.log(`Fetched ${parsed.length} TLE entries from ${group}`);
-    
+
     return parsed;
   } catch (error) {
     console.error(`Error fetching TLE data for ${group}:`, error);
@@ -180,26 +199,27 @@ export const fetchSatelliteData = async (): Promise<{
   debris: SatelliteObject[];
 }> => {
   try {
-    console.log('Starting satellite data fetch from CelesTrak...');
-    
+    console.log("Starting satellite data fetch from CelesTrak...");
+
     // Fetch TLE data from multiple CelesTrak groups
-    const [stationsTLE, starlink30TLE, debrisTLE, activesTLE] = await Promise.all([
-      fetchTLEFromCelesTrak('stations'),      // ISS and space stations
-      fetchTLEFromCelesTrak('starlink'),      // Starlink satellites (limited)
-      fetchTLEFromCelesTrak('cosmos-2251-debris'), // Debris
-      fetchTLEFromCelesTrak('active'),        // Active satellites
-    ]);
+    const [stationsTLE, starlink30TLE, debrisTLE, activesTLE] =
+      await Promise.all([
+        fetchTLEFromCelesTrak("stations"), // ISS and space stations
+        fetchTLEFromCelesTrak("starlink"), // Starlink satellites (limited)
+        fetchTLEFromCelesTrak("cosmos-2251-debris"), // Debris
+        fetchTLEFromCelesTrak("active"), // Active satellites
+      ]);
 
     // Limit the number of objects for performance
     const allTLEs = [
       ...stationsTLE,
       ...starlink30TLE.slice(0, 30),
       ...debrisTLE.slice(0, 20),
-      ...activesTLE.slice(0, 50)
+      ...activesTLE.slice(0, 50),
     ];
 
     console.log(`Processing ${allTLEs.length} TLE entries...`);
-    
+
     const currentTime = new Date();
     const processedObjects: SatelliteObject[] = [];
 
@@ -231,15 +251,21 @@ export const fetchSatelliteData = async (): Promise<{
     }
 
     // Separate satellites from debris
-    const satellites = processedObjects.filter(obj => obj.object_type === 'satellite');
-    const debris = processedObjects.filter(obj => obj.object_type === 'debris');
+    const satellites = processedObjects.filter(
+      (obj) => obj.object_type === "satellite"
+    );
+    const debris = processedObjects.filter(
+      (obj) => obj.object_type === "debris"
+    );
 
-    console.log(`✅ Successfully processed: ${satellites.length} satellites and ${debris.length} debris objects`);
+    console.log(
+      `✅ Successfully processed: ${satellites.length} satellites and ${debris.length} debris objects`
+    );
 
     return { satellites, debris };
   } catch (error) {
-    console.error('❌ Error fetching satellite data from CelesTrak:', error);
-    console.log('Falling back to mock data...');
+    console.error("❌ Error fetching satellite data from CelesTrak:", error);
+    console.log("Falling back to mock data...");
     return getMockSatelliteData();
   }
 };
@@ -251,111 +277,111 @@ const getMockSatelliteData = (): {
   satellites: SatelliteObject[];
   debris: SatelliteObject[];
 } => {
-  console.warn('⚠️ Using mock satellite data - CelesTrak API unavailable');
-  
+  console.warn("⚠️ Using mock satellite data - CelesTrak API unavailable");
+
   const satellites: SatelliteObject[] = [
     {
-      norad_id: '25544',
-      name: 'ISS (ZARYA)',
+      norad_id: "25544",
+      name: "ISS (ZARYA)",
       lat: 51.6,
       lng: 112.8,
       altitude: 408,
       velocity: 7.66,
       inclination: 51.64,
       period_minutes: 92.68,
-      operator: 'International Space Station',
-      object_type: 'satellite',
+      operator: "International Space Station",
+      object_type: "satellite",
       visible: true,
-      conjunction_risk: false
+      conjunction_risk: false,
     },
     {
-      norad_id: '43013',
-      name: 'STARLINK-30',
+      norad_id: "43013",
+      name: "STARLINK-30",
       lat: 45.2,
       lng: -93.4,
       altitude: 550,
       velocity: 7.5,
       inclination: 53.0,
-      operator: 'SpaceX',
-      object_type: 'satellite',
+      operator: "SpaceX",
+      object_type: "satellite",
       visible: true,
-      conjunction_risk: false
+      conjunction_risk: false,
     },
     {
-      norad_id: '48274',
-      name: 'STARLINK-1600',
+      norad_id: "48274",
+      name: "STARLINK-1600",
       lat: -33.8,
       lng: 151.2,
       altitude: 540,
       velocity: 7.52,
       inclination: 53.2,
-      operator: 'SpaceX',
-      object_type: 'satellite',
+      operator: "SpaceX",
+      object_type: "satellite",
       visible: true,
-      conjunction_risk: false
+      conjunction_risk: false,
     },
     {
-      norad_id: '37820',
-      name: 'SENTINEL-2A',
+      norad_id: "37820",
+      name: "SENTINEL-2A",
       lat: 12.5,
       lng: 45.3,
       altitude: 786,
       velocity: 7.45,
       inclination: 98.6,
-      operator: 'ESA',
-      object_type: 'satellite',
+      operator: "ESA",
+      object_type: "satellite",
       visible: true,
-      conjunction_risk: false
+      conjunction_risk: false,
     },
     {
-      norad_id: '41866',
-      name: 'LANDSAT 9',
+      norad_id: "41866",
+      name: "LANDSAT 9",
       lat: -8.2,
       lng: -65.8,
       altitude: 705,
       velocity: 7.48,
       inclination: 98.2,
-      operator: 'NASA/USGS',
-      object_type: 'satellite',
+      operator: "NASA/USGS",
+      object_type: "satellite",
       visible: true,
-      conjunction_risk: false
-    }
+      conjunction_risk: false,
+    },
   ];
 
   const debris: SatelliteObject[] = [
     {
-      norad_id: 'D001',
-      name: 'DEBRIS-FRAG-001',
+      norad_id: "D001",
+      name: "DEBRIS-FRAG-001",
       lat: 28.5,
       lng: 77.2,
       altitude: 650,
       velocity: 7.4,
-      object_type: 'debris',
+      object_type: "debris",
       visible: true,
-      conjunction_risk: true
+      conjunction_risk: true,
     },
     {
-      norad_id: 'D002',
-      name: 'DEBRIS-FRAG-002',
+      norad_id: "D002",
+      name: "DEBRIS-FRAG-002",
       lat: -15.8,
       lng: -47.9,
       altitude: 720,
       velocity: 7.38,
-      object_type: 'debris',
+      object_type: "debris",
       visible: true,
-      conjunction_risk: false
+      conjunction_risk: false,
     },
     {
-      norad_id: 'D003',
-      name: 'COSMOS-1408 DEB',
+      norad_id: "D003",
+      name: "COSMOS-1408 DEB",
       lat: 62.4,
       lng: 88.5,
       altitude: 485,
       velocity: 7.55,
-      object_type: 'debris',
+      object_type: "debris",
       visible: true,
-      conjunction_risk: true
-    }
+      conjunction_risk: true,
+    },
   ];
 
   return { satellites, debris };
@@ -369,7 +395,7 @@ export const updateSatellitePositions = (
   satellites: SatelliteObject[],
   currentTime: Date = new Date()
 ): SatelliteObject[] => {
-  return satellites.map(sat => {
+  return satellites.map((sat) => {
     if (sat.tle) {
       const position = calculateSatellitePosition(sat.tle, currentTime);
       if (position) {

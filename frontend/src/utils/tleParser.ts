@@ -1,10 +1,13 @@
-import type { TLEData } from '../types';
+import type { TLEData } from "../types";
 
 /**
  * Parse TLE text format into structured data
  */
 export const parseTLEText = (tleText: string): TLEData[] => {
-  const lines = tleText.trim().split('\n').map(line => line.trim());
+  const lines = tleText
+    .trim()
+    .split("\n")
+    .map((line) => line.trim());
   const tleObjects: TLEData[] = [];
 
   for (let i = 0; i < lines.length; i += 3) {
@@ -15,7 +18,7 @@ export const parseTLEText = (tleText: string): TLEData[] => {
     const line2 = lines[i + 2];
 
     // Validate TLE format
-    if (line1.startsWith('1 ') && line2.startsWith('2 ')) {
+    if (line1.startsWith("1 ") && line2.startsWith("2 ")) {
       tleObjects.push({ name, line1, line2 });
     }
   }
@@ -37,10 +40,10 @@ export const extractEpoch = (line1: string): Date => {
   const year = parseInt(line1.substring(18, 20), 10);
   const fullYear = year < 57 ? 2000 + year : 1900 + year;
   const dayOfYear = parseFloat(line1.substring(20, 32));
-  
+
   const epoch = new Date(fullYear, 0, 1);
   epoch.setDate(dayOfYear);
-  
+
   return epoch;
 };
 
@@ -62,7 +65,7 @@ export const extractRAAN = (line2: string): number => {
  * Extract eccentricity from TLE line 2
  */
 export const extractEccentricity = (line2: string): number => {
-  return parseFloat('0.' + line2.substring(26, 33));
+  return parseFloat("0." + line2.substring(26, 33));
 };
 
 /**
@@ -101,9 +104,9 @@ export const validateTLEChecksum = (line: string): boolean => {
   let sum = 0;
 
   for (const char of chars) {
-    if (char >= '0' && char <= '9') {
+    if (char >= "0" && char <= "9") {
       sum += parseInt(char, 10);
-    } else if (char === '-') {
+    } else if (char === "-") {
       sum += 1;
     }
   }

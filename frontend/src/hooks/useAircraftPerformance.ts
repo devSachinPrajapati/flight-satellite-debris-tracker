@@ -1,11 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
-import type { Aircraft, AircraftPerformance, PerformanceDataPoint } from '../types';
+import { useState, useEffect, useCallback } from "react";
+import type {
+  Aircraft,
+  AircraftPerformance,
+  PerformanceDataPoint,
+} from "../types";
 
 const performanceCache = new Map<string, AircraftPerformance>();
 const MAX_DATA_POINTS = 200;
 
 export const useAircraftPerformance = (aircraftHex?: string) => {
-  const [performance, setPerformance] = useState<AircraftPerformance | null>(null);
+  const [performance, setPerformance] = useState<AircraftPerformance | null>(
+    null
+  );
 
   const recordPerformanceData = useCallback((aircraft: Aircraft) => {
     const hex = aircraft.hex;
@@ -46,7 +52,8 @@ export const useAircraftPerformance = (aircraftHex?: string) => {
     perfData.avg_speed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
     perfData.max_speed = Math.max(...speeds);
     perfData.min_speed = Math.min(...speeds);
-    perfData.avg_altitude = altitudes.reduce((a, b) => a + b, 0) / altitudes.length;
+    perfData.avg_altitude =
+      altitudes.reduce((a, b) => a + b, 0) / altitudes.length;
     perfData.max_altitude = Math.max(...altitudes);
 
     const vSpeeds = perfData.data_points

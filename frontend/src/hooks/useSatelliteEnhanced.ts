@@ -1,15 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import type {
   SatelliteObject,
   SatelliteTrail,
   OrbitalPrediction,
   GroundFootprint,
-} from '../types';
+} from "../types";
 import {
   calculateSatelliteTrail,
   calculateGroundFootprint,
   predictOrbitalPath,
-} from '../services/satelliteEnhancedService';
+} from "../services/satelliteEnhancedService";
 
 export const useSatelliteEnhanced = (satellite?: SatelliteObject) => {
   const [trail, setTrail] = useState<SatelliteTrail | null>(null);

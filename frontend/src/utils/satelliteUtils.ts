@@ -1,30 +1,35 @@
-import * as satellite from 'satellite.js';
-import type { TLEData } from '../types';
+import * as satellite from "satellite.js";
+import type { TLEData } from "../types";
 
 /**
  * Convert TLE to GeoJSON Feature
  */
 export const tleToGeoJSON = (
   tle: TLEData,
-  objectType: 'satellite' | 'debris',
+  objectType: "satellite" | "debris",
   date: Date = new Date()
 ): GeoJSON.Feature | null => {
   try {
     const satrec = satellite.twoline2satrec(tle.line1, tle.line2);
-    
+
     if (satrec.error !== 0) {
       return null;
     }
 
     const positionAndVelocity = satellite.propagate(satrec, date);
 
-    if (positionAndVelocity?.position && typeof positionAndVelocity.position !== 'boolean') {
+    if (
+      positionAndVelocity?.position &&
+      typeof positionAndVelocity.position !== "boolean"
+    ) {
       const positionEci = positionAndVelocity.position;
       const gmst = satellite.gstime(date);
       const positionGd = satellite.eciToGeodetic(positionEci, gmst);
 
-
-      if (positionGd.latitude > Math.PI / 2 || positionGd.latitude < -Math.PI / 2) {
+      if (
+        positionGd.latitude > Math.PI / 2 ||
+        positionGd.latitude < -Math.PI / 2
+      ) {
         return null;
       }
 
@@ -33,7 +38,10 @@ export const tleToGeoJSON = (
       const altitude = positionGd.height;
 
       let velocity = 0;
-      if (positionAndVelocity.velocity && typeof positionAndVelocity.velocity !== 'boolean') {
+      if (
+        positionAndVelocity.velocity &&
+        typeof positionAndVelocity.velocity !== "boolean"
+      ) {
         const vel = positionAndVelocity.velocity;
         velocity = Math.sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
       }
@@ -42,7 +50,7 @@ export const tleToGeoJSON = (
       const inclination = (satrec.inclo * 180) / Math.PI;
 
       return {
-        type: 'Feature',
+        type: "Feature",
         properties: {
           norad_id: noradId,
           name: tle.name,
@@ -54,13 +62,13 @@ export const tleToGeoJSON = (
           visible: altitude > 500,
         },
         geometry: {
-          type: 'Point',
+          type: "Point",
           coordinates: [longitude, latitude, altitude * 1000], // altitude in meters
         },
       };
     }
   } catch (error) {
-    console.error('Error converting TLE to GeoJSON:', error);
+    console.error("Error converting TLE to GeoJSON:", error);
   }
 
   return null;
@@ -74,10 +82,10 @@ export const generateOrbitPath = (
   numPoints: number = 100
 ): [number, number][] => {
   const points: [number, number][] = [];
-  
+
   try {
     const satrec = satellite.twoline2satrec(tle.line1, tle.line2);
-    
+
     if (satrec.error !== 0) {
       return points;
     }
@@ -88,15 +96,21 @@ export const generateOrbitPath = (
     for (let i = 0; i < numPoints; i++) {
       const timeOffset = (period * i) / numPoints;
       const time = new Date(startTime.getTime() + timeOffset * 60 * 1000);
-      
+
       const positionAndVelocity = satellite.propagate(satrec, time);
 
-      if (positionAndVelocity?.position && typeof positionAndVelocity.position !== 'boolean') {
+      if (
+        positionAndVelocity?.position &&
+        typeof positionAndVelocity.position !== "boolean"
+      ) {
         const positionEci = positionAndVelocity.position;
         const gmst = satellite.gstime(time);
         const positionGd = satellite.eciToGeodetic(positionEci, gmst);
 
-        if (positionGd.latitude <= Math.PI / 2 && positionGd.latitude >= -Math.PI / 2) {
+        if (
+          positionGd.latitude <= Math.PI / 2 &&
+          positionGd.latitude >= -Math.PI / 2
+        ) {
           const latitude = satellite.degreesLat(positionGd.latitude);
           const longitude = satellite.degreesLong(positionGd.longitude);
           points.push([longitude, latitude]);
@@ -104,7 +118,7 @@ export const generateOrbitPath = (
       }
     }
   } catch (error) {
-    console.error('Error generating orbit path:', error);
+    console.error("Error generating orbit path:", error);
   }
 
   return points;
@@ -122,14 +136,17 @@ export const calculateLookAngles = (
 ) => {
   try {
     const satrec = satellite.twoline2satrec(tle.line1, tle.line2);
-    
+
     if (satrec.error !== 0) {
       return null;
     }
 
     const positionAndVelocity = satellite.propagate(satrec, date);
 
-    if (positionAndVelocity?.position && typeof positionAndVelocity.position !== 'boolean') {
+    if (
+      positionAndVelocity?.position &&
+      typeof positionAndVelocity.position !== "boolean"
+    ) {
       const positionEci = positionAndVelocity.position;
       const gmst = satellite.gstime(date);
 
@@ -149,7 +166,7 @@ export const calculateLookAngles = (
       };
     }
   } catch (error) {
-    console.error('Error calculating look angles:', error);
+    console.error("Error calculating look angles:", error);
   }
 
   return null;
@@ -165,8 +182,14 @@ export const isSatelliteVisible = (
   minElevation: number = 10,
   date: Date = new Date()
 ): boolean => {
-  const lookAngles = calculateLookAngles(tle, observerLat, observerLng, 0, date);
-  
+  const lookAngles = calculateLookAngles(
+    tle,
+    observerLat,
+    observerLng,
+    0,
+    date
+  );
+
   if (lookAngles) {
     return lookAngles.elevation >= minElevation;
   }

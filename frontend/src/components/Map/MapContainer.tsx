@@ -1,6 +1,6 @@
-import { useRef, useEffect } from 'react';
-import * as maptilersdk from '@maptiler/sdk';
-import '@maptiler/sdk/dist/maptiler-sdk.css';
+import { useRef, useEffect } from "react";
+import * as maptilersdk from "@maptiler/sdk";
+import "@maptiler/sdk/dist/maptiler-sdk.css";
 
 interface MapContainerProps {
   onMapLoad: (map: maptilersdk.Map) => void;
@@ -14,13 +14,13 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
     if (!mapContainerRef.current || mapRef.current) return;
 
     const apiKey = import.meta.env.VITE_MAPTILER_API_KEY;
-    
+
     if (!apiKey) {
-      console.error('❌ MapTiler API key is missing!');
+      console.error("❌ MapTiler API key is missing!");
       return;
     }
 
-    console.log('🌍 Initializing Globe View...');
+    console.log("🌍 Initializing Globe View...");
 
     // Create map with Globe projection
     const map = new maptilersdk.Map({
@@ -31,21 +31,21 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       zoom: 1.5, // Lower zoom for better globe view
       pitch: 0,
       bearing: 0,
-      projection: 'globe', // 🌐 Enable Globe View
+      projection: "globe", // 🌐 Enable Globe View
     });
 
-    map.on('load', () => {
-      console.log('✅ Globe View loaded successfully');
+    map.on("load", () => {
+      console.log("✅ Globe View loaded successfully");
 
       mapRef.current = map;
       onMapLoad(map);
     });
 
-    map.on('error', (e) => {
-      console.error('❌ Map error:', e);
+    map.on("error", (e) => {
+      console.error("❌ Map error:", e);
     });
 
-    // Optional: Add rotation animation
+    // Add rotation animation
     let userInteracting = false;
     const rotationSpeed = 0.5; // degrees per frame
 
@@ -67,22 +67,22 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       }, 3000);
     };
 
-    map.on('mousedown', () => {
+    map.on("mousedown", () => {
       userInteracting = true;
       clearTimeout(rotationTimeout);
     });
 
-    map.on('mouseup', () => {
+    map.on("mouseup", () => {
       userInteracting = false;
       startRotation();
     });
 
-    map.on('touchstart', () => {
+    map.on("touchstart", () => {
       userInteracting = true;
       clearTimeout(rotationTimeout);
     });
 
-    map.on('touchend', () => {
+    map.on("touchend", () => {
       userInteracting = false;
       startRotation();
     });
@@ -100,10 +100,10 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
   }, [onMapLoad]);
 
   return (
-    <div 
-      ref={mapContainerRef} 
+    <div
+      ref={mapContainerRef}
       className="absolute inset-0"
-      style={{ background: '#0B1026' }} // Space background color
+      style={{ background: "#0B1026" }} // Space background color
     />
   );
 };

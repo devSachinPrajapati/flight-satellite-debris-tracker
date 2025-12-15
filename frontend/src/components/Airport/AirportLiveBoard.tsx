@@ -1,37 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import type { Airport, AirportSchedule } from '../../types';
+import { useState, useEffect } from "react";
+import type { Airport, AirportSchedule } from "../../types";
 import {
   fetchAirportByCode,
   fetchAirportSchedules,
   fetchDelayedFlights,
   calculateAirportStats,
-} from '../../services/airportService';
+} from "../../services/airportService";
 
 interface AirportLiveBoardProps {
   iataCode: string;
   onClose: () => void;
 }
 
-const AirportLiveBoard: React.FC<AirportLiveBoardProps> = ({ iataCode, onClose }) => {
+const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
   const [airport, setAirport] = useState<Airport | null>(null);
   const [arrivals, setArrivals] = useState<AirportSchedule[]>([]);
   const [departures, setDepartures] = useState<AirportSchedule[]>([]);
   const [delayed, setDelayed] = useState<AirportSchedule[]>([]);
-  const [activeTab, setActiveTab] = useState<'arrivals' | 'departures' | 'delayed'>(
-    'arrivals'
-  );
+  const [activeTab, setActiveTab] = useState<
+    "arrivals" | "departures" | "delayed"
+  >("arrivals");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadAirportData = async () => {
       setLoading(true);
 
-      const [airportRes, arrivalsRes, departuresRes, delayedRes] = await Promise.all([
-        fetchAirportByCode(iataCode),
-        fetchAirportSchedules(iataCode, 'arrivals'),
-        fetchAirportSchedules(iataCode, 'departures'),
-        fetchDelayedFlights(iataCode),
-      ]);
+      const [airportRes, arrivalsRes, departuresRes, delayedRes] =
+        await Promise.all([
+          fetchAirportByCode(iataCode),
+          fetchAirportSchedules(iataCode, "arrivals"),
+          fetchAirportSchedules(iataCode, "departures"),
+          fetchDelayedFlights(iataCode),
+        ]);
 
       if (airportRes.success && airportRes.data) {
         setAirport(airportRes.data);
@@ -72,42 +73,44 @@ const AirportLiveBoard: React.FC<AirportLiveBoardProps> = ({ iataCode, onClose }
         <div className="text-xs text-gray-500">{schedule.airline_icao}</div>
       </td>
       <td className="px-4 py-3">
-        {activeTab === 'arrivals' ? schedule.dep_icao : schedule.arr_icao}
+        {activeTab === "arrivals" ? schedule.dep_icao : schedule.arr_icao}
       </td>
       <td className="px-4 py-3">
         {schedule.arr_time || schedule.dep_time
-          ? new Date(schedule.arr_time || schedule.dep_time!).toLocaleTimeString(
-            'en-US',
-            {
-              hour: '2-digit',
-              minute: '2-digit',
-            }
-          )
-          : 'N/A'}
+          ? new Date(
+              schedule.arr_time || schedule.dep_time!
+            ).toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "N/A"}
       </td>
       <td className="px-4 py-3">
         <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${schedule.status === 'active'
-              ? 'bg-green-100 text-green-800'
-              : schedule.status === 'landed'
-                ? 'bg-blue-100 text-blue-800'
-                : schedule.status === 'cancelled'
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-gray-100 text-gray-800'
-            }`}
+          className={`px-2 py-1 rounded-full text-xs font-medium ${
+            schedule.status === "active"
+              ? "bg-green-100 text-green-800"
+              : schedule.status === "landed"
+              ? "bg-blue-100 text-blue-800"
+              : schedule.status === "cancelled"
+              ? "bg-red-100 text-red-800"
+              : "bg-gray-100 text-gray-800"
+          }`}
         >
           {schedule.status}
         </span>
       </td>
       <td className="px-4 py-3">
         {schedule.delayed && schedule.delayed > 0 ? (
-          <span className="text-red-600 font-medium">+{schedule.delayed} min</span>
+          <span className="text-red-600 font-medium">
+            +{schedule.delayed} min
+          </span>
         ) : (
           <span className="text-green-600">On Time</span>
         )}
       </td>
       <td className="px-4 py-3 text-sm text-gray-600">
-        {schedule.arr_gate || schedule.dep_gate || 'TBA'}
+        {schedule.arr_gate || schedule.dep_gate || "TBA"}
       </td>
     </tr>
   );
@@ -129,10 +132,14 @@ const AirportLiveBoard: React.FC<AirportLiveBoardProps> = ({ iataCode, onClose }
               {airport?.name || iataCode}
             </h2>
             <p className="text-blue-100 text-sm mt-1">
-              {airport?.city}, {airport?.country} • {iataCode}/{airport?.icao_code}
+              {airport?.city}, {airport?.country} • {iataCode}/
+              {airport?.icao_code}
             </p>
           </div>
-          <button onClick={onClose} className="text-white hover:text-gray-200 cursor-pointer">
+          <button
+            onClick={onClose}
+            className="text-white hover:text-gray-200 cursor-pointer"
+          >
             <svg
               className="w-6 h-6"
               fill="none"
@@ -163,11 +170,15 @@ const AirportLiveBoard: React.FC<AirportLiveBoardProps> = ({ iataCode, onClose }
             <div className="text-blue-100 text-xs">Departures Today</div>
           </div>
           <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-            <div className="text-white text-2xl font-bold">{stats.active_flights}</div>
+            <div className="text-white text-2xl font-bold">
+              {stats.active_flights}
+            </div>
             <div className="text-blue-100 text-xs">Active Flights</div>
           </div>
           <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-            <div className="text-white text-2xl font-bold">{stats.delayed_flights}</div>
+            <div className="text-white text-2xl font-bold">
+              {stats.delayed_flights}
+            </div>
             <div className="text-blue-100 text-xs">Delayed</div>
           </div>
         </div>
@@ -175,35 +186,38 @@ const AirportLiveBoard: React.FC<AirportLiveBoardProps> = ({ iataCode, onClose }
 
       <div className="flex border-b border-gray-200 dark:border-gray-700">
         <button
-          onClick={() => setActiveTab('arrivals')}
-          className={`flex-1 px-6 py-3 text-sm font-medium ${activeTab === 'arrivals'
-              ? 'border-b-2 border-blue-500 text-blue-600'
-              : 'text-gray-600 hover:text-gray-800 dark:text-gray-400'
-            }`}
+          onClick={() => setActiveTab("arrivals")}
+          className={`flex-1 px-6 py-3 text-sm font-medium ${
+            activeTab === "arrivals"
+              ? "border-b-2 border-blue-500 text-blue-600"
+              : "text-gray-600 hover:text-gray-800 dark:text-gray-400"
+          }`}
         >
           Arrivals ({arrivals.length})
         </button>
         <button
-          onClick={() => setActiveTab('departures')}
-          className={`flex-1 px-6 py-3 text-sm font-medium ${activeTab === 'departures'
-              ? 'border-b-2 border-blue-500 text-blue-600'
-              : 'text-gray-600 hover:text-gray-800 dark:text-gray-400'
-            }`}
+          onClick={() => setActiveTab("departures")}
+          className={`flex-1 px-6 py-3 text-sm font-medium ${
+            activeTab === "departures"
+              ? "border-b-2 border-blue-500 text-blue-600"
+              : "text-gray-600 hover:text-gray-800 dark:text-gray-400"
+          }`}
         >
           Departures ({departures.length})
         </button>
         <button
-          onClick={() => setActiveTab('delayed')}
-          className={`flex-1 px-6 py-3 text-sm font-medium ${activeTab === 'delayed'
-              ? 'border-b-2 border-red-500 text-red-600'
-              : 'text-gray-600 hover:text-gray-800 dark:text-gray-400'
-            }`}
+          onClick={() => setActiveTab("delayed")}
+          className={`flex-1 px-6 py-3 text-sm font-medium ${
+            activeTab === "delayed"
+              ? "border-b-2 border-red-500 text-red-600"
+              : "text-gray-600 hover:text-gray-800 dark:text-gray-400"
+          }`}
         >
           Delayed ({delayed.length})
         </button>
       </div>
 
-      <div className="overflow-auto" style={{ maxHeight: '500px' }}>
+      <div className="overflow-auto" style={{ maxHeight: "500px" }}>
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
             <tr>
@@ -211,7 +225,7 @@ const AirportLiveBoard: React.FC<AirportLiveBoardProps> = ({ iataCode, onClose }
                 Flight
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">
-                {activeTab === 'arrivals' ? 'From' : 'To'}
+                {activeTab === "arrivals" ? "From" : "To"}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">
                 Time
@@ -228,19 +242,19 @@ const AirportLiveBoard: React.FC<AirportLiveBoardProps> = ({ iataCode, onClose }
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-900">
-            {activeTab === 'arrivals' && arrivals.map(renderScheduleRow)}
-            {activeTab === 'departures' && departures.map(renderScheduleRow)}
-            {activeTab === 'delayed' && delayed.map(renderScheduleRow)}
+            {activeTab === "arrivals" && arrivals.map(renderScheduleRow)}
+            {activeTab === "departures" && departures.map(renderScheduleRow)}
+            {activeTab === "delayed" && delayed.map(renderScheduleRow)}
           </tbody>
         </table>
 
-        {((activeTab === 'arrivals' && arrivals.length === 0) ||
-          (activeTab === 'departures' && departures.length === 0) ||
-          (activeTab === 'delayed' && delayed.length === 0)) && (
-            <div className="text-center py-12 text-gray-500">
-              No {activeTab} flights available
-            </div>
-          )}
+        {((activeTab === "arrivals" && arrivals.length === 0) ||
+          (activeTab === "departures" && departures.length === 0) ||
+          (activeTab === "delayed" && delayed.length === 0)) && (
+          <div className="text-center py-12 text-gray-500">
+            No {activeTab} flights available
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,13 +1,13 @@
 // Enhanced Satellite Features 
 
-import * as satellite from 'satellite.js';
+import * as satellite from "satellite.js";
 import type {
   SatelliteObject,
   SatelliteTrail,
   OrbitalPrediction,
   GroundFootprint,
   APIResponse,
-} from '../types';
+} from "../types";
 
 // ============================================
 // CALCULATE SATELLITE TRAIL
@@ -20,14 +20,14 @@ export const calculateSatelliteTrail = (
   if (!sat.tle) {
     return {
       success: false,
-      error: 'TLE data not available',
+      error: "TLE data not available",
       timestamp: Date.now(),
     };
   }
 
   try {
     const satrec = satellite.twoline2satrec(sat.tle.line1, sat.tle.line2);
-    const positions: SatelliteTrail['positions'] = [];
+    const positions: SatelliteTrail["positions"] = [];
 
     const now = new Date();
     const stepSeconds = 30;
@@ -38,7 +38,7 @@ export const calculateSatelliteTrail = (
 
       if (
         positionAndVelocity?.position &&
-        typeof positionAndVelocity.position !== 'boolean'
+        typeof positionAndVelocity.position !== "boolean"
       ) {
         const gmst = satellite.gstime(time);
         const positionGd = satellite.eciToGeodetic(
@@ -64,10 +64,11 @@ export const calculateSatelliteTrail = (
       timestamp: Date.now(),
     };
   } catch (error) {
-    console.error('Error calculating satellite trail:', error);
+    console.error("Error calculating satellite trail:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Trail calculation failed',
+      error:
+        error instanceof Error ? error.message : "Trail calculation failed",
       timestamp: Date.now(),
     };
   }
@@ -103,7 +104,8 @@ export const calculateGroundFootprint = (
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Footprint calculation failed',
+      error:
+        error instanceof Error ? error.message : "Footprint calculation failed",
       timestamp: Date.now(),
     };
   }
@@ -120,14 +122,14 @@ export const predictOrbitalPath = (
   if (!sat.tle) {
     return {
       success: false,
-      error: 'TLE data required',
+      error: "TLE data required",
       timestamp: Date.now(),
     };
   }
 
   try {
     const satrec = satellite.twoline2satrec(sat.tle.line1, sat.tle.line2);
-    const positions: OrbitalPrediction['future_positions'] = [];
+    const positions: OrbitalPrediction["future_positions"] = [];
     const now = new Date();
     const stepSeconds = 30;
 
@@ -137,7 +139,7 @@ export const predictOrbitalPath = (
 
       if (
         positionAndVelocity?.position &&
-        typeof positionAndVelocity.position !== 'boolean'
+        typeof positionAndVelocity.position !== "boolean"
       ) {
         const gmst = satellite.gstime(time);
         const positionGd = satellite.eciToGeodetic(
@@ -147,7 +149,7 @@ export const predictOrbitalPath = (
 
         const vel = positionAndVelocity.velocity;
         const velocity =
-          vel && typeof vel !== 'boolean'
+          vel && typeof vel !== "boolean"
             ? Math.sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z)
             : 0;
 
@@ -161,13 +163,13 @@ export const predictOrbitalPath = (
       }
     }
 
-    let orbitType: OrbitalPrediction['orbit_type'] = 'LEO';
+    let orbitType: OrbitalPrediction["orbit_type"] = "LEO";
     if (sat.altitude > 35786 - 500 && sat.altitude < 35786 + 500) {
-      orbitType = 'GEO';
+      orbitType = "GEO";
     } else if (sat.altitude > 2000 && sat.altitude < 35786) {
-      orbitType = 'MEO';
+      orbitType = "MEO";
     } else if (sat.altitude > 35786 + 1000) {
-      orbitType = 'HEO';
+      orbitType = "HEO";
     }
 
     return {
@@ -182,7 +184,7 @@ export const predictOrbitalPath = (
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Path prediction failed',
+      error: error instanceof Error ? error.message : "Path prediction failed",
       timestamp: Date.now(),
     };
   }

@@ -1,4 +1,4 @@
-import { Satellite } from 'lucide-react';
+import { Satellite } from "lucide-react";
 
 const Header = () => {
   return (
@@ -7,7 +7,9 @@ const Header = () => {
         <div className="flex items-center space-x-3">
           <Satellite size={32} className="text-blue-400" />
           <div>
-            <h1 className="text-2xl font-bold">Real-Time Flight & Satellite Tracker</h1>
+            <h1 className="text-2xl font-bold">
+              Real-Time Flight & Satellite Tracker
+            </h1>
             <p className="text-sm text-gray-400">
               Live visualization of aircraft, satellites, and space debris
             </p>

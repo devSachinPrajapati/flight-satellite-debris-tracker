@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import type { SatelliteObject } from '../types';
-import { fetchSatelliteData, updateSatellitePositions } from '../services/satelliteService';
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { SatelliteObject } from "../types";
+import {
+  fetchSatelliteData,
+  updateSatellitePositions,
+} from "../services/satelliteService";
 
 export const useSatelliteData = (positionUpdateInterval = 2000) => {
   const [satellites, setSatellites] = useState<SatelliteObject[]>([]);
@@ -8,8 +11,7 @@ export const useSatelliteData = (positionUpdateInterval = 2000) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastFetchTime, setLastFetchTime] = useState<Date>(new Date());
-  const [status, setStatus] = useState<'idle' | 'ok' | 'error'>('idle');
-
+  const [status, setStatus] = useState<"idle" | "ok" | "error">("idle");
 
   const satellitesRef = useRef<SatelliteObject[]>([]);
   const debrisRef = useRef<SatelliteObject[]>([]);
@@ -18,23 +20,27 @@ export const useSatelliteData = (positionUpdateInterval = 2000) => {
   const loadSatelliteData = useCallback(async () => {
     try {
       setIsLoading(true);
-      console.log('🛰️ Fetching fresh TLE data from CelesTrak...');
+      console.log("🛰️ Fetching fresh TLE data from CelesTrak...");
       const data = await fetchSatelliteData();
-      
+
       satellitesRef.current = data.satellites;
       debrisRef.current = data.debris;
-      
+
       setSatellites(data.satellites);
       setDebris(data.debris);
       setLastFetchTime(new Date());
-      setStatus('ok');
+      setStatus("ok");
       setError(null);
-      
-      console.log(`✅ Loaded ${data.satellites.length} satellites and ${data.debris.length} debris`);
+
+      console.log(
+        `✅ Loaded ${data.satellites.length} satellites and ${data.debris.length} debris`
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load satellite data');
-      setStatus('error');
-      console.error('Satellite fetch error:', err);
+      setError(
+        err instanceof Error ? err.message : "Failed to load satellite data"
+      );
+      setStatus("error");
+      console.error("Satellite fetch error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -43,13 +49,19 @@ export const useSatelliteData = (positionUpdateInterval = 2000) => {
   // Update positions using existing TLE data
   const updatePositions = useCallback(() => {
     const currentTime = new Date();
-    
-    const updatedSatellites = updateSatellitePositions(satellitesRef.current, currentTime);
-    const updatedDebris = updateSatellitePositions(debrisRef.current, currentTime);
-    
+
+    const updatedSatellites = updateSatellitePositions(
+      satellitesRef.current,
+      currentTime
+    );
+    const updatedDebris = updateSatellitePositions(
+      debrisRef.current,
+      currentTime
+    );
+
     setSatellites(updatedSatellites);
     setDebris(updatedDebris);
-    
+
     // Update refs
     satellitesRef.current = updatedSatellites;
     debrisRef.current = updatedDebris;
@@ -70,20 +82,25 @@ export const useSatelliteData = (positionUpdateInterval = 2000) => {
       return;
     }
 
-    console.log(`🔄 Satellite position update interval: ${positionUpdateInterval}ms`);
+    console.log(
+      `🔄 Satellite position update interval: ${positionUpdateInterval}ms`
+    );
 
-    const positionInterval = setInterval(updatePositions, positionUpdateInterval);
+    const positionInterval = setInterval(
+      updatePositions,
+      positionUpdateInterval
+    );
 
     return () => clearInterval(positionInterval);
   }, [positionUpdateInterval, updatePositions]);
 
-  return { 
-    satellites, 
-    debris, 
-    isLoading, 
-    error, 
+  return {
+    satellites,
+    debris,
+    isLoading,
+    error,
     lastFetchTime,
-    status,              // new
-    refresh: loadSatelliteData 
+    status, // new
+    refresh: loadSatelliteData,
   };
 };
