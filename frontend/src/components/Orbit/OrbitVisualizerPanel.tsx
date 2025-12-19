@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { SatelliteObject, OrbitalPrediction } from '../../types';
 import { predictOrbitalPath } from '../../services/satelliteEnhancedService';
 import * as maptilersdk from '@maptiler/sdk';
@@ -10,11 +10,11 @@ interface OrbitVisualizerPanelProps {
   onClose: () => void;
 }
 
-const OrbitVisualizerPanel: React.FC<OrbitVisualizerPanelProps> = ({
+const OrbitVisualizerPanel = ({
   satellite,
   map,
   onClose,
-}) => {
+}: OrbitVisualizerPanelProps) => {
   const [prediction, setPrediction] = useState<OrbitalPrediction | null>(null);
   const [loading, setLoading] = useState(true);
   const [duration, setDuration] = useState(90);

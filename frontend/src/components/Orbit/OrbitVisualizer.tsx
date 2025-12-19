@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { SatelliteObject, OrbitalPrediction } from "../../types";
 import { predictOrbitalPath } from "../../services/satelliteEnhancedService";
 
@@ -9,11 +9,11 @@ interface OrbitVisualizerProps {
   duration: number;
 }
 
-const OrbitVisualizer: React.FC<OrbitVisualizerProps> = ({
+const OrbitVisualizer = ({
   satellite,
   map,
   duration,
-}) => {
+}: OrbitVisualizerProps) => {
   const [prediction, setPrediction] = useState<OrbitalPrediction | null>(null);
   const [loading, setLoading] = useState(true);
 
