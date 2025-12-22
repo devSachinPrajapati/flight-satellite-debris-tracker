@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useRef, useEffect, useCallback } from "react";
 import * as maptilersdk from "@maptiler/sdk";
 import MainLayout from "./components/Layout/MainLayout";
@@ -421,7 +422,6 @@ const App = () => {
   useEffect(() => {
     return () => {
       markersRef.current.forEach((marker) => marker.remove());
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       markersRef.current.clear();
     };
   }, []);
