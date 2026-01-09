@@ -188,10 +188,6 @@ const App = () => {
           </div>
         `);
       }
-
-      // Can Implement at last
-      // Smoothly pan map to follow (optional - enable if you want camera to follow)
-      // mapRef.current.panTo([lng, lat], { duration: 100 });
     }
   };
 
@@ -218,8 +214,8 @@ const App = () => {
   const {
     aircraft,
     isLoading: aircraftLoading,
-    lastFetchTime: aircraftLastFetch, // timestamp
-    status: aircraftStatus, // 'idle' | 'ok' | 'error'
+    lastFetchTime: aircraftLastFetch,
+    status: aircraftStatus,
     refresh: refreshAircraft,
   } = useAircraftData(5000);
 
@@ -230,7 +226,7 @@ const App = () => {
     lastFetchTime,
     status: satelliteStatus,
     refresh: refreshSatellites,
-  } = useSatelliteData(2000); // Update positions every 2 seconds
+  } = useSatelliteData(2000);
 
   const { viewMode, selectedObject, handleViewModeChange, handleObjectSelect } =
     useMapControls();
@@ -274,7 +270,7 @@ const App = () => {
     );
   }, []);
 
-  // Create or update marker
+  // Create or update marker - FIXED: No zoom on click
   const createOrUpdateMarker = useCallback(
     (
       id: string,
@@ -293,6 +289,7 @@ const App = () => {
         Math.abs(lat) > 90 ||
         Math.abs(lng) > 180
       ) {
+        console.warn(`Invalid coordinates for ${id}: [${lat}, ${lng}]`);
         return;
       }
 
@@ -302,34 +299,35 @@ const App = () => {
         // Update existing marker position
         existingMarker.setLngLat([lng, lat]);
       } else {
-        // Create new marker
+        // Create new marker element with proper styling
         const el = document.createElement("div");
-        el.style.width = "0px";
-        el.style.height = "0px";
-        el.style.display = "flex";
-        el.style.alignItems = "center";
-        el.style.justifyContent = "center";
-
         const size = type === "debris" ? 16 : 24;
 
-        el.className = "marker";
+        // FIXED: Proper inline styles that are visible
         el.style.width = `${size}px`;
         el.style.height = `${size}px`;
-        el.style.borderRadius = "50%";
         el.style.backgroundColor = color;
         el.style.border = "2px solid white";
+        el.style.borderRadius = "50%";
         el.style.cursor = "pointer";
         el.style.transition = "all 0.3s ease";
         el.style.boxShadow = "0 2px 8px rgba(0,0,0,0.4)";
+        el.style.display = "flex";
+        el.style.alignItems = "center";
+        el.style.justifyContent = "center";
+        el.style.fontSize = type === "satellite" ? "10px" : "12px";
+        el.className = "custom-marker";
 
+        // Add icon based on type with proper styling
         if (type === "aircraft") {
-          el.innerHTML =
-            '<div style="font-size: 12px; text-align: center; line-height: 20px;">✈️</div>';
+          el.innerHTML = '<span style="pointer-events: none;">✈️</span>';
         } else if (type === "satellite") {
-          el.innerHTML =
-            '<div style="font-size: 10px; text-align: center; line-height: 20px;">🛰️</div>';
+          el.innerHTML = '<span style="pointer-events: none;">🛰️</span>';
+        } else if (type === "debris") {
+          el.innerHTML = '<span style="pointer-events: none; font-size: 8px;">🔴</span>';
         }
 
+        // Hover effects
         el.addEventListener("mouseenter", () => {
           el.style.transform = "scale(1.5)";
           el.style.zIndex = "1000";
@@ -340,16 +338,35 @@ const App = () => {
           el.style.zIndex = "1";
         });
 
+        // FIXED: Click handler WITHOUT zoom - just select the object
         el.addEventListener("click", (e) => {
+          e.preventDefault();
           e.stopPropagation();
+          
+          console.log(`🖱️ Marker clicked:`, {
+            type,
+            id,
+            data: type === "aircraft" 
+              ? `Flight: ${(data as Aircraft).flight_icao || (data as Aircraft).hex}` 
+              : `Satellite: ${(data as SatelliteObject).name}`
+          });
+          
+          // ONLY call the select handler - NO ZOOM
           handleObjectSelect({ type, data });
         });
 
-        const marker = new maptilersdk.Marker({ element: el })
+        // Create the MapTiler marker
+        const marker = new maptilersdk.Marker({ 
+          element: el,
+          anchor: "center"
+        })
           .setLngLat([lng, lat])
           .addTo(mapRef.current);
 
+        // Store marker reference
         markersRef.current.set(id, marker);
+        
+        console.log(`✅ Created ${type} marker: ${id} at [${lat.toFixed(2)}, ${lng.toFixed(2)}]`);
       }
     },
     [handleObjectSelect]
@@ -407,7 +424,7 @@ const App = () => {
     // Remove markers not in current view
     removeInvalidMarkers(validIds);
 
-    console.log(`📍 Active markers: ${markersRef.current.size}`);
+    console.log(`📍 Active markers: ${markersRef.current.size} | View: ${viewMode}`);
   }, [
     aircraft,
     satellites,
@@ -436,7 +453,7 @@ const App = () => {
       <MainLayout>
         <MapContainer onMapLoad={handleMapLoad} />
 
-        {/* View Mode Toggle | top-[19rem]*/}
+        {/* View Mode Toggle */}
         <div className="absolute top-76 left-4 z-10">
           <ViewModeToggle
             viewMode={viewMode}
@@ -459,13 +476,15 @@ const App = () => {
           />
         </div>
 
-        {/* Selected Object Details */}
+        {/* FIXED: Selected Object Details - CENTERED */}
         {selectedObject && (
-          <div className="absolute top-4 bottom-24 left-1/2 transform -translate-x-1/2 z-10 max-w-xl">
-            <ObjectDetailsCard
-              selectedObject={selectedObject}
-              onClose={() => handleObjectSelect(null)}
-            />
+          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+            <div className="pointer-events-auto max-w-2xl w-full mx-4">
+              <ObjectDetailsCard
+                selectedObject={selectedObject}
+                onClose={() => handleObjectSelect(null)}
+              />
+            </div>
           </div>
         )}
 
@@ -637,4 +656,4 @@ const App = () => {
   );
 };
 
-export default App; 
+export default App;
