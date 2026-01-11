@@ -64,13 +64,13 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
   const renderScheduleRow = (schedule: AirportSchedule) => (
     <tr
       key={schedule.flight_icao}
-      className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+      className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-white"
     >
       <td className="px-4 py-3">
-        <div className="font-semibold text-gray-900 dark:text-white">
+        <div className="font-semibold text-gray-100 dark:text-white">
           {schedule.flight_icao}
         </div>
-        <div className="text-xs text-gray-500">{schedule.airline_icao}</div>
+        <div className="text-xs text-gray-100">{schedule.airline_icao}</div>
       </td>
       <td className="px-4 py-3">
         {activeTab === "arrivals" ? schedule.dep_icao : schedule.arr_icao}
@@ -109,7 +109,7 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
           <span className="text-green-600">On Time</span>
         )}
       </td>
-      <td className="px-4 py-3 text-sm text-gray-600">
+      <td className="px-4 py-3 text-sm text-gray-100">
         {schedule.arr_gate || schedule.dep_gate || "TBA"}
       </td>
     </tr>
@@ -187,30 +187,30 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
       <div className="flex border-b border-gray-200 dark:border-gray-700">
         <button
           onClick={() => setActiveTab("arrivals")}
-          className={`flex-1 px-6 py-3 text-sm font-medium ${
+          className={`flex-1 px-6 py-3 text-sm font-medium cursor-pointer ${
             activeTab === "arrivals"
-              ? "border-b-2 border-blue-500 text-blue-600"
-              : "text-gray-600 hover:text-gray-800 dark:text-gray-400"
+              ? "border-b-2 border-blue-500 text-blue-100"
+              : "text-gray-600 hover:text-gray-100 dark:text-gray-400"
           }`}
         >
           Arrivals ({arrivals.length})
         </button>
         <button
           onClick={() => setActiveTab("departures")}
-          className={`flex-1 px-6 py-3 text-sm font-medium ${
+          className={`flex-1 px-6 py-3 text-sm font-medium cursor-pointer ${
             activeTab === "departures"
-              ? "border-b-2 border-blue-500 text-blue-600"
-              : "text-gray-600 hover:text-gray-800 dark:text-gray-400"
+              ? "border-b-2 border-blue-500 text-blue-100"
+              : "text-gray-600 hover:text-gray-100 dark:text-gray-400"
           }`}
         >
           Departures ({departures.length})
         </button>
         <button
           onClick={() => setActiveTab("delayed")}
-          className={`flex-1 px-6 py-3 text-sm font-medium ${
+          className={`flex-1 px-6 py-3 text-sm font-medium cursor-pointer ${
             activeTab === "delayed"
-              ? "border-b-2 border-red-500 text-red-600"
-              : "text-gray-600 hover:text-gray-800 dark:text-gray-400"
+              ? "border-b-2 border-red-500 text-red-100"
+              : "text-gray-600 hover:text-gray-100 dark:text-gray-400"
           }`}
         >
           Delayed ({delayed.length})

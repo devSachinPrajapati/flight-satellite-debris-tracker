@@ -41,7 +41,7 @@ const App = () => {
   const [selectedFlightHex, setSelectedFlightHex] = useState<string | null>(
     null
   );
-  const [selectedAirportCode, _setSelectedAirportCode] = useState("JFK");
+  const [selectedAirportCode, setSelectedAirportCode] = useState("JFK");
 
   const [replayMarker, setReplayMarker] = useState<maptilersdk.Marker | null>(
     null
@@ -270,7 +270,25 @@ const App = () => {
     );
   }, []);
 
-  // Create or update marker - FIXED: No zoom on click
+    const getAirportCodeFromAircraft = (aircraft: Aircraft): string | null => {
+    // Priority order: arrival airport (arr_iata) > departure airport (dep_iata)
+    // Use IATA code (3-letter) if available, otherwise try ICAO (4-letter)
+    if (aircraft.arr_iata) {
+      return aircraft.arr_iata;
+    }
+    if (aircraft.dep_iata) {
+      return aircraft.dep_iata;
+    }
+    if (aircraft.arr_icao) {
+      return aircraft.arr_icao;
+    }
+    if (aircraft.dep_icao) {
+      return aircraft.dep_icao;
+    }
+    return null;
+  };
+
+  // Create or update marker
   const createOrUpdateMarker = useCallback(
     (
       id: string,
@@ -303,7 +321,7 @@ const App = () => {
         const el = document.createElement("div");
         const size = type === "debris" ? 16 : 24;
 
-        // FIXED: Proper inline styles that are visible
+        // Proper inline styles that are visible
         el.style.width = `${size}px`;
         el.style.height = `${size}px`;
         el.style.backgroundColor = color;
@@ -318,7 +336,7 @@ const App = () => {
         el.style.fontSize = type === "satellite" ? "10px" : "12px";
         el.className = "custom-marker";
 
-        // Add icon based on type with proper styling
+        // Added icon based on type with proper styling
         if (type === "aircraft") {
           el.innerHTML = '<span style="pointer-events: none;">✈️</span>';
         } else if (type === "satellite") {
@@ -476,16 +494,14 @@ const App = () => {
           />
         </div>
 
-        {/* FIXED: Selected Object Details - CENTERED */}
+        {/* Selected Object Details */}
         {selectedObject && (
-          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-            <div className="pointer-events-auto max-w-2xl w-full mx-4">
+            <div className="absolute top-4 bottom-24 left-1/2 transform -translate-x-1/2 z-10 max-w-xl">
               <ObjectDetailsCard
                 selectedObject={selectedObject}
                 onClose={() => handleObjectSelect(null)}
               />
             </div>
-          </div>
         )}
 
         <div className="absolute top-42 right-1 z-10 flex flex-col space-y-2 cursor-pointer">
@@ -508,7 +524,7 @@ const App = () => {
         <LoadingOverlay isLoading={isLoading} />
       </MainLayout>
 
-      <div className="absolute bottom-20 left-[100px] flex flex-row gap-2 z-40">
+      <div className="absolute bottom-20 left-[200px] flex flex-row gap-2 z-40">
         <button
           onClick={() => setShowNearbyFlights(!showNearbyFlights)}
           className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600 transition cursor-pointer"
@@ -516,8 +532,23 @@ const App = () => {
           📍 Nearby Flights
         </button>
 
-        <button
-          onClick={() => setShowAirportBoard(true)}
+         <button
+          onClick={() => {
+            if (selectedObject?.type === "aircraft") {
+              const selectedAircraft = selectedObject.data as Aircraft;
+              const airportCode = getAirportCodeFromAircraft(selectedAircraft);
+              
+              if (airportCode) {
+                setSelectedAirportCode(airportCode);
+                setShowAirportBoard(true);
+                console.log(`✈️ Opening airport board for: ${airportCode}`);
+              } else {
+                alert("No airport information available for this flight. Please select a flight with known departure or arrival airport.");
+              }
+            } else {
+              alert("Please select an aircraft first to view its airport information.");
+            }
+          }}
           className="px-4 py-2 bg-green-500 text-white rounded-lg shadow-lg hover:bg-green-600 transition cursor-pointer"
         >
           ✈️ Airport Board
