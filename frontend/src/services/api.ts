@@ -1,5 +1,5 @@
-const AIRLABS_BASE_URL = "https://airlabs.co/api/v9";
-const CELESTRAK_BASE_URL = "https://celestrak.org/NORAD/elements/gp.php";
+const AIRLABS_BASE_URL = import.meta.env.AIRLABS_BASE_URL;
+const CELESTRAK_BASE_URL = import.meta.env.CELESTRAK_BASE_URL;
 
 export const apiConfig = {
   airLabs: {
