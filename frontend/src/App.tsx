@@ -28,6 +28,11 @@ import PerformanceDashboard from "./components/Performance/PerformanceDashboard"
 import SatelliteEnhancedPanel from "./components/Satellite/SatelliteEnhancedPanel";
 import OrbitVisualizerPanel from "./components/Orbit/OrbitVisualizerPanel";
 
+// ✅ NEW: Helper function to map status types
+const mapStatus = (status: 'idle' | 'ok' | 'error'): 'idle' | 'ok' | 'error' => {
+  return status;
+};
+
 const App = () => {
   const mapRef = useRef<maptilersdk.Map | null>(null);
   const markersRef = useRef<Map<string, maptilersdk.Marker>>(new Map());
@@ -38,14 +43,10 @@ const App = () => {
   const [showFlightReplay, setShowFlightReplay] = useState(false);
   const [showAirportBoard, setShowAirportBoard] = useState(false);
   const [showNearbyFlights, setShowNearbyFlights] = useState(false);
-  const [selectedFlightHex, setSelectedFlightHex] = useState<string | null>(
-    null
-  );
+  const [selectedFlightHex, setSelectedFlightHex] = useState<string | null>(null);
   const [selectedAirportCode, setSelectedAirportCode] = useState("JFK");
 
-  const [replayMarker, setReplayMarker] = useState<maptilersdk.Marker | null>(
-    null
-  );
+  const [replayMarker, setReplayMarker] = useState<maptilersdk.Marker | null>(null);
   const [showAircraftPerformance, setShowAircraftPerformance] = useState(false);
   const [showSatelliteTracker, setShowSatelliteTracker] = useState(false);
   const [showOrbitVisualizer, setShowOrbitVisualizer] = useState(false);
@@ -123,19 +124,13 @@ const App = () => {
             🔄 REPLAY MODE
           </div>
           <div style="font-size: 13px; color: #1f2937; margin-bottom: 4px;">
-            <strong>Flight:</strong> ${
-              selectedAircraft?.flight_icao || selectedFlightHex
-            }
+            <strong>Flight:</strong> ${selectedAircraft?.flight_icao || selectedFlightHex}
           </div>
           <div style="font-size: 12px; color: #6b7280; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
             <div><strong>Alt:</strong> ${alt.toLocaleString()} ft</div>
             <div><strong>Hdg:</strong> ${heading.toFixed(0)}°</div>
-            <div><strong>Type:</strong> ${
-              selectedAircraft?.aircraft_icao || "N/A"
-            }</div>
-            <div><strong>Airline:</strong> ${
-              selectedAircraft?.airline_icao || "N/A"
-            }</div>
+            <div><strong>Type:</strong> ${selectedAircraft?.aircraft_icao || "N/A"}</div>
+            <div><strong>Airline:</strong> ${selectedAircraft?.airline_icao || "N/A"}</div>
           </div>
         </div>
       `);
@@ -171,19 +166,13 @@ const App = () => {
               🔄 REPLAY MODE
             </div>
             <div style="font-size: 13px; color: #1f2937; margin-bottom: 4px;">
-              <strong>Flight:</strong> ${
-                selectedAircraft?.flight_icao || selectedFlightHex
-              }
+              <strong>Flight:</strong> ${selectedAircraft?.flight_icao || selectedFlightHex}
             </div>
             <div style="font-size: 12px; color: #6b7280; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
               <div><strong>Alt:</strong> ${alt.toLocaleString()} ft</div>
               <div><strong>Hdg:</strong> ${heading.toFixed(0)}°</div>
-              <div><strong>Type:</strong> ${
-                selectedAircraft?.aircraft_icao || "N/A"
-              }</div>
-              <div><strong>Airline:</strong> ${
-                selectedAircraft?.airline_icao || "N/A"
-              }</div>
+              <div><strong>Type:</strong> ${selectedAircraft?.aircraft_icao || "N/A"}</div>
+              <div><strong>Airline:</strong> ${selectedAircraft?.airline_icao || "N/A"}</div>
             </div>
           </div>
         `);
@@ -211,12 +200,14 @@ const App = () => {
     }
   }, [isGlobeView]);
 
+  // ✅ Use WebSocket-powered hooks
   const {
     aircraft,
     isLoading: aircraftLoading,
     lastFetchTime: aircraftLastFetch,
     status: aircraftStatus,
     refresh: refreshAircraft,
+    isConnected: aircraftConnected,
   } = useAircraftData(5000);
 
   const {
@@ -226,7 +217,16 @@ const App = () => {
     lastFetchTime,
     status: satelliteStatus,
     refresh: refreshSatellites,
+    isConnected: satelliteConnected,
   } = useSatelliteData(2000);
+
+  // Log WebSocket connection status
+  useEffect(() => {
+    console.log('📡 WebSocket Status:', {
+      aircraft: aircraftConnected ? '✅ Connected' : '❌ Disconnected',
+      satellites: satelliteConnected ? '✅ Connected' : '❌ Disconnected',
+    });
+  }, [aircraftConnected, satelliteConnected]);
 
   const { viewMode, selectedObject, handleViewModeChange, handleObjectSelect } =
     useMapControls();
@@ -265,130 +265,74 @@ const App = () => {
       import.meta.env.VITE_MAPTILER_API_KEY ? "✅ Present" : "❌ Missing"
     );
     console.log(
-      "AirLabs Key:",
-      import.meta.env.VITE_AIRLABS_API_KEY ? "✅ Present" : "❌ Missing"
+      "Backend URL:",
+      import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"
+    );
+    console.log(
+      "WebSocket URL:",
+      import.meta.env.VITE_WS_URL || "ws://localhost:8000"
     );
   }, []);
 
-    const getAirportCodeFromAircraft = (aircraft: Aircraft): string | null => {
-    // Priority order: arrival airport (arr_iata) > departure airport (dep_iata)
-    // Use IATA code (3-letter) if available, otherwise try ICAO (4-letter)
-    if (aircraft.arr_iata) {
-      return aircraft.arr_iata;
-    }
-    if (aircraft.dep_iata) {
-      return aircraft.dep_iata;
-    }
-    if (aircraft.arr_icao) {
-      return aircraft.arr_icao;
-    }
-    if (aircraft.dep_icao) {
-      return aircraft.dep_icao;
-    }
+  const getAirportCodeFromAircraft = (aircraft: Aircraft): string | null => {
+    if (aircraft.arr_iata) return aircraft.arr_iata;
+    if (aircraft.dep_iata) return aircraft.dep_iata;
+    if (aircraft.arr_icao) return aircraft.arr_icao;
+    if (aircraft.dep_icao) return aircraft.dep_icao;
     return null;
   };
 
   // Create or update marker
-  const createOrUpdateMarker = useCallback(
-    (
-      id: string,
-      lat: number,
-      lng: number,
-      color: string,
-      type: "aircraft" | "satellite" | "debris",
-      data: Aircraft | SatelliteObject
-    ) => {
-      if (!mapRef.current) return;
+  // FIXED: createOrUpdateMarker with proper event handling
+  const createOrUpdateMarker = useCallback((id: string, lat: number, lng: number, color: string, type: "aircraft" | "satellite" | "debris", data: Aircraft | SatelliteObject) => {
+    if (!mapRef.current) return;
+    if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      console.warn(`Invalid coordinates for ${id}: [${lat}, ${lng}]`);
+      return;
+    }
 
-      // Validate coordinates
-      if (
-        isNaN(lat) ||
-        isNaN(lng) ||
-        Math.abs(lat) > 90 ||
-        Math.abs(lng) > 180
-      ) {
-        console.warn(`Invalid coordinates for ${id}: [${lat}, ${lng}]`);
-        return;
-      }
+    const existingMarker = markersRef.current.get(id);
+    if (existingMarker) {
+      existingMarker.setLngLat([lng, lat]);
+    } else {
+      const el = document.createElement("div");
+      const size = type === "debris" ? 16 : 24;
+      el.style.width = `${size}px`;
+      el.style.height = `${size}px`;
+      el.style.backgroundColor = color;
+      el.style.border = "2px solid white";
+      el.style.borderRadius = "50%";
+      el.style.cursor = "pointer";
+      el.style.transition = "transform 0.2s ease";
+      el.style.boxShadow = "0 2px 8px rgba(0,0,0,0.4)";
+      el.style.display = "flex";
+      el.style.alignItems = "center";
+      el.style.justifyContent = "center";
+      el.style.fontSize = type === "satellite" ? "10px" : "12px";
+      el.className = "custom-marker";
+      el.style.pointerEvents = "auto";
 
-      const existingMarker = markersRef.current.get(id);
+      if (type === "aircraft") el.innerHTML = '<span style="pointer-events: none;">✈️</span>';
+      else if (type === "satellite") el.innerHTML = '<span style="pointer-events: none;">🛰️</span>';
+      else if (type === "debris") el.innerHTML = '<span style="pointer-events: none; font-size: 8px;">🔴</span>';
 
-      if (existingMarker) {
-        // Update existing marker position
-        existingMarker.setLngLat([lng, lat]);
-      } else {
-        // Create new marker element with proper styling
-        const el = document.createElement("div");
-        const size = type === "debris" ? 16 : 24;
+      el.addEventListener("mouseenter", () => { el.style.transform = "scale(1.3)"; el.style.zIndex = "1000"; });
+      el.addEventListener("mouseleave", () => { el.style.transform = "scale(1)"; el.style.zIndex = "1"; });
+      el.addEventListener("mousedown", (e) => { e.stopPropagation(); });
+      el.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        console.log(`🎯 Marker clicked: ${type} ${id}`);
+        setTimeout(() => { handleObjectSelect({ type, data }); }, 50);
+      });
 
-        // Proper inline styles that are visible
-        el.style.width = `${size}px`;
-        el.style.height = `${size}px`;
-        el.style.backgroundColor = color;
-        el.style.border = "2px solid white";
-        el.style.borderRadius = "50%";
-        el.style.cursor = "pointer";
-        el.style.transition = "all 0.3s ease";
-        el.style.boxShadow = "0 2px 8px rgba(0,0,0,0.4)";
-        el.style.display = "flex";
-        el.style.alignItems = "center";
-        el.style.justifyContent = "center";
-        el.style.fontSize = type === "satellite" ? "10px" : "12px";
-        el.className = "custom-marker";
+      const marker = new maptilersdk.Marker({ element: el, anchor: "center", draggable: false }).setLngLat([lng, lat]).addTo(mapRef.current);
+      markersRef.current.set(id, marker);
+      if (Math.random() < 0.01) console.log(`✅ Created ${type} marker: ${id}`);
+    }
+  }, [handleObjectSelect]);
 
-        // Added icon based on type with proper styling
-        if (type === "aircraft") {
-          el.innerHTML = '<span style="pointer-events: none;">✈️</span>';
-        } else if (type === "satellite") {
-          el.innerHTML = '<span style="pointer-events: none;">🛰️</span>';
-        } else if (type === "debris") {
-          el.innerHTML = '<span style="pointer-events: none; font-size: 8px;">🔴</span>';
-        }
-
-        // Hover effects
-        el.addEventListener("mouseenter", () => {
-          el.style.transform = "scale(1.5)";
-          el.style.zIndex = "1000";
-        });
-
-        el.addEventListener("mouseleave", () => {
-          el.style.transform = "scale(1)";
-          el.style.zIndex = "1";
-        });
-
-        // FIXED: Click handler WITHOUT zoom - just select the object
-        el.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          
-          console.log(`🖱️ Marker clicked:`, {
-            type,
-            id,
-            data: type === "aircraft" 
-              ? `Flight: ${(data as Aircraft).flight_icao || (data as Aircraft).hex}` 
-              : `Satellite: ${(data as SatelliteObject).name}`
-          });
-          
-          // ONLY call the select handler - NO ZOOM
-          handleObjectSelect({ type, data });
-        });
-
-        // Create the MapTiler marker
-        const marker = new maptilersdk.Marker({ 
-          element: el,
-          anchor: "center"
-        })
-          .setLngLat([lng, lat])
-          .addTo(mapRef.current);
-
-        // Store marker reference
-        markersRef.current.set(id, marker);
-        
-        console.log(`✅ Created ${type} marker: ${id} at [${lat.toFixed(2)}, ${lng.toFixed(2)}]`);
-      }
-    },
-    [handleObjectSelect]
-  );
 
   // Remove markers that are no longer visible
   const removeInvalidMarkers = useCallback((validIds: Set<string>) => {
@@ -406,13 +350,10 @@ const App = () => {
 
   // Update markers whenever data or view mode changes
   useEffect(() => {
-    if (!mapRef.current || !isMapLoaded) {
-      return;
-    }
+    if (!mapRef.current || !isMapLoaded) return;
 
     const validIds = new Set<string>();
 
-    // Add aircraft markers
     if (viewMode === "all" || viewMode === "aircraft") {
       aircraft.forEach((ac) => {
         const id = `aircraft-${ac.hex}`;
@@ -421,7 +362,6 @@ const App = () => {
       });
     }
 
-    // Add satellite markers
     if (viewMode === "all" || viewMode === "satellite") {
       satellites.forEach((sat) => {
         const id = `satellite-${sat.norad_id}`;
@@ -430,7 +370,6 @@ const App = () => {
       });
     }
 
-    // Add debris markers
     if (viewMode === "all" || viewMode === "debris") {
       debris.forEach((deb) => {
         const id = `debris-${deb.norad_id}`;
@@ -439,19 +378,12 @@ const App = () => {
       });
     }
 
-    // Remove markers not in current view
     removeInvalidMarkers(validIds);
 
-    console.log(`📍 Active markers: ${markersRef.current.size} | View: ${viewMode}`);
-  }, [
-    aircraft,
-    satellites,
-    debris,
-    viewMode,
-    isMapLoaded,
-    createOrUpdateMarker,
-    removeInvalidMarkers,
-  ]);
+    if (Math.random() < 0.01) {
+      console.log(`📍 Active markers: ${markersRef.current.size} | View: ${viewMode}`);
+    }
+  }, [aircraft, satellites, debris, viewMode, isMapLoaded, createOrUpdateMarker, removeInvalidMarkers]);
 
   // Clean up
   useEffect(() => {
@@ -471,47 +403,44 @@ const App = () => {
       <MainLayout>
         <MapContainer onMapLoad={handleMapLoad} />
 
-        {/* View Mode Toggle */}
-        <div className="absolute top-76 left-4 z-10">
+        <div className="absolute top-80 left-4 z-10">
           <ViewModeToggle
             viewMode={viewMode}
             onViewModeChange={handleViewModeChange}
           />
         </div>
 
-        {/* Stats Panel */}
+        {/* ✅ FIXED: Use mapStatus to ensure correct types */}
         <div className="absolute top-4 left-4 z-10">
           <StatsPanel
             aircraftCount={aircraft.length}
             satelliteCount={satellites.length}
             debrisCount={debris.length}
             lastUpdate={aircraftLastFetch ?? lastFetchTime}
-            aircraftStatus={aircraftStatus}
-            satelliteStatus={satelliteStatus}
-            debrisStatus={satelliteStatus}
+            aircraftStatus={mapStatus(aircraftStatus)}
+            satelliteStatus={mapStatus(satelliteStatus)}
+            debrisStatus={mapStatus(satelliteStatus)}
             fps={fps}
             onRefresh={handleRefresh}
+            isConnected={aircraftConnected || satelliteConnected}
           />
         </div>
 
-        {/* Selected Object Details */}
         {selectedObject && (
-            <div className="absolute top-4 bottom-24 left-1/2 transform -translate-x-1/2 z-10 max-w-xl">
-              <ObjectDetailsCard
-                selectedObject={selectedObject}
-                onClose={() => handleObjectSelect(null)}
-              />
-            </div>
+          <div className="absolute top-4 bottom-24 left-1/2 transform -translate-x-1/2 z-10 max-w-xl">
+            <ObjectDetailsCard
+              selectedObject={selectedObject}
+              onClose={() => handleObjectSelect(null)}
+            />
+          </div>
         )}
 
         <div className="absolute top-42 right-1 z-10 flex flex-col space-y-2 cursor-pointer">
           <MapViewToggle isGlobeView={isGlobeView} onToggle={toggleGlobeView} />
         </div>
 
-        {/* Search Panel */}
         <SearchPanel onSearch={handleSearch} />
 
-        {/* Objects List Sidebar */}
         <ObjectsList
           aircraft={filteredAircraft}
           satellites={filteredSatellites}
@@ -520,11 +449,10 @@ const App = () => {
           selectedObject={selectedObject}
         />
 
-        {/* Loading State */}
         <LoadingOverlay isLoading={isLoading} />
       </MainLayout>
 
-      <div className="absolute bottom-20 left-[200px] flex flex-row gap-2 z-40">
+      <div className="absolute bottom-15 left-[200px] flex flex-row gap-2 z-40">
         <button
           onClick={() => setShowNearbyFlights(!showNearbyFlights)}
           className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600 transition cursor-pointer"
@@ -532,21 +460,20 @@ const App = () => {
           📍 Nearby Flights
         </button>
 
-         <button
+        <button
           onClick={() => {
             if (selectedObject?.type === "aircraft") {
               const selectedAircraft = selectedObject.data as Aircraft;
               const airportCode = getAirportCodeFromAircraft(selectedAircraft);
-              
+
               if (airportCode) {
                 setSelectedAirportCode(airportCode);
                 setShowAirportBoard(true);
-                console.log(`✈️ Opening airport board for: ${airportCode}`);
               } else {
-                alert("No airport information available for this flight. Please select a flight with known departure or arrival airport.");
+                alert("No airport information available for this flight.");
               }
             } else {
-              alert("Please select an aircraft first to view its airport information.");
+              alert("Please select an aircraft first.");
             }
           }}
           className="px-4 py-2 bg-green-500 text-white rounded-lg shadow-lg hover:bg-green-600 transition cursor-pointer"
@@ -571,9 +498,7 @@ const App = () => {
         <button
           onClick={() => {
             if (selectedObject?.type === "satellite") {
-              setSelectedSatelliteTracker(
-                selectedObject.data as SatelliteObject
-              );
+              setSelectedSatelliteTracker(selectedObject.data as SatelliteObject);
               setShowSatelliteTracker(!showSatelliteTracker);
             } else {
               alert("Please select a satellite first");
@@ -607,9 +532,7 @@ const App = () => {
                 setSelectedFlightHex(hex);
                 setShowFlightReplay(true);
               } else {
-                alert(
-                  "Not enough history data. Wait 1-2 minutes and try again."
-                );
+                alert("Not enough history data. Wait 1-2 minutes and try again.");
               }
             }}
             className="px-4 py-2 bg-purple-500 text-white rounded-lg shadow-lg hover:bg-purple-600 transition cursor-pointer"
@@ -619,7 +542,6 @@ const App = () => {
         )}
       </div>
 
-      {/* NEW: Nearby Flights Panel */}
       {showNearbyFlights && (
         <div className="absolute left-[480px] top-16 z-40">
           <NearbyFlightsPanel
@@ -635,7 +557,6 @@ const App = () => {
         </div>
       )}
 
-      {/* NEW: Airport Live Board Modal */}
       {showAirportBoard && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <AirportLiveBoard
@@ -667,7 +588,6 @@ const App = () => {
         />
       )}
 
-      {/* NEW: Flight Replay Control */}
       {showFlightReplay &&
         selectedFlightHex &&
         (() => {

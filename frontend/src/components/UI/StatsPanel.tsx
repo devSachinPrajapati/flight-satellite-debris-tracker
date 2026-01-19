@@ -4,13 +4,14 @@ interface StatsPanelProps {
   aircraftCount: number;
   satelliteCount: number;
   debrisCount: number;
-  lastUpdate?: Date;
+  lastUpdate?: Date | null; // ✅ FIXED: Accept both Date and null
   onRefresh?: () => void;
 
   aircraftStatus?: "idle" | "ok" | "error";
   satelliteStatus?: "idle" | "ok" | "error";
   debrisStatus?: "idle" | "ok" | "error";
   fps?: number;
+  isConnected?: boolean; // ✅ NEW: WebSocket connection status
 }
 
 const StatsPanel = ({
@@ -23,13 +24,16 @@ const StatsPanel = ({
   satelliteStatus = "idle",
   debrisStatus = "idle",
   fps,
+  isConnected = false, // ✅ NEW: Default to false
 }: StatsPanelProps) => {
-  const formatTime = (date: Date) =>
-    date.toLocaleTimeString("en-US", {
+  const formatTime = (date: Date | null | undefined) => {
+    if (!date) return "Never";
+    return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
     });
+  };
 
   const renderStatus = (s?: "idle" | "ok" | "error") => {
     if (!s || s === "idle")
@@ -44,8 +48,21 @@ const StatsPanel = ({
   return (
     <div className="bg-white rounded-lg shadow-lg p-4 w-72">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-700">
+        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
           Live Tracking Stats
+          {/* ✅ NEW: WebSocket Connection Indicator */}
+          {isConnected && (
+            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+              WebSocket
+            </span>
+          )}
+          {!isConnected && (
+            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+              Offline
+            </span>
+          )}
         </h3>
         {onRefresh && (
           <button
@@ -128,13 +145,18 @@ const StatsPanel = ({
         </div>
 
         {/* Last update */}
-        {lastUpdate && (
-          <div className="pt-2 border-t border-gray-200">
-            <div className="text-xs text-gray-500">
-              Last TLE Update: {formatTime(lastUpdate)}
-            </div>
+        <div className="pt-2 border-t border-gray-200">
+          <div className="text-xs text-gray-500">
+            Last Update: {formatTime(lastUpdate)}
           </div>
-        )}
+          {/* ✅ NEW: Show real-time indicator when connected */}
+          {isConnected && (
+            <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
+              <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+              Real-time updates active
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

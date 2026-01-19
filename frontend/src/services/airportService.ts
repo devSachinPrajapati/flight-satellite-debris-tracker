@@ -8,7 +8,7 @@ import type {
 } from "../types";
 import { calculateDistance } from "../utils/coordinates";
 
-const AIRLABS_BASE_URL = "https://airlabs.co/api/v9";
+const AIRLABS_BASE_URL = import.meta.env.VITE_AIRLABS_API_KEY;
 
 // API Key
 const getApiKey = () =>
@@ -22,9 +22,11 @@ export const fetchAirportByCode = async (
   code: string
 ): Promise<APIResponse<Airport>> => {
   try {
+    // timeout is the 3rd parameter, not inside options
     const response = await fetchWithTimeout(
       `${AIRLABS_BASE_URL}/airports?iata_code=${code}&api_key=${getApiKey()}`,
-      { timeout: 10000 }
+      undefined,
+      10000
     );
 
     if (!response.ok) {
@@ -70,6 +72,7 @@ export const fetchAirportSchedules = async (
         ? `${AIRLABS_BASE_URL}/schedules?arr_iata=${iataCode}&api_key=${getApiKey()}`
         : `${AIRLABS_BASE_URL}/schedules?dep_iata=${iataCode}&api_key=${getApiKey()}`;
 
+    // ✅ FIXED: timeout is already the 3rd parameter
     const response = await fetchWithTimeout(endpoint, undefined, 15000);
 
     if (!response.ok) {
@@ -176,9 +179,11 @@ export const findNearbyAirports = async (
   radiusKm: number = 100
 ): Promise<APIResponse<NearbyAirport[]>> => {
   try {
+    // ✅ FIXED: timeout is the 3rd parameter
     const response = await fetchWithTimeout(
       `${AIRLABS_BASE_URL}/airports?api_key=${getApiKey()}`,
-      { timeout: 15000 }
+      undefined,
+      15000
     );
 
     if (!response.ok) {

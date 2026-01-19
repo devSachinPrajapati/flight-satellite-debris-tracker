@@ -3,7 +3,7 @@ import { apiConfig, fetchWithTimeout } from "./api";
 
 export const fetchAircraftData = async (): Promise<Aircraft[]> => {
   try {
-    const { apiKey, baseUrl } = apiConfig.airLabs;
+    const { apiKey, baseUrl }: any = apiConfig.airLabs;
 
     if (!apiKey) {
       console.warn("⚠️ AirLabs API key not configured - using mock data");

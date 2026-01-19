@@ -32,11 +32,14 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       pitch: 0,
       bearing: 0,
       projection: "globe", // 🌐 Enable Globe View
+      // ✅ Performance optimizations
+      maxPitch: 85,
+      renderWorldCopies: false,
+      attributionControl: false
     });
 
     map.on("load", () => {
       console.log("✅ Globe View loaded successfully");
-
       mapRef.current = map;
       onMapLoad(map);
     });
