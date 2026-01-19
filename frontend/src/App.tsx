@@ -28,7 +28,7 @@ import PerformanceDashboard from "./components/Performance/PerformanceDashboard"
 import SatelliteEnhancedPanel from "./components/Satellite/SatelliteEnhancedPanel";
 import OrbitVisualizerPanel from "./components/Orbit/OrbitVisualizerPanel";
 
-// ✅ NEW: Helper function to map status types
+
 const mapStatus = (status: 'idle' | 'ok' | 'error'): 'idle' | 'ok' | 'error' => {
   return status;
 };
