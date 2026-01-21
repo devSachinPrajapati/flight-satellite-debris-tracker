@@ -31,9 +31,9 @@ const SearchPanel = ({ onSearch }: SearchPanelProps) => {
   };
 
   return (
-    <div className="absolute top-2 right-16 z-10 bg-white rounded-lg shadow-lg p-4 w-80">
+    <div className="absolute top-4 right-16 z-10 bg-white rounded-lg shadow-lg p-3 w-80">
       {/* Search Input */}
-      <div className="mb-3">
+      <div>
         <div className="flex items-center space-x-2">
           <div className="flex-1 relative">
             <Search

@@ -452,10 +452,10 @@ const App = () => {
         <LoadingOverlay isLoading={isLoading} />
       </MainLayout>
 
-      <div className="absolute bottom-15 left-[200px] flex flex-row gap-2 z-40">
+      <div className="absolute bottom-15 left-1/2 -translate-x-1/2 flex flex-row gap-2 z-40">
         <button
           onClick={() => setShowNearbyFlights(!showNearbyFlights)}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600 transition cursor-pointer"
+          className="px-2 py-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600 transition cursor-pointer"
         >
           📍 Nearby Flights
         </button>
@@ -476,7 +476,7 @@ const App = () => {
               alert("Please select an aircraft first.");
             }
           }}
-          className="px-4 py-2 bg-green-500 text-white rounded-lg shadow-lg hover:bg-green-600 transition cursor-pointer"
+          className="px-2 py-2 bg-green-500 text-white rounded-lg shadow-lg hover:bg-green-600 transition cursor-pointer"
         >
           ✈️ Airport Board
         </button>
@@ -490,7 +490,7 @@ const App = () => {
               alert("Please select an aircraft first");
             }
           }}
-          className="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition cursor-pointer"
+          className="px-2 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition cursor-pointer"
         >
           📊 Performance
         </button>
@@ -504,7 +504,7 @@ const App = () => {
               alert("Please select a satellite first");
             }
           }}
-          className="px-3 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition cursor-pointer"
+          className="px-2 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition cursor-pointer"
         >
           🛰️ Sat Tracker
         </button>
@@ -518,7 +518,7 @@ const App = () => {
               alert("Please select a satellite first");
             }
           }}
-          className="px-3 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition cursor-pointer"
+          className="px-2 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition cursor-pointer"
         >
           🪐 Orbit
         </button>
@@ -535,7 +535,7 @@ const App = () => {
                 alert("Not enough history data. Wait 1-2 minutes and try again.");
               }
             }}
-            className="px-4 py-2 bg-purple-500 text-white rounded-lg shadow-lg hover:bg-purple-600 transition cursor-pointer"
+            className="px-2 py-2 bg-purple-500 text-white rounded-lg shadow-lg hover:bg-purple-600 transition cursor-pointer"
           >
             🔄 Replay Flight
           </button>
