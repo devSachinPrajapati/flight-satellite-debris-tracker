@@ -1,7 +1,7 @@
 """
 Flight REST API Routes
 """
-from fastapi import APIRouter
+from fastapi import APIRouter # type: ignore
 from app.services.flight_service import flight_service
 
 router = APIRouter(prefix="/api/flights", tags=["flights"])

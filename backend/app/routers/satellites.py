@@ -1,7 +1,7 @@
 """
 Satellite REST API Routes
 """
-from fastapi import APIRouter
+from fastapi import APIRouter # type: ignore
 from app.services.satellite_service import satellite_service
 
 router = APIRouter(prefix="/api/satellites", tags=["satellites"])
@@ -31,3 +31,4 @@ async def get_satellite(norad_id: str):
         return {"error": "Satellite not found"}
     
     return position
+    
