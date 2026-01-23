@@ -20,7 +20,7 @@ const MapMarker = ({ type, onClick }: MapMarkerProps) => {
   const getMarkerSize = () => {
     return type === "debris" ? "16px" : "24px";
   };
-
+  
   return (
     <div
       onClick={onClick}

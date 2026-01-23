@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import * as maptilersdk from "@maptiler/sdk";
 import MainLayout from "./components/Layout/MainLayout";
 import MapContainer from "./components/Map/MapContainer";
@@ -29,6 +29,9 @@ import SatelliteEnhancedPanel from "./components/Satellite/SatelliteEnhancedPane
 import OrbitVisualizerPanel from "./components/Orbit/OrbitVisualizerPanel";
 
 
+// 🚀 NEW: Viewport Manager for Performance Optimization
+import { viewportManager } from "./utils/viewportManager";
+
 const mapStatus = (status: 'idle' | 'ok' | 'error'): 'idle' | 'ok' | 'error' => {
   return status;
 };
@@ -56,6 +59,19 @@ const App = () => {
     useState<SatelliteObject | null>(null);
   const [selectedOrbitSatellite, setSelectedOrbitSatellite] =
     useState<SatelliteObject | null>(null);
+
+
+  // 🚀 NEW: Performance monitoring state
+  const [renderStats, setRenderStats] = useState({
+    totalAircraft: 0,
+    totalSatellites: 0,
+    totalDebris: 0,
+    renderedAircraft: 0,
+    renderedSatellites: 0,
+    renderedDebris: 0,
+  });
+  const [currentZoom, setCurrentZoom] = useState(1.5);
+  const [isZooming, setIsZooming] = useState(false);
 
   // Cleanup replay marker when closing replay
   useEffect(() => {
@@ -236,6 +252,38 @@ const App = () => {
     aircraft.forEach((a) => recordFlightPosition(a));
   }, [aircraft]);
 
+  // 🚀 OPTIMIZED: Progressive viewport filtering with debouncing
+  const filteredByViewport = useMemo(() => {
+    // Don't filter during zoom transitions to prevent flickering
+    if (isZooming) {
+      return {
+        aircraft: viewportManager.filterAircraft(aircraft),
+        satellites: viewportManager.filterSatellites(satellites),
+        debris: viewportManager.filterDebris(debris),
+      };
+    }
+
+    const visibleAircraft = viewportManager.filterAircraft(aircraft);
+    const visibleSatellites = viewportManager.filterSatellites(satellites);
+    const visibleDebris = viewportManager.filterDebris(debris);
+
+    setRenderStats({
+      totalAircraft: aircraft.length,
+      totalSatellites: satellites.length,
+      totalDebris: debris.length,
+      renderedAircraft: visibleAircraft.length,
+      renderedSatellites: visibleSatellites.length,
+      renderedDebris: visibleDebris.length,
+    });
+
+    return {
+      aircraft: visibleAircraft,
+      satellites: visibleSatellites,
+      debris: visibleDebris,
+    };
+  }, [aircraft, satellites, debris, currentZoom, isZooming]);
+
+
   // Search & Filter
   const { handleSearch, filteredAircraft, filteredSatellites, filteredDebris } =
     useSearch(aircraft, satellites, debris);
@@ -248,6 +296,39 @@ const App = () => {
   const handleMapLoad = useCallback((map: maptilersdk.Map) => {
     mapRef.current = map;
     setIsMapLoaded(true);
+
+    // 🚀 NEW: Initialize viewport manager with map
+    viewportManager.setMap(map);
+
+    // 🚀 FIXED: Track zoom with debouncing
+    let zoomTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    map.on('zoomstart', () => {
+      setIsZooming(true);
+    });
+
+    map.on('zoom', () => {
+      const newZoom = map.getZoom();
+      setCurrentZoom(newZoom);
+
+      // Clear existing timeout
+      if (zoomTimeout) {
+        clearTimeout(zoomTimeout);
+      }
+
+      // Set zooming flag to false after 300ms of no zoom changes
+      zoomTimeout = setTimeout(() => {
+        setIsZooming(false);
+      }, 300);
+    });
+
+    map.on('zoomend', () => {
+      setIsZooming(false);
+      setCurrentZoom(map.getZoom());
+    });
+
+    setCurrentZoom(map.getZoom());
+
     console.log("✅ Map ready for markers");
   }, []);
 
@@ -273,6 +354,26 @@ const App = () => {
       import.meta.env.VITE_WS_URL || "ws://localhost:8000"
     );
   }, []);
+
+  // 🚀 Log viewport stats
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (renderStats.totalAircraft > 0 || renderStats.totalSatellites > 0) {
+        const stats = viewportManager.getStats(
+          renderStats.totalAircraft,
+          renderStats.totalSatellites,
+          renderStats.totalDebris,
+          renderStats.renderedAircraft,
+          renderStats.renderedSatellites,
+          renderStats.renderedDebris
+        );
+        console.log(stats);
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [renderStats]);
+
 
   const getAirportCodeFromAircraft = (aircraft: Aircraft): string | null => {
     if (aircraft.arr_iata) return aircraft.arr_iata;
@@ -349,13 +450,50 @@ const App = () => {
   }, []);
 
   // Update markers whenever data or view mode changes
+  // useEffect(() => {
+  //   if (!mapRef.current || !isMapLoaded) return;
+
+  //   const validIds = new Set<string>();
+
+  //   if (viewMode === "all" || viewMode === "aircraft") {
+  //     aircraft.forEach((ac) => {
+  //       const id = `aircraft-${ac.hex}`;
+  //       validIds.add(id);
+  //       createOrUpdateMarker(id, ac.lat, ac.lng, "#3b82f6", "aircraft", ac);
+  //     });
+  //   }
+
+  //   if (viewMode === "all" || viewMode === "satellite") {
+  //     satellites.forEach((sat) => {
+  //       const id = `satellite-${sat.norad_id}`;
+  //       validIds.add(id);
+  //       createOrUpdateMarker(id, sat.lat, sat.lng, "#10b981", "satellite", sat);
+  //     });
+  //   }
+
+  //   if (viewMode === "all" || viewMode === "debris") {
+  //     debris.forEach((deb) => {
+  //       const id = `debris-${deb.norad_id}`;
+  //       validIds.add(id);
+  //       createOrUpdateMarker(id, deb.lat, deb.lng, "#ef4444", "debris", deb);
+  //     });
+  //   }
+
+  //   removeInvalidMarkers(validIds);
+
+  //   if (Math.random() < 0.01) {
+  //     console.log(`📍 Active markers: ${markersRef.current.size} | View: ${viewMode}`);
+  //   }
+  // }, [aircraft, satellites, debris, viewMode, isMapLoaded, createOrUpdateMarker, removeInvalidMarkers]);
+
+  // 🚀 Update markers with smooth transitions
   useEffect(() => {
     if (!mapRef.current || !isMapLoaded) return;
 
     const validIds = new Set<string>();
 
     if (viewMode === "all" || viewMode === "aircraft") {
-      aircraft.forEach((ac) => {
+      filteredByViewport.aircraft.forEach((ac: Aircraft) => {
         const id = `aircraft-${ac.hex}`;
         validIds.add(id);
         createOrUpdateMarker(id, ac.lat, ac.lng, "#3b82f6", "aircraft", ac);
@@ -363,7 +501,7 @@ const App = () => {
     }
 
     if (viewMode === "all" || viewMode === "satellite") {
-      satellites.forEach((sat) => {
+      filteredByViewport.satellites.forEach((sat: SatelliteObject) => {
         const id = `satellite-${sat.norad_id}`;
         validIds.add(id);
         createOrUpdateMarker(id, sat.lat, sat.lng, "#10b981", "satellite", sat);
@@ -371,7 +509,7 @@ const App = () => {
     }
 
     if (viewMode === "all" || viewMode === "debris") {
-      debris.forEach((deb) => {
+      filteredByViewport.debris.forEach((deb: SatelliteObject) => {
         const id = `debris-${deb.norad_id}`;
         validIds.add(id);
         createOrUpdateMarker(id, deb.lat, deb.lng, "#ef4444", "debris", deb);
@@ -379,11 +517,8 @@ const App = () => {
     }
 
     removeInvalidMarkers(validIds);
+  }, [filteredByViewport, viewMode, isMapLoaded, createOrUpdateMarker, removeInvalidMarkers]);
 
-    if (Math.random() < 0.01) {
-      console.log(`📍 Active markers: ${markersRef.current.size} | View: ${viewMode}`);
-    }
-  }, [aircraft, satellites, debris, viewMode, isMapLoaded, createOrUpdateMarker, removeInvalidMarkers]);
 
   // Clean up
   useEffect(() => {
@@ -411,7 +546,7 @@ const App = () => {
         </div>
 
         {/* ✅ FIXED: Use mapStatus to ensure correct types */}
-        <div className="absolute top-4 left-4 z-10">
+        {/* <div className="absolute top-4 left-4 z-10">
           <StatsPanel
             aircraftCount={aircraft.length}
             satelliteCount={satellites.length}
@@ -424,6 +559,44 @@ const App = () => {
             onRefresh={handleRefresh}
             isConnected={aircraftConnected || satelliteConnected}
           />
+        </div> */}
+
+        {/* 🚀 ENHANCED: Stats panel with progressive rendering info */}
+        <div className="absolute top-4 left-4 z-10">
+          <StatsPanel
+            aircraftCount={renderStats.renderedAircraft}
+            satelliteCount={renderStats.renderedSatellites}
+            debrisCount={renderStats.renderedDebris}
+            lastUpdate={aircraftLastFetch ?? lastFetchTime}
+            aircraftStatus={mapStatus(aircraftStatus)}
+            satelliteStatus={mapStatus(satelliteStatus)}
+            debrisStatus={mapStatus(satelliteStatus)}
+            fps={fps}
+            onRefresh={handleRefresh}
+            isConnected={aircraftConnected || satelliteConnected}
+          />
+        </div>
+
+        {/* 🚀 Progressive Rendering Indicator */}
+        <div className="absolute bottom-43 left-40 z-10">
+
+          <div className="mt-2 bg-gradient-to-r from-blue-500/10 to-green-500/10 border border-blue-500 rounded-lg p-2 text-xs">
+            <div className="text-blue-400 font-semibold flex items-center gap-2">
+              <span>🎯</span>
+              <span>Progressive Rendering Active</span>
+            </div>
+            <div className="text-blue-300 mt-1 text-[11px]">
+              Zoom: {currentZoom.toFixed(1)} | Showing {renderStats.renderedAircraft + renderStats.renderedSatellites + renderStats.renderedDebris} of {renderStats.totalAircraft + renderStats.totalSatellites + renderStats.totalDebris}
+            </div>
+            <div className="text-green-400 text-[10px] mt-1 font-semibold">
+              {(((renderStats.totalAircraft + renderStats.totalSatellites + renderStats.totalDebris -
+                renderStats.renderedAircraft - renderStats.renderedSatellites - renderStats.renderedDebris) /
+                Math.max(1, renderStats.totalAircraft + renderStats.totalSatellites + renderStats.totalDebris)) * 100).toFixed(1)}% optimized
+            </div>
+            <div className="text-gray-400 text-[10px] mt-1">
+              Zoom in to see more objects
+            </div>
+          </div>
         </div>
 
         {selectedObject && (
