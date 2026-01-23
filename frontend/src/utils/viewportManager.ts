@@ -270,23 +270,26 @@
 //   minZoomForClustering: 4, // Enable clustering below zoom 4
 // });
 
-/**
- * viewportManager.ts - FIXED VERSION
- * 
- * Manages viewport-based object filtering with zoom-aware density control.
- * 
- * KEY FIX: 
- * - Render ALL data to backend (for search, stats, etc.)
- * - Show ONLY important objects at low zoom
- * - Progressively show MORE objects as user zooms in
- * - Show ALL objects in viewport at high zoom
- * 
- * Zoom Strategy:
- * - Zoom 0-2: Show ~50-100 most important objects globally
- * - Zoom 3-5: Show ~200-500 objects in viewport
- * - Zoom 6-8: Show ~1,000-2,000 objects in viewport
- * - Zoom 9+: Show ALL objects in viewport (full detail)
- */
+
+
+
+// /**
+//  * viewportManager.ts - FIXED VERSION
+//  * 
+//  * Manages viewport-based object filtering with zoom-aware density control.
+//  * 
+//  * KEY FIX: 
+//  * - Render ALL data to backend (for search, stats, etc.)
+//  * - Show ONLY important objects at low zoom
+//  * - Progressively show MORE objects as user zooms in
+//  * - Show ALL objects in viewport at high zoom
+//  * 
+//  * Zoom Strategy:
+//  * - Zoom 0-2: Show ~50-100 most important objects globally
+//  * - Zoom 3-5: Show ~200-500 objects in viewport
+//  * - Zoom 6-8: Show ~1,000-2,000 objects in viewport
+//  * - Zoom 9+: Show ALL objects in viewport (full detail)
+//  */
 
 import * as maptilersdk from "@maptiler/sdk";
 import type { Aircraft, SatelliteObject } from "../types";

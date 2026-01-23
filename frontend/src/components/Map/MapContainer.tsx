@@ -207,7 +207,7 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
 
       // Only start if zoom is appropriate
       if (shouldRotate()) {
-        rotationInterval = setInterval(spinGlobe, 10);
+        rotationInterval = setInterval(spinGlobe, 100);
         console.log("🔄 Globe rotation started");
       } else {
         console.log("⏸️ Rotation disabled - zoom too high");
