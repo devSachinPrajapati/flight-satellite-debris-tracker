@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, Suspense } from "react";
 import * as maptilersdk from "@maptiler/sdk";
 import MainLayout from "./components/Layout/MainLayout";
 import MapContainer from "./components/Map/MapContainer";
@@ -60,6 +60,9 @@ const App = () => {
   const [selectedOrbitSatellite, setSelectedOrbitSatellite] =
     useState<SatelliteObject | null>(null);
 
+  // ⚡ OPTIMIZATION: Separate loading states
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState("Connecting to tracking system...");
 
   // 🚀 NEW: Performance monitoring state
   const [renderStats, setRenderStats] = useState({
@@ -219,7 +222,7 @@ const App = () => {
   // ✅ Use WebSocket-powered hooks
   const {
     aircraft,
-    isLoading: aircraftLoading,
+    // isLoading: aircraftLoading,
     lastFetchTime: aircraftLastFetch,
     status: aircraftStatus,
     refresh: refreshAircraft,
@@ -229,12 +232,42 @@ const App = () => {
   const {
     satellites,
     debris,
-    isLoading: satelliteLoading,
+    // isLoading: satelliteLoading,
     lastFetchTime,
     status: satelliteStatus,
     refresh: refreshSatellites,
     isConnected: satelliteConnected,
   } = useSatelliteData(2000);
+
+  // ⚡ OPTIMIZATION: Progressive loading UI updates
+  useEffect(() => {
+    if (aircraftConnected) {
+      setLoadingMessage("Loading flight data...");
+    }
+    
+    if (aircraft.length > 0) {
+      setLoadingMessage("Loading satellite data...");
+    }
+    
+    if (satellites.length > 0 || debris.length > 0) {
+      setLoadingMessage("Rendering map markers...");
+      
+      // Hide loading after short delay to allow markers to render
+      setTimeout(() => {
+        setShowLoadingOverlay(false);
+      }, 500);
+    }
+  }, [aircraftConnected, aircraft.length, satellites.length, debris.length]);
+
+  // ⚡ OPTIMIZATION: Hide loading overlay once we have ANY data
+  useEffect(() => {
+    if (aircraft.length > 0 || satellites.length > 0) {
+      setTimeout(() => {
+        setShowLoadingOverlay(false);
+      }, 300);
+    }
+  }, [aircraft.length, satellites.length]);
+
 
   // Log WebSocket connection status
   useEffect(() => {
@@ -417,20 +450,67 @@ const App = () => {
       else if (type === "satellite") el.innerHTML = '<span style="pointer-events: none;">🛰️</span>';
       else if (type === "debris") el.innerHTML = '<span style="pointer-events: none; font-size: 8px;">🔴</span>';
 
-      el.addEventListener("mouseenter", () => { el.style.transform = "scale(1.3)"; el.style.zIndex = "1000"; });
-      el.addEventListener("mouseleave", () => { el.style.transform = "scale(1)"; el.style.zIndex = "1"; });
-      el.addEventListener("mousedown", (e) => { e.stopPropagation(); });
-      el.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        console.log(`🎯 Marker clicked: ${type} ${id}`);
-        setTimeout(() => { handleObjectSelect({ type, data }); }, 50);
-      });
+      // el.addEventListener("mouseenter", () => { el.style.transform = "scale(1.3)"; el.style.zIndex = "1000"; });
+      // el.addEventListener("mouseleave", () => { el.style.transform = "scale(1)"; el.style.zIndex = "1"; });
+      // el.addEventListener("mousedown", (e) => { e.stopPropagation(); });
+      // el.addEventListener("click", (e) => {
+      //   e.preventDefault();
+      //   e.stopPropagation();
+      //   e.stopImmediatePropagation();
+      //   console.log(`🎯 Marker clicked: ${type} ${id}`);
+      //   setTimeout(() => { handleObjectSelect({ type, data }); }, 50);
+      // });
 
-      const marker = new maptilersdk.Marker({ element: el, anchor: "center", draggable: false }).setLngLat([lng, lat]).addTo(mapRef.current);
-      markersRef.current.set(id, marker);
-      if (Math.random() < 0.01) console.log(`✅ Created ${type} marker: ${id}`);
+      // const marker = new maptilersdk.Marker({ element: el, anchor: "center", draggable: false }).setLngLat([lng, lat]).addTo(mapRef.current);
+      // markersRef.current.set(id, marker);
+      // if (Math.random() < 0.01) console.log(`✅ Created ${type} marker: ${id}`);
+       // 🚀 FIXED: Improved event handling
+    el.addEventListener("mouseenter", (e) => { 
+      e.stopPropagation();
+      el.style.transform = "scale(1.3)"; 
+      el.style.zIndex = "1000"; 
+    });
+    
+    el.addEventListener("mouseleave", (e) => { 
+      e.stopPropagation();
+      el.style.transform = "scale(1)"; 
+      el.style.zIndex = "10"; 
+    });
+
+    // 🚀 CRITICAL FIX: Stop all event propagation for clicks
+    el.addEventListener("mousedown", (e) => { 
+      e.stopPropagation(); 
+      e.stopImmediatePropagation();
+    });
+    
+    el.addEventListener("mouseup", (e) => { 
+      e.stopPropagation(); 
+      e.stopImmediatePropagation();
+    });
+
+    el.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      
+      console.log(`🎯 Marker clicked: ${type} ${id}`);
+      
+      // Immediate selection without delay
+      handleObjectSelect({ type, data });
+    });
+
+    // 🚀 FIX: Set higher offset to prevent map interference
+    const marker = new maptilersdk.Marker({ 
+      element: el, 
+      anchor: "center",
+      draggable: false,
+      // Higher offset ensures markers are above map layers
+      offset: [0, 0]
+    })
+    .setLngLat([lng, lat])
+    .addTo(mapRef.current);
+
+    markersRef.current.set(id, marker);
     }
   }, [handleObjectSelect]);
 
@@ -528,13 +608,19 @@ const App = () => {
     };
   }, []);
 
-  const isLoading =
-    (aircraftLoading || satelliteLoading) &&
-    aircraft.length === 0 &&
-    satellites.length === 0;
+  // const isLoading =
+  //   (aircraftLoading || satelliteLoading) &&
+  //   aircraft.length === 0 &&
+  //   satellites.length === 0;
 
   return (
     <>
+    <Suspense fallback={null}>
+        {showLoadingOverlay && (
+          <LoadingOverlay isLoading={true} message={loadingMessage} />
+        )}
+    </Suspense>
+
       <MainLayout>
         <MapContainer onMapLoad={handleMapLoad} />
 
@@ -622,7 +708,7 @@ const App = () => {
           selectedObject={selectedObject}
         />
 
-        <LoadingOverlay isLoading={isLoading} />
+        {/* <LoadingOverlay isLoading={isLoading} /> */}
       </MainLayout>
 
       <div className="absolute bottom-15 left-1/2 -translate-x-1/2 flex flex-row gap-2 z-40">

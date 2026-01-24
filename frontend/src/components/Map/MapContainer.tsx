@@ -1,119 +1,3 @@
-// import { useRef, useEffect } from "react";
-// import * as maptilersdk from "@maptiler/sdk";
-// import "@maptiler/sdk/dist/maptiler-sdk.css";
-
-// interface MapContainerProps {
-//   onMapLoad: (map: maptilersdk.Map) => void;
-// }
-
-// const MapContainer = ({ onMapLoad }: MapContainerProps) => {
-//   const mapContainerRef = useRef<HTMLDivElement>(null);
-//   const mapRef = useRef<maptilersdk.Map | null>(null);
-
-//   useEffect(() => {
-//     if (!mapContainerRef.current || mapRef.current) return;
-
-//     const apiKey = import.meta.env.VITE_MAPTILER_API_KEY;
-
-//     if (!apiKey) {
-//       console.error("❌ MapTiler API key is missing!");
-//       return;
-//     }
-
-//     console.log("🌍 Initializing Globe View...");
-
-//     // Create map with Globe projection
-//     const map = new maptilersdk.Map({
-//       container: mapContainerRef.current,
-//       apiKey: apiKey,
-//       style: maptilersdk.MapStyle.SATELLITE, // Best for globe view
-//       center: [0, 20],
-//       zoom: 1.5, // Lower zoom for better globe view
-//       pitch: 0,
-//       bearing: 0,
-//       projection: "globe", // 🌐 Enable Globe View
-//       // ✅ Performance optimizations
-//       maxPitch: 85,
-//       renderWorldCopies: false,
-//       attributionControl: false
-//     });
-
-//     map.on("load", () => {
-//       console.log("✅ Globe View loaded successfully");
-//       mapRef.current = map;
-//       onMapLoad(map);
-//     });
-
-//     map.on("error", (e) => {
-//       console.error("❌ Map error:", e);
-//     });
-
-//     // Add rotation animation
-//     let userInteracting = false;
-//     const rotationSpeed = 0.5; // degrees per frame
-
-//     const spinGlobe = () => {
-//       if (!userInteracting && mapRef.current) {
-//         const center = mapRef.current.getCenter();
-//         center.lng -= rotationSpeed;
-//         mapRef.current.easeTo({ center, duration: 1000, easing: (t) => t });
-//       }
-//     };
-
-//     // Start rotation after 3 seconds of inactivity
-//     let rotationTimeout: ReturnType<typeof setTimeout>;
-//     const startRotation = () => {
-//       rotationTimeout = setTimeout(() => {
-//         if (!userInteracting) {
-//           setInterval(spinGlobe, 1000);
-//         }
-//       }, 3000);
-//     };
-
-//     map.on("mousedown", () => {
-//       userInteracting = true;
-//       clearTimeout(rotationTimeout);
-//     });
-
-//     map.on("mouseup", () => {
-//       userInteracting = false;
-//       startRotation();
-//     });
-
-//     map.on("touchstart", () => {
-//       userInteracting = true;
-//       clearTimeout(rotationTimeout);
-//     });
-
-//     map.on("touchend", () => {
-//       userInteracting = false;
-//       startRotation();
-//     });
-
-//     // To Enable auto-rotation
-//     startRotation();
-
-//     return () => {
-//       if (mapRef.current) {
-//         mapRef.current.remove();
-//         mapRef.current = null;
-//       }
-//       clearTimeout(rotationTimeout);
-//     };
-//   }, [onMapLoad]);
-
-//   return (
-//     <div
-//       ref={mapContainerRef}
-//       className="absolute inset-0"
-//       style={{ background: "#0B1026" }} // Space background color
-//     />
-//   );
-// };
-
-// export default MapContainer;
-
-
 import { useRef, useEffect } from "react";
 import * as maptilersdk from "@maptiler/sdk";
 import "@maptiler/sdk/dist/maptiler-sdk.css";
@@ -150,7 +34,11 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       projection: "globe",
       maxPitch: 85,
       renderWorldCopies: false,
-      attributionControl: false
+      attributionControl: false,
+      // 🚀 FIX: Reduce interaction delay to allow marker clicks
+      clickTolerance: 3,
+      minZoom: 1.5,  // Minimum zoom level
+      maxZoom: 12.5 // Maximum zoom level
     });
 
     map.on("load", () => {
@@ -163,16 +51,18 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       console.error("❌ Map error:", e);
     });
 
-    // 🚀 FIXED: Rotation control with zoom awareness
+    // 🚀 SMOOTH ROTATION: Use requestAnimationFrame for smoother rotation
     let userInteracting = false;
-    let rotationInterval: ReturnType<typeof setInterval> | null = null;
+    let rotationFrameId: number | null = null;
     let inactivityTimeout: ReturnType<typeof setTimeout> | null = null;
-    const rotationSpeed = 0.5; // degrees per second
-    // const INITIAL_ZOOM = 1.5;
-    const ZOOM_THRESHOLD = 3; // Stop rotation if zoom > 3
+    let lastRotationTime = 0;
+    const rotationSpeed = 0.05; // Degrees per frame (very smooth)
+    const ZOOM_THRESHOLD = 3;
+    const ROTATION_FPS = 60; // Target 60 FPS
+    const FRAME_DURATION = 1000 / ROTATION_FPS;
 
     /**
-     * Check if map should rotate based on zoom level
+     * Check if map should rotate
      */
     const shouldRotate = (): boolean => {
       if (!mapRef.current) return false;
@@ -181,36 +71,42 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
     };
 
     /**
-     * Spin globe smoothly
+     * Smooth globe rotation using requestAnimationFrame
      */
-    const spinGlobe = () => {
-      if (!userInteracting && mapRef.current && shouldRotate()) {
+    const rotateGlobe = (timestamp: number) => {
+      if (!mapRef.current || userInteracting || !shouldRotate()) {
+        rotationFrameId = null;
+        return;
+      }
+
+      // Throttle to maintain consistent frame rate
+      if (timestamp - lastRotationTime >= FRAME_DURATION) {
         const center = mapRef.current.getCenter();
         center.lng -= rotationSpeed;
-        mapRef.current.easeTo({ 
-          center, 
-          duration: 1000, 
-          easing: (t) => t 
-        });
+        
+        // 🚀 FIX: Use jumpTo instead of easeTo for smoother, non-blocking rotation
+        mapRef.current.jumpTo({ center });
+        
+        lastRotationTime = timestamp;
       }
+
+      // Continue animation
+      rotationFrameId = requestAnimationFrame(rotateGlobe);
     };
 
     /**
-     * Start rotation
+     * Start smooth rotation
      */
     const startRotation = () => {
-      // Clear existing interval
-      if (rotationInterval) {
-        clearInterval(rotationInterval);
-        rotationInterval = null;
+      if (rotationFrameId !== null) {
+        cancelAnimationFrame(rotationFrameId);
+        rotationFrameId = null;
       }
 
-      // Only start if zoom is appropriate
       if (shouldRotate()) {
-        rotationInterval = setInterval(spinGlobe, 100);
-        console.log("🔄 Globe rotation started");
-      } else {
-        console.log("⏸️ Rotation disabled - zoom too high");
+        lastRotationTime = performance.now();
+        rotationFrameId = requestAnimationFrame(rotateGlobe);
+        console.log("🔄 Smooth rotation started");
       }
     };
 
@@ -218,10 +114,9 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
      * Stop rotation
      */
     const stopRotation = () => {
-      if (rotationInterval) {
-        clearInterval(rotationInterval);
-        rotationInterval = null;
-        console.log("⏸️ Globe rotation stopped");
+      if (rotationFrameId !== null) {
+        cancelAnimationFrame(rotationFrameId);
+        rotationFrameId = null;
       }
       if (inactivityTimeout) {
         clearTimeout(inactivityTimeout);
@@ -230,81 +125,86 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
     };
 
     /**
-     * Schedule rotation to start after inactivity
+     * Schedule rotation after inactivity
      */
     const scheduleRotation = () => {
-      // Clear any pending timeout
       if (inactivityTimeout) {
         clearTimeout(inactivityTimeout);
       }
 
-      // Schedule rotation after 3 seconds of inactivity
       inactivityTimeout = setTimeout(() => {
-        if (!userInteracting) {
+        if (!userInteracting && shouldRotate()) {
           startRotation();
         }
-      }, 3000);
+      }, 2000); // Reduced to 2 seconds for quicker resume
     };
 
-    // 🚀 FIXED: Handle zoom events
+    // 🚀 ZOOM HANDLING
     map.on("zoom", () => {
       const currentZoom = map.getZoom();
       
-      // Stop rotation if zoomed in beyond threshold
       if (currentZoom > ZOOM_THRESHOLD) {
         stopRotation();
-      } 
-      // Restart rotation if zoomed back to world view and not interacting
-      else if (currentZoom <= ZOOM_THRESHOLD && !userInteracting) {
+      } else if (currentZoom <= ZOOM_THRESHOLD && !userInteracting) {
         scheduleRotation();
       }
     });
 
-    // Handle user interactions
-    map.on("mousedown", () => {
+    // 🚀 FIX: Improved interaction handling
+    let interactionTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const handleInteractionStart = () => {
       userInteracting = true;
       stopRotation();
-    });
+      
+      // Clear any pending timer
+      if (interactionTimer) {
+        clearTimeout(interactionTimer);
+        interactionTimer = null;
+      }
+    };
 
-    map.on("mouseup", () => {
-      userInteracting = false;
-      scheduleRotation();
-    });
+    const handleInteractionEnd = () => {
+      // Debounce the interaction end to allow marker clicks
+      if (interactionTimer) {
+        clearTimeout(interactionTimer);
+      }
+      
+      interactionTimer = setTimeout(() => {
+        userInteracting = false;
+        scheduleRotation();
+        interactionTimer = null;
+      }, 100); // Small delay to allow click events to complete
+    };
 
-    map.on("touchstart", () => {
-      userInteracting = true;
-      stopRotation();
-    });
+    // Mouse events
+    map.on("mousedown", handleInteractionStart);
+    map.on("mouseup", handleInteractionEnd);
 
-    map.on("touchend", () => {
-      userInteracting = false;
-      scheduleRotation();
-    });
+    // Touch events
+    map.on("touchstart", handleInteractionStart);
+    map.on("touchend", handleInteractionEnd);
 
-    // Handle wheel zoom (important for stopping rotation during zoom)
-    map.on("wheel", () => {
-      userInteracting = true;
-      stopRotation();
-    });
+    // Drag events
+    map.on("dragstart", handleInteractionStart);
+    map.on("dragend", handleInteractionEnd);
 
-    // Reset interaction flag when wheel zoom ends
+    // Wheel events
+    map.on("wheel", handleInteractionStart);
     map.on("zoomend", () => {
-      userInteracting = false;
-      scheduleRotation();
+      // Don't immediately resume on zoom end
+      if (!userInteracting) {
+        scheduleRotation();
+      }
     });
 
-    // Handle drag events
-    map.on("dragstart", () => {
-      userInteracting = true;
-      stopRotation();
+    // 🚀 IMPORTANT: Pause rotation when clicking on markers
+    map.on("click", () => {
+      handleInteractionStart();
+      handleInteractionEnd();
     });
 
-    map.on("dragend", () => {
-      userInteracting = false;
-      scheduleRotation();
-    });
-
-    // 🚀 Start initial rotation after 3 seconds
+    // Start initial rotation
     scheduleRotation();
 
     return () => {
@@ -313,6 +213,9 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
         mapRef.current = null;
       }
       stopRotation();
+      if (interactionTimer) {
+        clearTimeout(interactionTimer);
+      }
     };
   }, [onMapLoad]);
 
@@ -320,7 +223,11 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
     <div
       ref={mapContainerRef}
       className="absolute inset-0"
-      style={{ background: "#0B1026" }}
+      style={{ 
+        background: "#0B1026",
+        // 🚀 FIX: Ensure markers can receive clicks
+        pointerEvents: "auto"
+      }}
     />
   );
 };
