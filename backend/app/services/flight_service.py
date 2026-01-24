@@ -32,7 +32,8 @@ class FlightService:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    "https://airlabs.co/api/v9/flights",
+                    # "https://airlabs.co/api/v9/flights",
+                    settings.AIRLABS_FLIGHTS_URL,
                     params=params,
                     timeout=aiohttp.ClientTimeout(total=30)
                 ) as resp:

@@ -19,12 +19,19 @@ class SatelliteService:
         """Fetch TLE data from CelesTrak - INCLUDING DEBRIS"""
         urls = [
             # Operational satellites
-            "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle",
-            "https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle",
-            "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle",
+            # # ✅ SATELLITE SOURCES
+            settings.CELESTRAK_TLE_URLS1,
+            settings.CELESTRAK_TLE_URLS2,
+            settings.CELESTRAK_TLE_URLS3,
             # ✅ DEBRIS SOURCES
-            "https://celestrak.org/NORAD/elements/gp.php?GROUP=analyst&FORMAT=tle",
-            "https://celestrak.org/NORAD/elements/gp.php?GROUP=2023-177&FORMAT=tle",  # Recent debris
+            settings.CELESTRAK_TLE_URLS4,
+            settings.CELESTRAK_TLE_URLS5,
+            # "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle",
+            # "https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle",
+            # "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle",
+            # # ✅ DEBRIS SOURCES
+            # "https://celestrak.org/NORAD/elements/gp.php?GROUP=analyst&FORMAT=tle",
+            # "https://celestrak.org/NORAD/elements/gp.php?GROUP=2023-177&FORMAT=tle",  # Recent debris
         ]
         
         all_tle_data = []

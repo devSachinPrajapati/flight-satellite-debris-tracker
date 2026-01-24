@@ -18,7 +18,7 @@ export const apiConfig = {
     apiKey: import.meta.env.VITE_AIRLABS_API_KEY || '',
   },
   celestrak: {
-    baseUrl: 'https://celestrak.org/NORAD/elements/gp.php'
+    baseUrl: import.meta.env.VITE_CELESTRAK_BASE_URL || '',
   }
 };
 
