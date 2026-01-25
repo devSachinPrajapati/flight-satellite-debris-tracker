@@ -25,6 +25,9 @@ import PerformanceDashboard from "./components/Performance/PerformanceDashboard"
 import SatelliteEnhancedPanel from "./components/Satellite/SatelliteEnhancedPanel";
 import OrbitVisualizerPanel from "./components/Orbit/OrbitVisualizerPanel";
 import { viewportManager } from "./utils/viewportManager";
+import { ToastContainer, type CloseButtonProps } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { errorToast, infoToast, warningToast } from "./utils/toast";
 
 const mapStatus = (status: 'idle' | 'ok' | 'error'): 'idle' | 'ok' | 'error' => status;
 
@@ -570,6 +573,27 @@ const App = () => {
     return null;
   };
 
+  const CloseButton = ({ closeToast }: CloseButtonProps) => (
+    <button
+      onClick={closeToast}
+      className="
+      ml-auto
+      flex items-center justify-center
+      w-6 h-6
+      rounded-full
+      text-slate-500
+      hover:text-slate-900
+      hover:bg-slate-200
+      transition
+      duration-200
+      cursor-pointer
+    "
+      aria-label="Close notification"
+    >
+      ✕
+    </button>
+  );
+
   return (
     <>
       <Suspense fallback={null}>
@@ -581,6 +605,27 @@ const App = () => {
           />
         )}
       </Suspense>
+
+      <ToastContainer
+        position="top-center"
+        autoClose={2000}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        draggable
+        hideProgressBar={false}
+        closeButton={CloseButton}
+        toastClassName={() =>
+          "relative flex items-center px-4 py-3 rounded-xl shadow-lg bg-slate-100 text-blue-200 text-sm font-medium min-h-12 min-w-[250px] max-w-md"
+        }
+        className="flex items-center gap-3 w-full"
+        progressClassName="
+          bg-gradient-to-r from-indigo-400 via-blue-500 to-cyan-400
+          h-1
+          rounded-b-xl
+          "
+        style={{ marginTop: "1rem" }}
+      />
 
       <MainLayout>
         <MapContainer onMapLoad={handleMapLoad} />
@@ -631,7 +676,7 @@ const App = () => {
             <ObjectDetailsCard selectedObject={selectedObject} onClose={() => handleObjectSelect(null)} />
           </div>
         )}
- 
+
 
         <div className="absolute top-42 right-1 z-10 flex flex-col space-y-2 cursor-pointer">
           <MapViewToggle isGlobeView={isGlobeView} onToggle={toggleGlobeView} />
@@ -662,8 +707,9 @@ const App = () => {
             if (airportCode) {
               setSelectedAirportCode(airportCode);
               setShowAirportBoard(true);
-            } else alert("No airport information available for this flight.");
-          } else alert("Please select an aircraft first.");
+            } else warningToast("No airport information available for this flight.");
+          } else infoToast("Please select an aircraft first.");
+          // } else alert("Please select an aircraft first.");
         }} className="px-3 py-2 bg-green-500 text-white rounded-lg shadow-lg hover:bg-green-600 transition cursor-pointer">
           ✈️ Airport Board
         </button>
@@ -672,7 +718,8 @@ const App = () => {
           if (selectedObject?.type === "aircraft") {
             setSelectedPerformanceAircraft(selectedObject.data as Aircraft);
             setShowAircraftPerformance(!showAircraftPerformance);
-          } else alert("Please select an aircraft first");
+          } else infoToast("Please select an aircraft first");
+          // } else alert("Please select an aircraft first");
         }} className="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition cursor-pointer">
           📊 Performance
         </button>
@@ -681,7 +728,7 @@ const App = () => {
           if (selectedObject?.type === "satellite") {
             setSelectedSatelliteTracker(selectedObject.data as SatelliteObject);
             setShowSatelliteTracker(!showSatelliteTracker);
-          } else alert("Please select a satellite first");
+          } else infoToast("Please select a satellite first");
         }} className="px-3 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition cursor-pointer">
           🛰️ Sat Tracker
         </button>
@@ -690,7 +737,7 @@ const App = () => {
           if (selectedObject?.type === "satellite") {
             setSelectedOrbitSatellite(selectedObject.data as SatelliteObject);
             setShowOrbitVisualizer(!showOrbitVisualizer);
-          } else alert("Please select a satellite first");
+          } else infoToast("Please select a satellite first");
         }} className="px-3 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition cursor-pointer">
           🪐 Orbit
         </button>
@@ -702,7 +749,7 @@ const App = () => {
             if (historyResult.success && historyResult.data) {
               setSelectedFlightHex(hex);
               setShowFlightReplay(true);
-            } else alert("Not enough history data. Wait 1-2 minutes and try again.");
+            } else errorToast("Not enough history data. Wait 1–2 minutes and try again.");
           }} className="px-3 py-2 bg-purple-500 text-white rounded-lg shadow-lg hover:bg-purple-600 transition cursor-pointer">
             🔄 Replay Flight
           </button>
