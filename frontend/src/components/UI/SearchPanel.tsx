@@ -25,13 +25,20 @@ const SearchPanel = ({ onSearch }: SearchPanelProps) => {
   };
 
   const handleClearFilters = () => {
-    setFilters({ objectType: "all" });
+    const clearedFilters = { objectType: "all" as const };
+    setFilters(clearedFilters);
     setQuery("");
-    onSearch("", { objectType: "all" });
+    onSearch("", clearedFilters);
+  };
+
+  // Helper function to update filters and trigger search immediately
+  const updateFiltersAndSearch = (newFilters: FilterOptions) => {
+    setFilters(newFilters);
+    onSearch(query, newFilters);
   };
 
   return (
-    <div className="absolute top-4 right-16 z-10 bg-white rounded-lg shadow-lg p-3 w-80">
+    <div className="relative top-0 right-0 z-10 bg-white rounded-lg shadow-lg p-3 w-80">
       {/* Search Input */}
       <div>
         <div className="flex items-center space-x-2">
@@ -100,11 +107,9 @@ const SearchPanel = ({ onSearch }: SearchPanelProps) => {
               onChange={(e) => {
                 const newFilters = {
                   ...filters,
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  objectType: e.target.value as any,
+                  objectType: e.target.value as FilterOptions["objectType"],
                 };
-                setFilters(newFilters);
-                onSearch(query, newFilters);
+                updateFiltersAndSearch(newFilters);
               }}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
@@ -128,10 +133,11 @@ const SearchPanel = ({ onSearch }: SearchPanelProps) => {
                 onChange={(e) => {
                   const newFilters = {
                     ...filters,
-                    minAltitude: Number(e.target.value) || undefined,
+                    minAltitude: e.target.value ? Number(e.target.value) : undefined,
                   };
                   setFilters(newFilters);
                 }}
+                onBlur={() => onSearch(query, filters)}
                 className="w-1/2 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
               <input
@@ -141,10 +147,11 @@ const SearchPanel = ({ onSearch }: SearchPanelProps) => {
                 onChange={(e) => {
                   const newFilters = {
                     ...filters,
-                    maxAltitude: Number(e.target.value) || undefined,
+                    maxAltitude: e.target.value ? Number(e.target.value) : undefined,
                   };
                   setFilters(newFilters);
                 }}
+                onBlur={() => onSearch(query, filters)}
                 className="w-1/2 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -160,8 +167,7 @@ const SearchPanel = ({ onSearch }: SearchPanelProps) => {
                   ...filters,
                   operator: e.target.value || undefined,
                 };
-                setFilters(newFilters);
-                onSearch(query, newFilters);
+                updateFiltersAndSearch(newFilters);
               }}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
@@ -188,10 +194,11 @@ const SearchPanel = ({ onSearch }: SearchPanelProps) => {
               onChange={(e) => {
                 const newFilters = {
                   ...filters,
-                  minSpeed: Number(e.target.value) || undefined,
+                  minSpeed: e.target.value ? Number(e.target.value) : undefined,
                 };
                 setFilters(newFilters);
               }}
+              onBlur={() => onSearch(query, filters)}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
           </div>

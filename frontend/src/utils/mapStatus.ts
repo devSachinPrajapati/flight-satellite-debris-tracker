@@ -1,0 +1,1 @@
+export const mapStatus = (status: 'idle' | 'ok' | 'error'): 'idle' | 'ok' | 'error' => status;

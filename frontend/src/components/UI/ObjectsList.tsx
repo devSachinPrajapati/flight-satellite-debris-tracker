@@ -7,6 +7,8 @@ import {
   Trash2,
 } from "lucide-react";
 import type { Aircraft, SatelliteObject } from "../../types";
+import { useSearch } from "../../hooks/useSearch";
+import SearchPanel from "./SearchPanel";
 
 interface ObjectsListProps {
   aircraft: Aircraft[];
@@ -32,15 +34,21 @@ const ObjectsList = ({
     "aircraft" | "satellites" | "debris"
   >("satellites");
 
+  // Search functionality - NOW USING FILTERED RESULTS
+  const { handleSearch, filteredAircraft, filteredSatellites, filteredDebris } = useSearch(
+    aircraft,
+    satellites,
+    debris
+  );
+
   const renderAircraftItem = (ac: Aircraft) => (
     <div
       key={ac.hex}
       onClick={() => onSelectObject(ac, "aircraft")}
-      className={`p-3 hover:bg-blue-50 cursor-pointer border-b transition ${
-        selectedObject?.data?.hex === ac.hex
-          ? "bg-blue-100 border-l-4 border-blue-500"
-          : ""
-      }`}
+      className={`p-3 hover:bg-blue-50 cursor-pointer border-b transition ${selectedObject?.data?.hex === ac.hex
+        ? "bg-blue-100 border-l-4 border-blue-500"
+        : ""
+        }`}
     >
       <div className="flex items-start space-x-2">
         <Plane size={16} className="text-blue-500 mt-1 shrink-0" />
@@ -64,11 +72,10 @@ const ObjectsList = ({
     <div
       key={sat.norad_id}
       onClick={() => onSelectObject(sat, "satellite")}
-      className={`p-3 hover:bg-green-50 cursor-pointer border-b transition ${
-        selectedObject?.data?.norad_id === sat.norad_id
-          ? "bg-green-100 border-l-4 border-green-500"
-          : ""
-      }`}
+      className={`p-3 hover:bg-green-50 cursor-pointer border-b transition ${selectedObject?.data?.norad_id === sat.norad_id
+        ? "bg-green-100 border-l-4 border-green-500"
+        : ""
+        }`}
     >
       <div className="flex items-start space-x-2">
         <Satellite size={16} className="text-green-500 mt-1 shrink-0" />
@@ -90,11 +97,10 @@ const ObjectsList = ({
     <div
       key={deb.norad_id}
       onClick={() => onSelectObject(deb, "debris")}
-      className={`p-3 hover:bg-red-50 cursor-pointer border-b transition ${
-        selectedObject?.data?.norad_id === deb.norad_id
-          ? "bg-red-100 border-l-4 border-red-500"
-          : ""
-      }`}
+      className={`p-3 hover:bg-red-50 cursor-pointer border-b transition ${selectedObject?.data?.norad_id === deb.norad_id
+        ? "bg-red-100 border-l-4 border-red-500"
+        : ""
+        }`}
     >
       <div className="flex items-start space-x-2">
         <Trash2 size={16} className="text-red-500 mt-1 shrink-0" />
@@ -115,12 +121,13 @@ const ObjectsList = ({
   const renderList = () => {
     let items: React.ReactNode[] = [];
 
+    // NOW USING FILTERED RESULTS FROM SEARCH
     if (selectedTab === "aircraft") {
-      items = aircraft.slice(0, 50).map(renderAircraftItem);
+      items = filteredAircraft.slice(0, 50).map(renderAircraftItem);
     } else if (selectedTab === "satellites") {
-      items = satellites.slice(0, 50).map(renderSatelliteItem);
+      items = filteredSatellites.slice(0, 50).map(renderSatelliteItem);
     } else {
-      items = debris.slice(0, 50).map(renderDebrisItem);
+      items = filteredDebris.slice(0, 50).map(renderDebrisItem);
     }
 
     return (
@@ -137,84 +144,87 @@ const ObjectsList = ({
   };
 
   return (
-    <div
-      className={`absolute right-0 top-0 h-full z-10 transition-transform duration-300 ${
-        isExpanded ? "translate-x-0" : "translate-x-full"
-      }`}
-    >
-      <div className="h-full bg-white shadow-2xl flex">
-        {/* Toggle Button */}
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="absolute -left-10 bottom-12 cursor-pointer transform -translate-y-1/2 bg-white rounded-l-lg shadow-lg p-3 hover:bg-gray-50 transition"
-        >
-          {isExpanded ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-        </button>
+    <>
+      <div
+        className={`absolute right-0 top-0 h-full z-10 transition-transform duration-300 ${isExpanded ? "translate-x-0" : "translate-x-full"
+          }`}
+      >
+        <div className="h-full bg-white shadow-2xl flex">
+          {/* Toggle Button */}
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="absolute -left-10 bottom-12 cursor-pointer transform -translate-y-1/2 bg-white rounded-l-lg shadow-lg p-3 hover:bg-gray-50 transition"
+          >
+            {isExpanded ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+          </button>
 
-        {/* Sidebar Content */}
-        <div className="w-80 flex flex-col h-full">
-          {/* Header */}
-          <div className="p-4 border-b bg-gray-50">
-            <h3 className="font-bold text-lg">Tracked Objects</h3>
-            <p className="text-xs text-gray-600 mt-1">
-              {aircraft.length + satellites.length + debris.length} objects
-              tracked
-            </p>
-          </div>
+          {/* Sidebar Content */}
+          <div className="w-80 flex flex-col h-full">
+            {/* Header */}
+            <div className="p-4 border-b bg-gray-50">
+              <h3 className="font-bold text-lg">Tracked Objects</h3>
+              <p className="text-xs text-gray-600 mt-1">
+                {aircraft.length + satellites.length + debris.length} objects
+                tracked
+              </p>
+            </div>
 
-          {/* Tabs */}
-          <div className="flex border-b">
-            <button
-              onClick={() => setSelectedTab("aircraft")}
-              className={`flex-1 py-3 text-sm font-medium transition ${
-                selectedTab === "aircraft"
+            {/* Search Panel - Properly integrated */}
+            <div className="border-b">
+               <SearchPanel onSearch={handleSearch} />
+            </div>
+
+            {/* Tabs */}
+            <div className="flex border-b">
+              <button
+                onClick={() => setSelectedTab("aircraft")}
+                className={`flex-1 py-3 text-sm font-medium transition ${selectedTab === "aircraft"
                   ? "border-b-2 border-blue-500 text-blue-600 bg-blue-50"
                   : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              <div className="flex flex-col items-center space-y-1 cursor-pointer">
-                <Plane size={18} />
-                <span>Aircraft</span>
-                <span className="text-xs">({aircraft.length})</span>
-              </div>
-            </button>
+                  }`}
+              >
+                <div className="flex flex-col items-center space-y-1 cursor-pointer">
+                  <Plane size={18} />
+                  <span>Aircraft</span>
+                  <span className="text-xs">({filteredAircraft.length})</span>
+                </div>
+              </button>
 
-            <button
-              onClick={() => setSelectedTab("satellites")}
-              className={`flex-1 py-3 text-sm font-medium transition ${
-                selectedTab === "satellites"
+              <button
+                onClick={() => setSelectedTab("satellites")}
+                className={`flex-1 py-3 text-sm font-medium transition ${selectedTab === "satellites"
                   ? "border-b-2 border-green-500 text-green-600 bg-green-50"
                   : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              <div className="flex flex-col items-center space-y-1 cursor-pointer">
-                <Satellite size={18} />
-                <span>Satellites</span>
-                <span className="text-xs">({satellites.length})</span>
-              </div>
-            </button>
+                  }`}
+              >
+                <div className="flex flex-col items-center space-y-1 cursor-pointer">
+                  <Satellite size={18} />
+                  <span>Satellites</span>
+                  <span className="text-xs">({filteredSatellites.length})</span>
+                </div>
+              </button>
 
-            <button
-              onClick={() => setSelectedTab("debris")}
-              className={`flex-1 py-3 text-sm font-medium transition ${
-                selectedTab === "debris"
+              <button
+                onClick={() => setSelectedTab("debris")}
+                className={`flex-1 py-3 text-sm font-medium transition ${selectedTab === "debris"
                   ? "border-b-2 border-red-500 text-red-600 bg-red-50"
                   : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              <div className="flex flex-col items-center space-y-1 cursor-pointer">
-                <Trash2 size={18} />
-                <span>Debris</span>
-                <span className="text-xs">({debris.length})</span>
-              </div>
-            </button>
-          </div>
+                  }`}
+              >
+                <div className="flex flex-col items-center space-y-1 cursor-pointer">
+                  <Trash2 size={18} />
+                  <span>Debris</span>
+                  <span className="text-xs">({filteredDebris.length})</span>
+                </div>
+              </button>
+            </div>
 
-          {/* List */}
-          {renderList()}
+            {/* List - Now shows filtered results */}
+            {renderList()}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
