@@ -78,9 +78,9 @@ export default function LoadingOverlay({
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>
-                <div className="text-sm text-blue-300 mt-2 text-center">
+                {/* <div className="text-sm text-blue-300 mt-2 text-center">
                   {progress.toFixed(0)}%
-                </div>
+                </div> */}
               </div>
             )}
           </div>
