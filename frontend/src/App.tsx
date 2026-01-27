@@ -96,7 +96,7 @@ const App = () => {
   );
 
   // // Search functionality
-  const {filteredAircraft, filteredSatellites, filteredDebris } = useSearch(
+  const { filteredAircraft, filteredSatellites, filteredDebris } = useSearch(
     aircraft,
     satellites,
     debris
