@@ -2851,6 +2851,3 @@ flight-satellite-debris-tracker/
 - **Contributors**: Open for contributions!
 
 ---
-<div align="center">
-[⬆ Back to Top](#flight-satellite--debris-live-tracker)
-</div>
