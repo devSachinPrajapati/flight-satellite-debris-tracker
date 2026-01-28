@@ -24,7 +24,7 @@ interface FeatureButtonsProps {
   onObjectSelect: (data: SelectedObject | null) => void;
   replayMarker: maptilersdk.Marker | null;
   setReplayMarker: (marker: maptilersdk.Marker | null) => void;
-  onReplayPositionUpdate: (lat: number, lng: number, alt: number, heading: number) => void;
+  // onReplayPositionUpdate: (lat: number, lng: number, alt: number, heading: number) => void;
 }
 
 const FeatureButtons: React.FC<FeatureButtonsProps> = ({

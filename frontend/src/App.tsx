@@ -68,7 +68,6 @@ const App = () => {
   // Marker management
   const {
     queueMarkerForBatch,
-    queueClusterForBatch,
     removeInvalidMarkers,
     processBatchedMarkers,
   } = useMarkerManager(mapRef, handleObjectSelect);
@@ -91,7 +90,8 @@ const App = () => {
   );
 
   // Replay marker
-  const { replayMarker, setReplayMarker, handleReplayPositionUpdate } = useReplayMarker(
+  const { replayMarker, setReplayMarker } = useReplayMarker(
+  // const { replayMarker, setReplayMarker, handleReplayPositionUpdate } = useReplayMarker(
     mapRef,
     aircraft,
     selectedObject
@@ -168,8 +168,6 @@ const App = () => {
           isMapLoaded={isMapLoaded}
           isZooming={isZooming}
           viewMode={viewMode}
-          currentZoom={currentZoom}
-          queueClusterForBatch={queueClusterForBatch}
           filteredByViewport={filteredByViewport}
           queueMarkerForBatch={queueMarkerForBatch}
           removeInvalidMarkers={removeInvalidMarkers}
@@ -236,7 +234,7 @@ const App = () => {
         onObjectSelect={handleObjectSelect}
         replayMarker={replayMarker}
         setReplayMarker={setReplayMarker}
-        onReplayPositionUpdate={handleReplayPositionUpdate}
+        // onReplayPositionUpdate={handleReplayPositionUpdate}
       />
 
       <LODMarkersRenderer
