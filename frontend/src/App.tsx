@@ -13,6 +13,7 @@ import ProgressiveRenderingIndicator from "./components/UI/ProgressiveRenderingI
 import ToastCloseButton from "./components/UI/ToastCloseButton";
 import LoadingOverlay from "./components/Tracker/LoadingOverlay";
 import FeatureButtons from "./components/Features/FeaturesButton";
+import LODMarkersRenderer from './components/Map/LODMarkersRenderer';
 
 import { useAircraftData } from "./hooks/useAircraftData";
 import { useSatelliteData } from "./hooks/useSatelliteData";
@@ -67,6 +68,7 @@ const App = () => {
   // Marker management
   const {
     queueMarkerForBatch,
+    queueClusterForBatch,
     removeInvalidMarkers,
     processBatchedMarkers,
   } = useMarkerManager(mapRef, handleObjectSelect);
@@ -166,6 +168,8 @@ const App = () => {
           isMapLoaded={isMapLoaded}
           isZooming={isZooming}
           viewMode={viewMode}
+          currentZoom={currentZoom}
+          queueClusterForBatch={queueClusterForBatch}
           filteredByViewport={filteredByViewport}
           queueMarkerForBatch={queueMarkerForBatch}
           removeInvalidMarkers={removeInvalidMarkers}
@@ -233,6 +237,15 @@ const App = () => {
         replayMarker={replayMarker}
         setReplayMarker={setReplayMarker}
         onReplayPositionUpdate={handleReplayPositionUpdate}
+      />
+
+      <LODMarkersRenderer
+        isMapLoaded={isMapLoaded}
+        currentZoom={currentZoom}
+        isZooming={isZooming}
+        viewMode={viewMode}
+        filteredByViewport={filteredByViewport}
+        mapRef={mapRef}
       />
     </>
   );

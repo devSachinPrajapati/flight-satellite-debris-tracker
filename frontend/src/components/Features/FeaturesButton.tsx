@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
-import type { Aircraft, SatelliteObject } from "../../types";
+import type { Aircraft, SatelliteObject, SelectedObject  } from "../../types";
 import { getFlightHistory } from "../../services/flightHistoryService";
 import { errorToast, infoToast, warningToast } from "../../utils/toast";
-import FlightReplayControl from "../FlightReplay/FlightReplayControl";
+// import FlightReplayControl from "../FlightReplay/FlightReplayControl";
 import AirportLiveBoard from "../Airport/AirportLiveBoard";
 import NearbyFlightsPanel from "../Nearby/NearbyFlightsPanel";
 import PerformanceDashboard from "../Performance/PerformanceDashboard";
@@ -10,12 +10,12 @@ import SatelliteEnhancedPanel from "../Satellite/SatelliteEnhancedPanel";
 import OrbitVisualizerPanel from "../Orbit/OrbitVisualizerPanel";
 import * as maptilersdk from "@maptiler/sdk";
 
-type ObjectType = "aircraft" | "satellite" | "debris";
+// type ObjectType = "aircraft" | "satellite" | "debris";
 
-interface SelectedObject {
-  type: ObjectType;
-  data: Aircraft | SatelliteObject;
-}
+// interface SelectedObject {
+//   type: ObjectType;
+//   data: Aircraft | SatelliteObject;
+// }
 
 interface FeatureButtonsProps {
   selectedObject: SelectedObject | null;
@@ -32,9 +32,9 @@ const FeatureButtons: React.FC<FeatureButtonsProps> = ({
   aircraft,
   mapRef,
   onObjectSelect,
-  replayMarker,
-  setReplayMarker,
-  onReplayPositionUpdate,
+  // replayMarker,
+  // setReplayMarker,
+  // onReplayPositionUpdate,
 }) => {
   // Feature panel states
   const [showNearbyFlights, setShowNearbyFlights] = useState(false);
@@ -51,6 +51,7 @@ const FeatureButtons: React.FC<FeatureButtonsProps> = ({
   const [selectedOrbitSatellite, setSelectedOrbitSatellite] = useState<SatelliteObject | null>(null);
   const [selectedFlightHex, setSelectedFlightHex] = useState<string | null>(null);
 
+  console.log(`FeatureButtons render ${showFlightReplay} ${selectedFlightHex}`);
   // Helper function to get airport code from aircraft
   const getAirportCodeFromAircraft = useCallback((aircraft: Aircraft): string | null => {
     if (aircraft.arr_iata) return aircraft.arr_iata;
@@ -120,13 +121,13 @@ const FeatureButtons: React.FC<FeatureButtonsProps> = ({
     }
   }, [selectedObject]);
 
-  const handleCloseReplay = useCallback(() => {
-    setShowFlightReplay(false);
-    if (replayMarker) {
-      replayMarker.remove();
-      setReplayMarker(null);
-    }
-  }, [replayMarker, setReplayMarker]);
+  // const handleCloseReplay = useCallback(() => {
+  //   setShowFlightReplay(false);
+  //   if (replayMarker) {
+  //     replayMarker.remove();
+  //     setReplayMarker(null);
+  //   }
+  // }, [replayMarker, setReplayMarker]);
 
   return (
     <>
@@ -224,7 +225,7 @@ const FeatureButtons: React.FC<FeatureButtonsProps> = ({
         />
       )}
 
-      {showFlightReplay &&
+      {/* {showFlightReplay &&
         selectedFlightHex &&
         (() => {
           const historyResult = getFlightHistory(selectedFlightHex);
@@ -238,7 +239,7 @@ const FeatureButtons: React.FC<FeatureButtonsProps> = ({
             );
           }
           return null;
-        })()}
+        })()} */}
     </>
   );
 };
