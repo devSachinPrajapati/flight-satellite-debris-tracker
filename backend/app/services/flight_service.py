@@ -1,10 +1,11 @@
 """
-Flight Data Service - FIXED TO PRESERVE ALL AIRLABS DATA
+Flight Data Service - IMPROVED WITH BETTER TIMEOUT & DEBUGGING
 """
 import asyncio
 import aiohttp # type: ignore
 import math
 import random
+import time
 from datetime import datetime
 from typing import Dict, List, Optional
 from app.config import settings
@@ -18,6 +19,12 @@ class FlightService:
         self.use_mock_data = False
         self.is_ready = False
         self._initial_fetch_task: Optional[asyncio.Task] = None
+        
+        # ✅ NEW: Performance tracking
+        self.api_response_times: List[float] = []
+        self.api_failure_count = 0
+        self.last_error: Optional[str] = None
+        self.last_error_time: Optional[datetime] = None
         
     async def initialize(self):
         """NON-BLOCKING: Initialize with mock data, fetch real data in background"""
@@ -43,9 +50,18 @@ class FlightService:
                 print(f"✅ Switched to real flight data: {len(self.flights_cache)} flights")
         except Exception as e:
             print(f"⚠️ Background fetch failed, continuing with mock data: {e}")
-        
+    
     async def fetch_from_airlabs(self) -> List[dict]:
-        """Fetch from AirLabs API"""
+        """
+        Fetch from AirLabs API with improved timeout handling
+        
+        TIMEOUT CONFIGURATION:
+        - total: 30s (maximum time for entire request)
+        - connect: 5s (time to establish TCP connection)
+        - sock_read: 15s (time to read each chunk of data)
+        
+        This is more forgiving than 10s total timeout while still failing fast
+        """
         if not settings.AIRLABS_API_KEY:
             self.use_mock_data = True
             return []
@@ -54,34 +70,88 @@ class FlightService:
         if settings.FLIGHT_BBOX:
             params["bbox"] = settings.FLIGHT_BBOX
         
+        # ✅ IMPROVED: Granular timeout instead of just total
+        timeout = aiohttp.ClientTimeout(
+            total=30,      # Max 30s for entire request
+            connect=5,     # Max 5s to connect (fails fast if network down)
+            sock_read=15   # Max 15s to read response (patient with slow data)
+        )
+        
+        start_time = time.time()
+        
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
                     settings.AIRLABS_FLIGHTS_URL,
                     params=params,
-                    timeout=aiohttp.ClientTimeout(total=10)
+                    timeout=timeout
                 ) as resp:
+                    elapsed = time.time() - start_time
+                    
                     if resp.status == 200:
                         data = await resp.json()
                         self.api_call_count += 1
                         flights = data.get("response", [])
+                        
+                        # ✅ Track performance
+                        self.api_response_times.append(elapsed)
+                        if len(self.api_response_times) > 100:
+                            self.api_response_times.pop(0)
+                        
+                        avg_time = sum(self.api_response_times) / len(self.api_response_times)
+                        
+                        # ✅ Better logging with performance metrics
+                        print(f"✅ AirLabs API: {len(flights)} flights in {elapsed:.2f}s (avg: {avg_time:.2f}s)")
                         
                         if len(flights) == 0:
                             print("⚠️ Airlabs returned 0 flights")
                             self.use_mock_data = True
                             return []
                         
+                        # ✅ Reset flags on success
+                        if self.use_mock_data:
+                            print("🔄 Switched from mock to real data")
+                            self.use_mock_data = False
+                        
                         return flights
                     else:
-                        print(f"⚠️ Airlabs API error {resp.status}")
+                        self.api_failure_count += 1
+                        self.last_error = f"HTTP {resp.status}"
+                        self.last_error_time = datetime.utcnow()
+                        print(f"⚠️ Airlabs API error {resp.status} after {elapsed:.2f}s")
                         self.use_mock_data = True
                         return []
+                        
         except asyncio.TimeoutError:
-            print("⚠️ Airlabs API timeout (10s)")
+            elapsed = time.time() - start_time
+            self.api_failure_count += 1
+            self.last_error = f"Timeout after {elapsed:.2f}s"
+            self.last_error_time = datetime.utcnow()
+            
+            # ✅ More informative timeout message
+            if elapsed < 6:
+                print(f"⚠️ Airlabs connection timeout after {elapsed:.2f}s (couldn't connect to server)")
+            else:
+                print(f"⚠️ Airlabs read timeout after {elapsed:.2f}s (connected but response too slow)")
+            
             self.use_mock_data = True
             return []
+            
+        except aiohttp.ClientError as e:
+            elapsed = time.time() - start_time
+            self.api_failure_count += 1
+            self.last_error = f"Client error: {str(e)}"
+            self.last_error_time = datetime.utcnow()
+            print(f"⚠️ Airlabs network error after {elapsed:.2f}s: {e}")
+            self.use_mock_data = True
+            return []
+            
         except Exception as e:
-            print(f"⚠️ Airlabs fetch error: {e}")
+            elapsed = time.time() - start_time
+            self.api_failure_count += 1
+            self.last_error = f"Unknown error: {str(e)}"
+            self.last_error_time = datetime.utcnow()
+            print(f"⚠️ Airlabs unexpected error after {elapsed:.2f}s: {e}")
             self.use_mock_data = True
             return []
     
@@ -311,6 +381,30 @@ class FlightService:
                 print(f"❌ Flight update error: {e}")
             
             await asyncio.sleep(settings.AIRLABS_FETCH_INTERVAL)
+    
+    # ✅ NEW: Debug and monitoring methods
+    def get_service_stats(self) -> dict:
+        """Get service statistics for debugging"""
+        avg_response_time = (
+            sum(self.api_response_times) / len(self.api_response_times)
+            if self.api_response_times else 0
+        )
+        
+        return {
+            "is_ready": self.is_ready,
+            "use_mock_data": self.use_mock_data,
+            "total_flights": len(self.flights_cache),
+            "api_call_count": self.api_call_count,
+            "api_failure_count": self.api_failure_count,
+            "success_rate": (
+                (self.api_call_count - self.api_failure_count) / self.api_call_count * 100
+                if self.api_call_count > 0 else 0
+            ),
+            "avg_response_time": avg_response_time,
+            "last_api_call": self.last_api_call.isoformat() if self.last_api_call else None,
+            "last_error": self.last_error,
+            "last_error_time": self.last_error_time.isoformat() if self.last_error_time else None,
+        }
 
 
 flight_service = FlightService()
