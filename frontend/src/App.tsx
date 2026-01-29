@@ -243,7 +243,7 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useCallback, Suspense } from "react";
+import { useEffect, useCallback } from "react";
 import MainLayout from "./components/Layout/MainLayout";
 import MapContainer from "./components/Map/MapContainer";
 import MapMarkersRenderer from "./components/Map/MapMarkersRenderer";
@@ -264,7 +264,7 @@ import useFPS from "./hooks/useFPS";
 import { useMapManager } from "./hooks/useMapManager";
 import { useMarkerManager } from "./hooks/useMarkerManager";
 import { useRenderStats } from "./hooks/useRenderStats";
-import { useLoadingState } from "./hooks/useLoadingState";
+// import { useLoadingState } from "./hooks/useLoadingState";
 
 import { recordFlightPosition } from "./services/flightHistoryService";
 import { mapStatus } from "./utils/mapStatus";
@@ -287,6 +287,7 @@ const App = () => {
   // Data fetching
   const {
     aircraft,
+    isLoading: aircraftLoading,
     lastFetchTime: aircraftLastFetch,
     status: aircraftStatus,
     refresh: refreshAircraft,
@@ -297,6 +298,7 @@ const App = () => {
     satellites,
     debris,
     lastFetchTime,
+    isLoading: satelliteLoading,
     status: satelliteStatus,
     refresh: refreshSatellites,
     isConnected: satelliteConnected,
@@ -322,12 +324,12 @@ const App = () => {
   );
 
   // Loading state
-  const { showLoadingOverlay, loadingMessage, loadingProgress } = useLoadingState(
-    aircraftConnected,
-    aircraft.length,
-    satellites.length,
-    debris.length
-  );
+  // const { showLoadingOverlay, loadingMessage, loadingProgress } = useLoadingState(
+  //   aircraftConnected,
+  //   aircraft.length,
+  //   satellites.length,
+  //   debris.length
+  // );
 
   // // Search functionality
   const { filteredAircraft, filteredSatellites, filteredDebris } = useSearch(
@@ -359,9 +361,14 @@ const App = () => {
     refreshSatellites();
   }, [refreshAircraft, refreshSatellites]);
 
+  const isLoading =
+    (aircraftLoading || satelliteLoading) &&
+    aircraft.length === 0 &&
+    satellites.length === 0;
+    
   return (
     <>
-      <Suspense fallback={null}>
+      {/* <Suspense fallback={null}>
         {showLoadingOverlay && (
           <LoadingOverlay
             isLoading={true}
@@ -369,7 +376,8 @@ const App = () => {
             progress={loadingProgress}
           />
         )}
-      </Suspense>
+      </Suspense> */}
+      <LoadingOverlay isLoading={isLoading} />
 
       <ToastContainer
         position="top-center"
