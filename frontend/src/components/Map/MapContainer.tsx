@@ -38,7 +38,7 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       // 🚀 FIX: Reduce interaction delay to allow marker clicks
       clickTolerance: 3,
       minZoom: 1.5,  // Minimum zoom level
-      maxZoom: 12.5 // Maximum zoom level
+      maxZoom: 7.5 // Maximum zoom level
     });
 
     map.on("load", () => {

@@ -13,8 +13,6 @@ import ProgressiveRenderingIndicator from "./components/UI/ProgressiveRenderingI
 import ToastCloseButton from "./components/UI/ToastCloseButton";
 import LoadingOverlay from "./components/Tracker/LoadingOverlay";
 import FeatureButtons from "./components/Features/FeaturesButton";
-import LODMarkersRenderer from './components/Map/LODMarkersRenderer';
-
 import { useAircraftData } from "./hooks/useAircraftData";
 import { useSatelliteData } from "./hooks/useSatelliteData";
 import { useMapControls } from "./hooks/useMapControls";
@@ -235,15 +233,6 @@ const App = () => {
         replayMarker={replayMarker}
         setReplayMarker={setReplayMarker}
         // onReplayPositionUpdate={handleReplayPositionUpdate}
-      />
-
-      <LODMarkersRenderer
-        isMapLoaded={isMapLoaded}
-        currentZoom={currentZoom}
-        isZooming={isZooming}
-        viewMode={viewMode}
-        filteredByViewport={filteredByViewport}
-        mapRef={mapRef}
       />
     </>
   );
