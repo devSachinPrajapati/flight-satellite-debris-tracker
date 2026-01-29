@@ -21,6 +21,7 @@ import useFPS from "./hooks/useFPS";
 import { useMapManager } from "./hooks/useMapManager";
 import { useMarkerManager } from "./hooks/useMarkerManager";
 import { useRenderStats } from "./hooks/useRenderStats";
+import LODMarkersRenderer from './components/Map/LODMarkersRenderer';
 // import { useLoadingState } from "./hooks/useLoadingState";
 
 import { recordFlightPosition } from "./services/flightHistoryService";
@@ -230,6 +231,15 @@ const App = () => {
         aircraft={aircraft}
         mapRef={mapRef}
         onObjectSelect={handleObjectSelect}
+      />
+
+      <LODMarkersRenderer
+        isMapLoaded={isMapLoaded}
+        currentZoom={currentZoom}
+        isZooming={isZooming}
+        viewMode={viewMode}
+        filteredByViewport={filteredByViewport}
+        mapRef={mapRef}
       />
     </>
   );
