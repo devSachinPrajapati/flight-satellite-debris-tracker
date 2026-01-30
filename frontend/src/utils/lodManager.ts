@@ -37,7 +37,7 @@ export interface LODConfig {
 export class LODManager {
   private currentZoom: number = 1.5;
   private currentLOD: LODLevel = LODLevel.FAR;
-  
+
   // LOD transition thresholds
   private readonly LOD_THRESHOLDS = {
     [LODLevel.FAR]: { min: 0, max: 3 },
@@ -93,12 +93,12 @@ export class LODManager {
     this.currentZoom = zoom;
     const newLOD = this.determineLOD(zoom);
     const changed = newLOD !== this.currentLOD;
-    
+
     if (changed) {
       console.log(`🔄 LOD transition: ${getLODLevelName(this.currentLOD)} → ${getLODLevelName(newLOD)}`);
       this.currentLOD = newLOD;
     }
-    
+
     return { changed, newLOD };
   }
 
@@ -143,7 +143,7 @@ export class LODManager {
     memoryFootprint: string;
   } {
     const config = this.getCurrentConfig();
-    
+
     const metrics = {
       [LODLevel.FAR]: {
         estimatedNodesPerMarker: 1,

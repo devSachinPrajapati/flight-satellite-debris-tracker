@@ -200,4 +200,4 @@ export const useMarkerManager = (
     removeInvalidMarkers,
     processBatchedMarkers,
   };
-};
+}
