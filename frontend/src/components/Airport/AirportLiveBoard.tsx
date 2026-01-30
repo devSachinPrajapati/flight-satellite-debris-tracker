@@ -141,7 +141,7 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-6xl w-full max-h-[92vh] overflow-hidden">
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-6 py-4">
         <div className="flex justify-between items-start">
           <div>

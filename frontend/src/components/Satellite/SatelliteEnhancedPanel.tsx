@@ -30,7 +30,7 @@ const SatelliteEnhancedPanel = ({
   }
 
   return (
-    <div className="fixed right-16 top-40 z-30 bg-white dark:bg-gray-800 rounded-lg shadow-xl w-[500px] max-h-[80vh] overflow-hidden">
+    <div className="fixed right-16 top-4 z-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl w-[500px] max-h-[80vh] overflow-hidden">
       {/* Header */}
       <div className="bg-linear-to-r from-teal-600 to-teal-800 px-6 py-4">
         <div className="flex justify-between items-start">

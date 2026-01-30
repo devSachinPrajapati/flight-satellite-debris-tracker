@@ -58,7 +58,7 @@ const PerformanceDashboard = ({
   }
 
   return (
-    <div className="fixed right-4 top-20 z-30 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-[600px] max-h-[80vh] overflow-y-auto">
+    <div className="fixed right-4 top-2 z-30 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-[600px] max-h-[80vh] overflow-y-auto">
       <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">

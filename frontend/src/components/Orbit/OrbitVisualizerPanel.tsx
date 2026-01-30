@@ -110,7 +110,7 @@ const OrbitVisualizerPanel = ({
   }
 
   return (
-    <div className="fixed right-16 top-24 bg-white dark:bg-gray-800 rounded-lg shadow-xl w-96">
+    <div className="fixed right-16 top-2 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl w-96">
 
       {/* Header Part */}
       <div className="bg-linear-to-r from-indigo-600 to-indigo-800 px-6 py-4 rounded-t-lg">
