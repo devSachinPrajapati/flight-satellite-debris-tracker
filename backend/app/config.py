@@ -6,6 +6,13 @@ from typing import List
 
 
 class Settings(BaseSettings):
+    
+    # ✅ NEW: Satellite propagation interval
+    SATELLITE_PROPAGATION_INTERVAL: int = 120  # Propagate every 2 minutes
+    
+    # ✅ OPTIMIZED: Faster initial broadcast
+    WEBSOCKET_BROADCAST_INTERVAL: int = 2  # Keep at 2s for smooth updates
+    
     # API Keys
     AIRLABS_API_KEY: str = ""
     

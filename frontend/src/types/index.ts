@@ -343,3 +343,25 @@ export interface UserPreferences {
   };
   theme: "light" | "dark" | "auto";
 }
+
+// New Loading Status types
+export interface LoadingStatus {
+  flights_ready: boolean;
+  flights_loading: boolean;
+  satellites_ready: boolean;
+  satellites_loading: boolean;
+}
+
+export interface WebSocketMessage {
+  type: 'initial_data' | 'position_update';
+  status: 'loading' | 'ready';
+  loading_status: LoadingStatus;
+  data: {
+    flights: Aircraft[];
+    satellites: SatelliteObject[];
+  };
+  metadata?: {
+    flights_count: number;
+    satellites_count: number;
+  };
+}

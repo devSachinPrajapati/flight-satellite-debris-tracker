@@ -4,82 +4,79 @@ import type { Aircraft, SatelliteObject } from "../../types";
 interface MapMarkersRendererProps {
   isMapLoaded: boolean;
   isZooming: boolean;
+  currentZoom: number;
   viewMode: "all" | "aircraft" | "satellite" | "debris";
   filteredByViewport: {
     aircraft: Aircraft[];
     satellites: SatelliteObject[];
     debris: SatelliteObject[];
   };
-  queueMarkerForBatch: (
-    id: string,
-    lat: number,
-    lng: number,
-    color: string,
-    type: "aircraft" | "satellite" | "debris",
-    data: Aircraft | SatelliteObject
-  ) => void;
-  removeInvalidMarkers: (validIds: Set<string>) => void;
-  processBatchedMarkers: () => void;
+  processBatchedMarkers: (objects: any[], zoom: number) => void;
 }
 
 const MapMarkersRenderer: React.FC<MapMarkersRendererProps> = ({
   isMapLoaded,
   isZooming,
+  currentZoom,
   viewMode,
   filteredByViewport,
-  queueMarkerForBatch,
-  removeInvalidMarkers,
   processBatchedMarkers,
 }) => {
   useEffect(() => {
-    if (!isMapLoaded) return;
+    if (!isMapLoaded || isZooming) return;
 
-    // Skip updates during zoom to prevent thrashing
-    if (isZooming) {
-      console.log('⏭️ Skipping marker update during zoom');
-      return;
-    }
+    // Prepare objects for rendering
+    const objects: any[] = [];
 
-    const validIds = new Set<string>();
-
-    // Queue all markers
     if (viewMode === "all" || viewMode === "aircraft") {
-      filteredByViewport.aircraft.forEach((ac: Aircraft) => {
-        const id = `aircraft-${ac.hex}`;
-        validIds.add(id);
-        queueMarkerForBatch(id, ac.lat, ac.lng, "#3b82f6", "aircraft", ac);
+      filteredByViewport.aircraft.forEach((ac) => {
+        objects.push({
+          id: `aircraft-${ac.hex}`,
+          lat: ac.lat,
+          lng: ac.lng,
+          type: 'aircraft' as const,
+          data: ac,
+        });
       });
     }
 
     if (viewMode === "all" || viewMode === "satellite") {
-      filteredByViewport.satellites.forEach((sat: SatelliteObject) => {
-        const id = `satellite-${sat.norad_id}`;
-        validIds.add(id);
-        queueMarkerForBatch(id, sat.lat, sat.lng, "#10b981", "satellite", sat);
+      filteredByViewport.satellites.forEach((sat) => {
+        objects.push({
+          id: `satellite-${sat.norad_id}`,
+          lat: sat.lat,
+          lng: sat.lng,
+          type: 'satellite' as const,
+          data: sat,
+        });
       });
     }
 
     if (viewMode === "all" || viewMode === "debris") {
-      filteredByViewport.debris.forEach((deb: SatelliteObject) => {
-        const id = `debris-${deb.norad_id}`;
-        validIds.add(id);
-        queueMarkerForBatch(id, deb.lat, deb.lng, "#ef4444", "debris", deb);
+      filteredByViewport.debris.forEach((deb) => {
+        objects.push({
+          id: `debris-${deb.norad_id}`,
+          lat: deb.lat,
+          lng: deb.lng,
+          type: 'debris' as const,
+          data: deb,
+        });
       });
     }
 
-    removeInvalidMarkers(validIds);
-    processBatchedMarkers();
+    // ✅ Process with LOD + Pooling
+    processBatchedMarkers(objects, currentZoom);
+
   }, [
     filteredByViewport,
     viewMode,
     isMapLoaded,
     isZooming,
-    queueMarkerForBatch,
-    removeInvalidMarkers,
+    currentZoom,
     processBatchedMarkers,
   ]);
 
-  return null; // This component doesn't render anything
+  return null;
 };
 
 export default MapMarkersRenderer;

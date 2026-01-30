@@ -1,8 +1,8 @@
 """
-WebSocket Manager - FIXED VERSION
-Properly gets propagated satellite positions instead of raw TLE data
+WebSocket Manager - PROGRESSIVE LOADING
+Sends loading status immediately, then data as it arrives
 """
-from fastapi import WebSocket, WebSocketDisconnect #type: ignore
+from fastapi import WebSocket, WebSocketDisconnect # type: ignore
 from typing import List, Dict, Any
 import asyncio
 import json
@@ -52,7 +52,6 @@ def validate_satellite(sat: Dict[str, Any]) -> bool:
         if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
             return False
         
-        # Reject extreme altitudes
         if alt > 100000:
             return False
         
@@ -79,34 +78,43 @@ class WebSocketManager:
         print(f"❌ WebSocket disconnected (Total: {len(self.active_connections)})")
     
     async def send_initial_data(self, websocket: WebSocket):
-        """Send initial data with validation - FIXED"""
-        if not flight_service.is_ready or not satellite_service.is_ready:
-            await websocket.send_json({
-                "type": "initial_data",
-                "status": "loading"
-            })
-            return
-        
+        """
+        ✅ OPTIMIZED: Send loading status immediately, then data when ready
+        This allows frontend to render instantly
+        """
         try:
-            # ✅ FIX: Get and validate flights from cache
+            # ✅ CHANGED: Always send immediately (even if empty)
+            flights_ready = flight_service.is_ready and len(flight_service.flights_cache) > 0
+            satellites_ready = satellite_service.is_ready and len(satellite_service.position_cache) > 0
+            
+            # Get data (may be empty)
             flights = [
                 f for f in flight_service.flights_cache.values()
                 if validate_flight(f)
-            ]
+            ] if flights_ready else []
             
-            # ✅ CRITICAL FIX: Get propagated satellites, not raw TLE data
-            satellites_raw = satellite_service.get_all_propagated()
             satellites = [
-                s for s in satellites_raw
+                s for s in satellite_service.position_cache.values()
                 if validate_satellite(s)
-            ]
+            ] if satellites_ready else []
             
             message = {
                 "type": "initial_data",
-                "status": "ready",
+                "status": "ready" if (flights_ready and satellites_ready) else "loading",
+                "loading_status": {  # ✅ NEW: Granular loading info
+                    "flights_ready": flights_ready,
+                    "flights_loading": not flights_ready,
+                    "satellites_ready": satellites_ready,
+                    "satellites_loading": not satellites_ready
+                },
                 "data": {
                     "flights": flights,
                     "satellites": satellites
+                },
+                "metadata": {
+                    "flights_count": len(flights),
+                    "satellites_count": len(satellites),
+                    "using_mock_flights": flight_service.use_mock_data
                 }
             }
             
@@ -114,46 +122,52 @@ class WebSocketManager:
             json_str = json.dumps(message)
             await websocket.send_text(json_str)
             
-            print(f"📤 Sent initial data (ready): {len(flights)} flights, {len(satellites)} satellites")
+            status_msg = "loading" if message["status"] == "loading" else "ready"
+            print(f"📤 Sent initial data ({status_msg}): {len(flights)} flights, {len(satellites)} satellites")
             
         except ValueError as e:
             print(f"❌ JSON error in initial data: {e}")
             await websocket.send_json({"type": "error", "message": "Data validation failed"})
         except Exception as e:
             print(f"❌ Error sending initial data: {e}")
-            import traceback
-            traceback.print_exc()
     
     async def broadcast_updates(self):
-        """Broadcast with validation - FIXED"""
+        """Broadcast with validation"""
         if not self.active_connections:
             return
         
-        if not flight_service.is_ready or not satellite_service.is_ready:
-            return
-        
         try:
-            # ✅ FIX: Validate flight data
+            # ✅ CHANGED: Always send data (even if services not ready)
+            flights_ready = flight_service.is_ready and len(flight_service.flights_cache) > 0
+            satellites_ready = satellite_service.is_ready and len(satellite_service.position_cache) > 0
+            
             flights = [
                 f for f in flight_service.flights_cache.values()
                 if validate_flight(f)
-            ]
+            ] if flights_ready else []
             
-            # ✅ CRITICAL FIX: Get propagated satellites
-            satellites_raw = satellite_service.get_all_propagated()
             satellites = [
-                s for s in satellites_raw
+                s for s in satellite_service.position_cache.values()
                 if validate_satellite(s)
-            ]
+            ] if satellites_ready else []
             
             message = {
                 "type": "position_update",
+                "status": "ready" if (flights_ready and satellites_ready) else "loading",
+                "loading_status": {  # ✅ NEW
+                    "flights_ready": flights_ready,
+                    "flights_loading": not flights_ready,
+                    "satellites_ready": satellites_ready,
+                    "satellites_loading": not satellites_ready
+                },
                 "data": {
                     "flights": flights,
                     "satellites": satellites
                 },
                 "meta": {
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "flights_count": len(flights),
+                    "satellites_count": len(satellites)
                 }
             }
             
@@ -177,8 +191,6 @@ class WebSocketManager:
             print(f"❌ JSON error in broadcast: {e}")
         except Exception as e:
             print(f"❌ Broadcast error: {e}")
-            import traceback
-            traceback.print_exc()
     
     async def broadcast_loop(self):
         """Background broadcast loop"""

@@ -1,91 +1,96 @@
 /**
- * LOD-Optimized Markers Renderer Component
+ * ❌ THIS FILE IS DEPRECATED
+ * 
  */
 
-import { useEffect } from 'react';
-import type { Aircraft, SatelliteObject } from '../../types';
-import { useLODRenderer } from '../../hooks/useLODRenderer';
+// /**
+//  * LOD-Optimized Markers Renderer Component
+//  */
 
-interface LODMarkersRendererProps {
-  isMapLoaded: boolean;
-  currentZoom: number;
-  isZooming: boolean;
-  viewMode: 'all' | 'aircraft' | 'satellite' | 'debris';
-  filteredByViewport: {
-    aircraft: Aircraft[];
-    satellites: SatelliteObject[];
-    debris: SatelliteObject[];
-  };
-  mapRef: React.MutableRefObject<any>;
-}
+// import { useEffect } from 'react';
+// import type { Aircraft, SatelliteObject } from '../../types';
+// import { useLODRenderer } from '../../hooks/useLODRenderer';
 
-export default function LODMarkersRenderer({
-  isMapLoaded,
-  currentZoom,
-  isZooming,
-  viewMode,
-  filteredByViewport,
-  mapRef
-}: LODMarkersRendererProps) {
-  const { queueMarker, processQueue, clearOutsideViewport, getStats } = useLODRenderer(
-    mapRef,
-    currentZoom,
-    isZooming
-  );
+// interface LODMarkersRendererProps {
+//   isMapLoaded: boolean;
+//   currentZoom: number;
+//   isZooming: boolean;
+//   viewMode: 'all' | 'aircraft' | 'satellite' | 'debris';
+//   filteredByViewport: {
+//     aircraft: Aircraft[];
+//     satellites: SatelliteObject[];
+//     debris: SatelliteObject[];
+//   };
+//   mapRef: React.MutableRefObject<any>;
+// }
 
-  useEffect(() => {
-    if (!isMapLoaded || isZooming) return;
+// export default function LODMarkersRenderer({
+//   isMapLoaded,
+//   currentZoom,
+//   isZooming,
+//   viewMode,
+//   filteredByViewport,
+//   mapRef
+// }: LODMarkersRendererProps) {
+//   const { queueMarker, processQueue, clearOutsideViewport, getStats } = useLODRenderer(
+//     mapRef,
+//     currentZoom,
+//     isZooming
+//   );
 
-    const validIds = new Set<string>();
+//   useEffect(() => {
+//     if (!isMapLoaded || isZooming) return;
 
-    // Queue aircraft
-    if (viewMode === 'all' || viewMode === 'aircraft') {
-      filteredByViewport.aircraft.forEach((ac: Aircraft) => {
-        const id = `aircraft-${ac.hex}`;
-        validIds.add(id);
-        queueMarker(id, ac, 'aircraft', ac.lat, ac.lng);
-      });
-    }
+//     const validIds = new Set<string>();
 
-    // Queue satellites
-    if (viewMode === 'all' || viewMode === 'satellite') {
-      filteredByViewport.satellites.forEach((sat: SatelliteObject) => {
-        const id = `satellite-${sat.norad_id}`;
-        validIds.add(id);
-        queueMarker(id, sat, 'satellite', sat.lat, sat.lng);
-      });
-    }
+//     // Queue aircraft
+//     if (viewMode === 'all' || viewMode === 'aircraft') {
+//       filteredByViewport.aircraft.forEach((ac: Aircraft) => {
+//         const id = `aircraft-${ac.hex}`;
+//         validIds.add(id);
+//         queueMarker(id, ac, 'aircraft', ac.lat, ac.lng);
+//       });
+//     }
 
-    // Queue debris
-    if (viewMode === 'all' || viewMode === 'debris') {
-      filteredByViewport.debris.forEach((deb: SatelliteObject) => {
-        const id = `debris-${deb.norad_id}`;
-        validIds.add(id);
-        queueMarker(id, deb, 'debris', deb.lat, deb.lng);
-      });
-    }
+//     // Queue satellites
+//     if (viewMode === 'all' || viewMode === 'satellite') {
+//       filteredByViewport.satellites.forEach((sat: SatelliteObject) => {
+//         const id = `satellite-${sat.norad_id}`;
+//         validIds.add(id);
+//         queueMarker(id, sat, 'satellite', sat.lat, sat.lng);
+//       });
+//     }
 
-    // Clear markers outside viewport
-    clearOutsideViewport(validIds);
+//     // Queue debris
+//     if (viewMode === 'all' || viewMode === 'debris') {
+//       filteredByViewport.debris.forEach((deb: SatelliteObject) => {
+//         const id = `debris-${deb.norad_id}`;
+//         validIds.add(id);
+//         queueMarker(id, deb, 'debris', deb.lat, deb.lng);
+//       });
+//     }
 
-    // Process rendering queue
-    processQueue();
+//     // Clear markers outside viewport
+//     clearOutsideViewport(validIds);
 
-    // Log stats periodically
-    if (Math.random() < 0.05) {
-      console.log('📊 LOD Stats:', getStats());
-    }
-  }, [
-    isMapLoaded,
-    isZooming,
-    currentZoom,
-    viewMode,
-    filteredByViewport,
-    queueMarker,
-    processQueue,
-    clearOutsideViewport,
-    getStats
-  ]);
+//     // Process rendering queue
+//     processQueue();
 
-  return null; // This component manages rendering imperatively
-}
+//     // Log stats periodically
+//     if (Math.random() < 0.05) {
+//       console.log('📊 LOD Stats:', getStats());
+//     }
+//   }, [
+//     isMapLoaded,
+//     isZooming,
+//     currentZoom,
+//     viewMode,
+//     filteredByViewport,
+//     queueMarker,
+//     processQueue,
+//     clearOutsideViewport,
+//     getStats
+//   ]);
+
+//   return null; // This component manages rendering imperatively
+// }

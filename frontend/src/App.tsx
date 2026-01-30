@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import MainLayout from "./components/Layout/MainLayout";
 import MapContainer from "./components/Map/MapContainer";
 import MapMarkersRenderer from "./components/Map/MapMarkersRenderer";
@@ -21,8 +21,9 @@ import useFPS from "./hooks/useFPS";
 import { useMapManager } from "./hooks/useMapManager";
 import { useMarkerManager } from "./hooks/useMarkerManager";
 import { useRenderStats } from "./hooks/useRenderStats";
-import LODMarkersRenderer from './components/Map/LODMarkersRenderer';
+// import LODMarkersRenderer from './components/Map/LODMarkersRenderer';
 // import { useLoadingState } from "./hooks/useLoadingState";
+import { type LoadingStatus } from "./types/index"; // Import the new type
 
 import { recordFlightPosition } from "./services/flightHistoryService";
 import { mapStatus } from "./utils/mapStatus";
@@ -31,6 +32,14 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const App = () => {
+
+  const [loadingStatus, setLoadingStatus] = useState<LoadingStatus>({
+    flights_ready: false,
+    flights_loading: true,
+    satellites_ready: false,
+    satellites_loading: true
+  });
+
   // Map management
   const {
     mapRef,
@@ -66,11 +75,15 @@ const App = () => {
   const { viewMode, selectedObject, handleViewModeChange, handleObjectSelect } = useMapControls();
 
   // Marker management
+  // const {
+  // queueMarkerForBatch,
+  // removeInvalidMarkers,
+  // processBatchedMarkers,
+  // } = useMarkerManager(mapRef, handleObjectSelect);
   const {
-    queueMarkerForBatch,
-    removeInvalidMarkers,
     processBatchedMarkers,
   } = useMarkerManager(mapRef, handleObjectSelect);
+
 
   // Render stats and viewport filtering
   const { renderStats, filteredByViewport } = useRenderStats(
@@ -99,6 +112,27 @@ const App = () => {
   // FPS monitoring
   const fps = useFPS();
 
+    // WebSocket connection for loading status (NEW)
+  useEffect(() => {
+    const ws = new WebSocket('ws://localhost:8000/ws');
+    
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      
+      if (message.type === 'initial_data' || message.type === 'position_update') {
+        // Update loading status from backend
+        setLoadingStatus(message.loading_status);
+      }
+    };
+    
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+    
+    return () => ws.close();
+  }, []);
+
+
   // Record flight positions for history
   useEffect(() => {
     aircraft.forEach((a) => recordFlightPosition(a));
@@ -123,7 +157,7 @@ const App = () => {
     (aircraftLoading || satelliteLoading) &&
     aircraft.length === 0 &&
     satellites.length === 0;
-    
+
   return (
     <>
       {/* <Suspense fallback={null}>
@@ -135,7 +169,13 @@ const App = () => {
           />
         )}
       </Suspense> */}
-      <LoadingOverlay isLoading={isLoading} />
+      {/* <LoadingOverlay isLoading={isLoading} /> */}
+       <LoadingOverlay 
+        isLoading={isLoading}
+        loadingStatus={loadingStatus}
+        flightsCount={aircraft.length}
+        satellitesCount={satellites.length}
+      />
 
       <ToastContainer
         position="top-center"
@@ -162,13 +202,21 @@ const App = () => {
         <MapContainer onMapLoad={handleMapLoad} />
 
         {/* Marker Renderer - Hidden component that manages markers */}
-        <MapMarkersRenderer
+        {/* <MapMarkersRenderer
           isMapLoaded={isMapLoaded}
           isZooming={isZooming}
           viewMode={viewMode}
           filteredByViewport={filteredByViewport}
           queueMarkerForBatch={queueMarkerForBatch}
           removeInvalidMarkers={removeInvalidMarkers}
+          processBatchedMarkers={processBatchedMarkers}
+        /> */}
+        <MapMarkersRenderer
+          isMapLoaded={isMapLoaded}
+          isZooming={isZooming}
+          currentZoom={currentZoom}  // ✅ Add this
+          viewMode={viewMode}
+          filteredByViewport={filteredByViewport}
           processBatchedMarkers={processBatchedMarkers}
         />
 
@@ -233,14 +281,14 @@ const App = () => {
         onObjectSelect={handleObjectSelect}
       />
 
-      <LODMarkersRenderer
+      {/* <LODMarkersRenderer
         isMapLoaded={isMapLoaded}
         currentZoom={currentZoom}
         isZooming={isZooming}
         viewMode={viewMode}
         filteredByViewport={filteredByViewport}
         mapRef={mapRef}
-      />
+      /> */}
     </>
   );
 };

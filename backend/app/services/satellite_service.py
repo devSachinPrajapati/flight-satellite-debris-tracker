@@ -1,9 +1,10 @@
 """
-Satellite Data Service - FIXED NUMPY BOOL SERIALIZATION
+Satellite Data Service - PERFORMANCE OPTIMIZED
+Caches propagated positions to avoid expensive recalculations
 """
 import asyncio
 import aiohttp # type: ignore
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from skyfield.api import load, EarthSatellite, wgs84 # type: ignore
 from app.config import settings
@@ -11,7 +12,9 @@ from app.config import settings
 
 class SatelliteService:
     def __init__(self):
-        self.tle_cache: Dict[str, dict] = {}
+        self.tle_cache: Dict[str, dict] = {}  # Raw TLE data
+        self.position_cache: Dict[str, dict] = {}  # ✅ NEW: Propagated positions cache
+        self.last_propagation: Optional[datetime] = None  # ✅ NEW: Track when we last propagated
         self.timescale = load.timescale()
         self.last_api_call: Optional[datetime] = None
         self.is_ready = False
@@ -36,7 +39,9 @@ class SatelliteService:
             tle_data = await self.fetch_tle_data()
             if tle_data:
                 self.update_cache_from_tle(tle_data)
-                print(f"✅ TLE data loaded: {len(self.tle_cache)} objects")
+                # ✅ NEW: Propagate all positions immediately after TLE fetch
+                self._propagate_all_satellites()
+                print(f"✅ TLE data loaded: {len(self.tle_cache)} objects, {len(self.position_cache)} positions cached")
         except Exception as e:
             print(f"⚠️ Background TLE fetch failed: {e}")
         
@@ -183,74 +188,112 @@ class SatelliteService:
         satellite_count = sum(1 for s in self.tle_cache.values() if s['object_type'] == 'satellite')
         debris_count = sum(1 for s in self.tle_cache.values() if s['object_type'] == 'debris')
         print(f"📊 Cached: {satellite_count} satellites, {debris_count} debris")
-    
-    def propagate_satellite(self, norad_id: str) -> Optional[dict]:
-        """✅ FIXED: Calculate position with proper type conversion"""
-        if norad_id not in self.tle_cache:
-            return None
+
+    def _propagate_all_satellites(self):
+        """
+        ✅ OPTIMIZED: Propagate ALL satellites with better error handling
+        Uses batch processing for speed
+        """
+        import time
+        start = time.time()
         
-        try:
-            tle_data = self.tle_cache[norad_id]
-            satellite = EarthSatellite(
-                tle_data["tle1"],
-                tle_data["tle2"],
-                tle_data["name"],
-                self.timescale
-            )
-            
-            t = self.timescale.now()
-            geocentric = satellite.at(t)
-            subpoint = wgs84.subpoint(geocentric)
-            
-            velocity = geocentric.velocity.km_per_s
-            speed = (velocity[0]**2 + velocity[1]**2 + velocity[2]**2)**0.5
-            
-            # ✅ CRITICAL FIX: Convert numpy types to Python native types
-            return {
-                "norad_id": norad_id,
-                "name": tle_data["name"],
+        self.position_cache.clear()
+        propagated_count = 0
+        failed_count = 0
+        
+        # ✅ NEW: Pre-calculate current time (reuse for all satellites)
+        t = self.timescale.now()
+        
+        for norad_id, tle_data in self.tle_cache.items():
+            try:
+                satellite = EarthSatellite(
+                    tle_data["tle1"],
+                    tle_data["tle2"],
+                    tle_data["name"],
+                    self.timescale
+                )
                 
-                # Position - convert to float
-                "lat": float(subpoint.latitude.degrees),
-                "lng": float(subpoint.longitude.degrees),
-                "altitude": float(subpoint.elevation.km),
-                "velocity": float(round(speed, 2)),
+                # ✅ OPTIMIZED: Reuse pre-calculated time
+                geocentric = satellite.at(t)
+                subpoint = wgs84.subpoint(geocentric)
                 
-                # Orbital parameters - convert to float
-                "inclination": float(satellite.model.inclo * 180 / 3.14159),
-                "period_minutes": float((2 * 3.14159) / satellite.model.no),
+                velocity = geocentric.velocity.km_per_s
+                speed = (velocity[0]**2 + velocity[1]**2 + velocity[2]**2)**0.5
                 
-                # Classification
-                "object_type": str(tle_data["object_type"]),
-                "operator": str(self.get_operator(tle_data["name"])),
+                # ✅ OPTIMIZED: Pre-calculate constants
+                lat = float(subpoint.latitude.degrees)
+                lng = float(subpoint.longitude.degrees)
+                alt = float(subpoint.elevation.km)
                 
-                # Visibility - ✅ CRITICAL: Convert numpy.bool_ to Python bool
-                "visible": bool(subpoint.elevation.km > 500),
-                "epoch": None,
-                "conjunction_risk": False,
+                # Skip invalid positions early
+                if not (-90 <= lat <= 90 and -180 <= lng <= 180 and alt < 100000):
+                    failed_count += 1
+                    continue
                 
-                # TLE data for orbit calculations
-                "tle": {
-                    "name": str(tle_data["name"]),
-                    "line1": str(tle_data["tle1"]),
-                    "line2": str(tle_data["tle2"])
+                # Cache the propagated position
+                self.position_cache[norad_id] = {
+                    "norad_id": norad_id,
+                    "name": tle_data["name"],
+                    "lat": lat,
+                    "lng": lng,
+                    "altitude": alt,
+                    "velocity": float(round(speed, 2)),
+                    "inclination": float(satellite.model.inclo * 180 / 3.14159),
+                    "period_minutes": float((2 * 3.14159) / satellite.model.no),
+                    "object_type": str(tle_data["object_type"]),
+                    "operator": str(self.get_operator(tle_data["name"])),
+                    "visible": bool(alt > 500),
+                    "epoch": None,
+                    "conjunction_risk": False,
+                    "tle": {
+                        "name": str(tle_data["name"]),
+                        "line1": str(tle_data["tle1"]),
+                        "line2": str(tle_data["tle2"])
+                    }
                 }
-            }
-        except Exception as e:
-            print(f"⚠️ Error propagating satellite {norad_id}: {e}")
-            return None
+                propagated_count += 1
+                
+            except Exception as e:
+                failed_count += 1
+                # Only log first few failures to avoid spam
+                if failed_count <= 3:
+                    print(f"⚠️ Error propagating satellite {norad_id}: {e}")
+        
+        self.last_propagation = datetime.utcnow()
+        elapsed = time.time() - start
+        
+        print(f"✅ Propagated {propagated_count} satellites in {elapsed:.2f}s ({failed_count} failed)")
+    def propagate_satellite(self, norad_id: str) -> Optional[dict]:
+        """
+        ✅ OPTIMIZED: Return cached position instead of recalculating
+        Only recalculate if cache is stale (>60 seconds old)
+        """
+        # Check if we need to refresh the cache
+        if self.last_propagation is None or \
+           (datetime.utcnow() - self.last_propagation).total_seconds() > 60:
+            self._propagate_all_satellites()
+        
+        # Return cached position
+        return self.position_cache.get(norad_id)
     
     def get_all_propagated(self) -> List[dict]:
-        """Get current positions"""
-        positions = []
-        for norad_id in self.tle_cache.keys():
-            pos = self.propagate_satellite(norad_id)
-            if pos:
-                positions.append(pos)
-        return positions
+        """
+        ✅ OPTIMIZED: Return cached positions instead of recalculating
+        This is called by WebSocket every 2 seconds - must be fast!
+        """
+        # Check if we need to refresh the cache
+        if self.last_propagation is None or \
+           (datetime.utcnow() - self.last_propagation).total_seconds() > 60:
+            self._propagate_all_satellites()
+        
+        # Return all cached positions (fast dictionary lookup)
+        return list(self.position_cache.values())
     
     async def background_update_loop(self):
-        """Background updates"""
+        """
+        Background updates
+        ✅ OPTIMIZED: Propagate positions every 60 seconds instead of on-demand
+        """
         print("🚀 Satellite update loop started")
         
         await self.initialize()
@@ -259,12 +302,19 @@ class SatelliteService:
             await self._initial_fetch_task
         
         while True:
-            await asyncio.sleep(settings.CELESTRAK_FETCH_INTERVAL)
+            await asyncio.sleep(60)  # ✅ NEW: Re-propagate every 60 seconds
             
             try:
-                tle_data = await self.fetch_tle_data()
-                if tle_data:
-                    self.update_cache_from_tle(tle_data)
+                # Refresh positions from existing TLE cache
+                self._propagate_all_satellites()
+                
+                # Fetch new TLE data every 6 hours (unchanged)
+                if self.last_api_call is None or \
+                   (datetime.utcnow() - self.last_api_call).total_seconds() > settings.CELESTRAK_FETCH_INTERVAL:
+                    tle_data = await self.fetch_tle_data()
+                    if tle_data:
+                        self.update_cache_from_tle(tle_data)
+                        self._propagate_all_satellites()  # Propagate new TLE data
             except Exception as e:
                 print(f"❌ Satellite update error: {e}")
 
