@@ -52,12 +52,53 @@ export const useMapManager = () => {
     console.log("✅ Map ready for markers");
   }, []);
 
+  // const toggleGlobeView = useCallback(() => {
+  //   if (mapRef.current) {
+  //     const newProjection = isGlobeView ? "mercator" : "globe";
+  //     mapRef.current.setProjection(newProjection as maptilersdk.ProjectionSpecification);
+  //     setIsGlobeView(!isGlobeView);
+  //     console.log(`🌍 Switched to ${newProjection} view`);
+  //   }
+  // }, [isGlobeView]);
+
   const toggleGlobeView = useCallback(() => {
-    if (mapRef.current) {
+    if (!mapRef.current) {
+      console.warn("⚠️ Map reference not available");
+      return;
+    }
+
+    try {
+      // Properly toggle between globe and mercator projections
       const newProjection = isGlobeView ? "mercator" : "globe";
-      mapRef.current.setProjection(newProjection as maptilersdk.ProjectionSpecification);
+
+      console.log(`🌍 Switching projection from ${isGlobeView ? 'globe' : 'mercator'} to ${newProjection}`);
+
+      // Use correct MapTiler SDK projection method with string type
+      mapRef.current.setProjection({
+        type: newProjection,
+      });
+
+      // Update state
       setIsGlobeView(!isGlobeView);
-      console.log(`🌍 Switched to ${newProjection} view`);
+
+      // Adjust zoom levels for better UX when switching
+      if (newProjection === "mercator") {
+        // When switching to flat map, zoom in slightly for better view
+        const currentZoom = mapRef.current.getZoom();
+        if (currentZoom < 2) {
+          mapRef.current.setZoom(2);
+        }
+      } else {
+        // When switching to globe, zoom out for full globe view
+        const currentZoom = mapRef.current.getZoom();
+        if (currentZoom > 3) {
+          mapRef.current.setZoom(2);
+        }
+      }
+
+      console.log(`✅ Projection switched to ${newProjection}`);
+    } catch (error) {
+      console.error("❌ Error toggling projection:", error);
     }
   }, [isGlobeView]);
 

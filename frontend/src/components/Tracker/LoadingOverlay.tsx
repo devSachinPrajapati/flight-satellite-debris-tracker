@@ -12,14 +12,14 @@ interface LoadingOverlayProps {
 
 const LoadingOverlay = ({ 
   isLoading, 
-  loadingStatus,
-  flightsCount = 0,
-  satellitesCount = 0
+  // loadingStatus,
+  // flightsCount = 0,
+  // satellitesCount = 0
 }: LoadingOverlayProps) => {
   if (!isLoading) return null;
 
   // Show progressive loading if we have loading status
-  const showProgressiveLoading = loadingStatus && (loadingStatus.flights_loading || loadingStatus.satellites_loading);
+  // const showProgressiveLoading = loadingStatus && (loadingStatus.flights_loading || loadingStatus.satellites_loading);
 
   return (
     <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
@@ -31,7 +31,7 @@ const LoadingOverlay = ({
         </p>
 
         {/* Progressive loading indicators */}
-        {showProgressiveLoading && (
+        {/* {showProgressiveLoading && (
           <div className="mt-4 space-y-2">
             {loadingStatus.flights_loading && (
               <div className="text-sm text-gray-600 bg-blue-50 rounded px-3 py-2">
@@ -45,7 +45,7 @@ const LoadingOverlay = ({
               </div>
             )}
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );

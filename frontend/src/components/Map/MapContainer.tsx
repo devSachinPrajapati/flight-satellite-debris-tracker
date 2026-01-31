@@ -22,7 +22,7 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
 
     console.log("🌍 Initializing Globe View...");
 
-    // Create map with Globe projection
+    // ✅ FIX: Create map with proper projection
     const map = new maptilersdk.Map({
       container: mapContainerRef.current,
       apiKey: apiKey,
@@ -31,14 +31,14 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       zoom: 1.5,
       pitch: 0,
       bearing: 0,
+      // ✅ CRITICAL: Use correct projection type string
       projection: "globe",
       maxPitch: 85,
       renderWorldCopies: false,
       attributionControl: false,
-      // 🚀 FIX: Reduce interaction delay to allow marker clicks
       clickTolerance: 3,
-      minZoom: 1.5,  // Minimum zoom level
-      maxZoom: 7.5 // Maximum zoom level
+      minZoom: 1.5,
+      maxZoom: 7.5
     });
 
     map.on("load", () => {
@@ -56,9 +56,9 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
     let rotationFrameId: number | null = null;
     let inactivityTimeout: ReturnType<typeof setTimeout> | null = null;
     let lastRotationTime = 0;
-    const rotationSpeed = 0.05; // Degrees per frame (very smooth)
+    const rotationSpeed = 0.05;
     const ZOOM_THRESHOLD = 3;
-    const ROTATION_FPS = 60; // Target 60 FPS
+    const ROTATION_FPS = 60;
     const FRAME_DURATION = 1000 / ROTATION_FPS;
 
     /**
@@ -67,11 +67,13 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
     const shouldRotate = (): boolean => {
       if (!mapRef.current) return false;
       const currentZoom = mapRef.current.getZoom();
-      return currentZoom <= ZOOM_THRESHOLD;
+      // ✅ FIX: Only rotate in globe view
+      const projection = mapRef.current.getProjection();
+      return currentZoom <= ZOOM_THRESHOLD && projection.type === 'globe';
     };
 
     /**
-     * Smooth globe rotation using requestAnimationFrame
+     * Smooth globe rotation
      */
     const rotateGlobe = (timestamp: number) => {
       if (!mapRef.current || userInteracting || !shouldRotate()) {
@@ -79,23 +81,20 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
         return;
       }
 
-      // Throttle to maintain consistent frame rate
       if (timestamp - lastRotationTime >= FRAME_DURATION) {
         const center = mapRef.current.getCenter();
         center.lng -= rotationSpeed;
         
-        // 🚀 FIX: Use jumpTo instead of easeTo for smoother, non-blocking rotation
         mapRef.current.jumpTo({ center });
         
         lastRotationTime = timestamp;
       }
 
-      // Continue animation
       rotationFrameId = requestAnimationFrame(rotateGlobe);
     };
 
     /**
-     * Start smooth rotation
+     * Start rotation
      */
     const startRotation = () => {
       if (rotationFrameId !== null) {
@@ -106,7 +105,7 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       if (shouldRotate()) {
         lastRotationTime = performance.now();
         rotationFrameId = requestAnimationFrame(rotateGlobe);
-        console.log("🔄 Smooth rotation started");
+        console.log("🔄 Rotation started");
       }
     };
 
@@ -136,10 +135,10 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
         if (!userInteracting && shouldRotate()) {
           startRotation();
         }
-      }, 2000); // Reduced to 2 seconds for quicker resume
+      }, 2000);
     };
 
-    // 🚀 ZOOM HANDLING
+    // Zoom handling
     map.on("zoom", () => {
       const currentZoom = map.getZoom();
       
@@ -150,14 +149,25 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       }
     });
 
-    // 🚀 FIX: Improved interaction handling
+    // ✅ NEW: Stop rotation when projection changes to mercator
+    map.on("projectionchange", () => {
+      const projection = map.getProjection();
+      console.log(`📐 Projection changed to: ${projection.type}`);
+      
+      if (projection.type === 'mercator') {
+        stopRotation();
+      } else if (projection.type === 'globe' && !userInteracting) {
+        scheduleRotation();
+      }
+    });
+
+    // Interaction handling
     let interactionTimer: ReturnType<typeof setTimeout> | null = null;
 
     const handleInteractionStart = () => {
       userInteracting = true;
       stopRotation();
       
-      // Clear any pending timer
       if (interactionTimer) {
         clearTimeout(interactionTimer);
         interactionTimer = null;
@@ -165,7 +175,6 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
     };
 
     const handleInteractionEnd = () => {
-      // Debounce the interaction end to allow marker clicks
       if (interactionTimer) {
         clearTimeout(interactionTimer);
       }
@@ -174,7 +183,7 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
         userInteracting = false;
         scheduleRotation();
         interactionTimer = null;
-      }, 100); // Small delay to allow click events to complete
+      }, 100);
     };
 
     // Mouse events
@@ -192,13 +201,12 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
     // Wheel events
     map.on("wheel", handleInteractionStart);
     map.on("zoomend", () => {
-      // Don't immediately resume on zoom end
       if (!userInteracting) {
         scheduleRotation();
       }
     });
 
-    // 🚀 IMPORTANT: Pause rotation when clicking on markers
+    // Pause rotation on marker clicks
     map.on("click", () => {
       handleInteractionStart();
       handleInteractionEnd();
@@ -225,7 +233,6 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       className="absolute inset-0"
       style={{ 
         background: "#0B1026",
-        // 🚀 FIX: Ensure markers can receive clicks
         pointerEvents: "auto"
       }}
     />
