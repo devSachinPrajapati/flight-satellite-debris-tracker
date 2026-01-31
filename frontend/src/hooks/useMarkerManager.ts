@@ -11,6 +11,22 @@ export const useMarkerManager = (
   const activeMarkersRef = useRef<Map<string, any>>(new Map());
   const currentZoomRef = useRef<number>(1.5);
   const isUpdatingRef = useRef<boolean>(false);
+  // const pendingRenderRef = useRef<any[]>([]);
+  const renderFrameRef = useRef<number | null>(null);
+
+  /**
+   * ✅ FIXED: Get HARD LIMIT for total markers based on zoom
+   */
+  const getMarkerLimit = useCallback((zoom: number): number => {
+    if (zoom < 1.5) return 50;
+    if (zoom < 2.5) return 120;
+    if (zoom < 3.5) return 250;
+    if (zoom < 4.5) return 400;
+    if (zoom < 5.5) return 600;
+    if (zoom < 6.5) return 800;
+    if (zoom < 7.5) return 1200;
+    return 2000; // Max at high zoom
+  }, []);
 
   /**
    * ✅ OPTIMIZED: Create/update marker with LOD and pooling
@@ -31,6 +47,14 @@ export const useMarkerManager = (
       : type === 'debris'
       ? lodManager.simplifyDebris(data, zoom)
       : lodManager.simplifySatellite(data, zoom);
+
+    // ✅ NEW: Skip rendering at minimal LOD for distant objects
+    if (simplified.lodLevel === 'minimal' && zoom < 2) {
+      // At extreme zoom out, only render 1 in every 5 objects
+      if (Math.random() > 0.2) {
+        return; // Skip 80% of markers
+      }
+    }
 
     // 2. Check if marker already exists
     let existingMarker = activeMarkersRef.current.get(id);
@@ -59,7 +83,7 @@ export const useMarkerManager = (
     // 4. Update marker appearance
     markerPool.updateMarkerLOD(pooled, simplified, simplified.lodLevel);
 
-    // 5. Add click handler
+    // 5. Add click handler (use passive event listener)
     pooled.element.onclick = (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -163,7 +187,59 @@ export const useMarkerManager = (
   }, []);
 
   /**
-   * ✅ OPTIMIZED: Batch process markers
+   * ✅ NEW: Progressive rendering using requestIdleCallback
+   * Spreads marker creation across multiple frames to avoid blocking
+   */
+  const renderProgressively = useCallback((
+    objects: Array<{
+      id: string;
+      lat: number;
+      lng: number;
+      type: 'aircraft' | 'satellite' | 'debris';
+      data: Aircraft | SatelliteObject;
+    }>,
+    zoom: number,
+    validIds: Set<string>
+  ) => {
+    // Cancel any pending render
+    if (renderFrameRef.current) {
+      cancelIdleCallback(renderFrameRef.current);
+    }
+
+    const BATCH_SIZE = 20; // Render 20 markers per frame
+    let index = 0;
+
+    const renderBatch = (deadline: IdleDeadline) => {
+      // Render as many as we can in this frame (up to BATCH_SIZE)
+      while (index < objects.length && deadline.timeRemaining() > 1) {
+        const obj = objects[index];
+        createOrUpdateMarker(obj.id, obj.lat, obj.lng, obj.type, obj.data, zoom);
+        index++;
+
+        // Stop after batch size even if we have time left
+        if (index % BATCH_SIZE === 0) {
+          break;
+        }
+      }
+
+      // Schedule next batch if we have more to render
+      if (index < objects.length) {
+        renderFrameRef.current = requestIdleCallback(renderBatch, { timeout: 16 });
+      } else {
+        // All done - now remove stale markers
+        removeInvalidMarkers(validIds);
+        renderFrameRef.current = null;
+        
+        console.log(`✅ Progressive render complete: ${objects.length} objects in ${Math.ceil(objects.length / BATCH_SIZE)} batches`);
+      }
+    };
+
+    // Start progressive rendering
+    renderFrameRef.current = requestIdleCallback(renderBatch, { timeout: 16 });
+  }, [createOrUpdateMarker, removeInvalidMarkers]);
+
+  /**
+   * ✅ FIXED: Batch process markers WITH HARD LIMIT ENFORCEMENT + PROGRESSIVE RENDERING
    */
   const processBatchedMarkers = useCallback((
     objects: Array<{
@@ -176,20 +252,35 @@ export const useMarkerManager = (
     zoom: number
   ) => {
     const validIds = new Set<string>();
+    
+    // ✅ CRITICAL FIX: Enforce hard limit BEFORE processing
+    const markerLimit = getMarkerLimit(zoom);
+    const objectsToRender = objects.slice(0, markerLimit);
+    
+    if (objects.length > markerLimit) {
+      console.log(`⚡ Hard limit: Rendering ${markerLimit}/${objects.length} objects at zoom ${zoom.toFixed(1)}`);
+    }
 
-    // Process all objects
-    objects.forEach(({ id, lat, lng, type, data }) => {
+    // Collect valid IDs
+    objectsToRender.forEach(({ id }) => {
       validIds.add(id);
-      createOrUpdateMarker(id, lat, lng, type, data, zoom);
     });
 
-    // Remove stale markers
-    removeInvalidMarkers(validIds);
+    // ✅ NEW: Use progressive rendering for better performance
+    if (objectsToRender.length > 50) {
+      renderProgressively(objectsToRender, zoom, validIds);
+    } else {
+      // For small batches, render immediately
+      objectsToRender.forEach(({ id, lat, lng, type, data }) => {
+        createOrUpdateMarker(id, lat, lng, type, data, zoom);
+      });
+      removeInvalidMarkers(validIds);
+    }
 
     // Update LOD if zoom changed (only if LOD level changed)
     updateMarkersForZoom(zoom);
 
-  }, [createOrUpdateMarker, removeInvalidMarkers, updateMarkersForZoom]);
+  }, [createOrUpdateMarker, removeInvalidMarkers, updateMarkersForZoom, getMarkerLimit, renderProgressively]);
 
   /**
    * Cleanup on unmount
@@ -197,6 +288,12 @@ export const useMarkerManager = (
   useEffect(() => {
     return () => {
       console.log('🧹 Cleaning up all markers');
+      
+      // Cancel pending renders
+      if (renderFrameRef.current) {
+        cancelIdleCallback(renderFrameRef.current);
+      }
+
       activeMarkersRef.current.forEach(({ marker, pooled }) => {
         marker.remove();
         markerPool.release(pooled);

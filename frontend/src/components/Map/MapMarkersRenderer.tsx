@@ -25,6 +25,14 @@ const MapMarkersRenderer: React.FC<MapMarkersRendererProps> = ({
   useEffect(() => {
     if (!isMapLoaded || isZooming) return;
 
+    // ✅ Log what we're about to render
+    const totalToRender = 
+      (viewMode === "all" || viewMode === "aircraft" ? filteredByViewport.aircraft.length : 0) +
+      (viewMode === "all" || viewMode === "satellite" ? filteredByViewport.satellites.length : 0) +
+      (viewMode === "all" || viewMode === "debris" ? filteredByViewport.debris.length : 0);
+
+    console.log(`🎨 MapMarkersRenderer: Preparing to render ${totalToRender} objects at zoom ${currentZoom.toFixed(1)}`);
+
     // Prepare objects for rendering
     const objects: any[] = [];
 
@@ -64,8 +72,17 @@ const MapMarkersRenderer: React.FC<MapMarkersRendererProps> = ({
       });
     }
 
-    // ✅ Process with LOD + Pooling
+    // ✅ Process with LOD + Pooling + Hard Limits
+    const startTime = performance.now();
     processBatchedMarkers(objects, currentZoom);
+    const elapsed = performance.now() - startTime;
+    
+    // ✅ Log rendering performance
+    if (elapsed > 100) {
+      console.warn(`⚠️ Slow render: ${elapsed.toFixed(0)}ms for ${objects.length} objects`);
+    } else if (Math.random() < 0.1) { // 10% sampling
+      console.log(`⚡ Render: ${elapsed.toFixed(0)}ms for ${objects.length} objects`);
+    }
 
   }, [
     filteredByViewport,
