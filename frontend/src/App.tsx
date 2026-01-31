@@ -21,9 +21,7 @@ import useFPS from "./hooks/useFPS";
 import { useMapManager } from "./hooks/useMapManager";
 import { useMarkerManager } from "./hooks/useMarkerManager";
 import { useRenderStats } from "./hooks/useRenderStats";
-// import LODMarkersRenderer from './components/Map/LODMarkersRenderer';
-// import { useLoadingState } from "./hooks/useLoadingState";
-import { type LoadingStatus } from "./types/index"; // Import the new type
+import { type LoadingStatus } from "./types/index"; 
 
 import { recordFlightPosition } from "./services/flightHistoryService";
 import { mapStatus } from "./utils/mapStatus";
@@ -74,12 +72,6 @@ const App = () => {
   // Map controls and object selection
   const { viewMode, selectedObject, handleViewModeChange, handleObjectSelect } = useMapControls();
 
-  // Marker management
-  // const {
-  // queueMarkerForBatch,
-  // removeInvalidMarkers,
-  // processBatchedMarkers,
-  // } = useMarkerManager(mapRef, handleObjectSelect);
   const {
     processBatchedMarkers,
   } = useMarkerManager(mapRef, handleObjectSelect);
@@ -94,15 +86,7 @@ const App = () => {
     isZooming
   );
 
-  // Loading state
-  // const { showLoadingOverlay, loadingMessage, loadingProgress } = useLoadingState(
-  //   aircraftConnected,
-  //   aircraft.length,
-  //   satellites.length,
-  //   debris.length
-  // );
-
-  // // Search functionality
+  // Search functionality
   const { filteredAircraft, filteredSatellites, filteredDebris } = useSearch(
     aircraft,
     satellites,
@@ -160,16 +144,6 @@ const App = () => {
 
   return (
     <>
-      {/* <Suspense fallback={null}>
-        {showLoadingOverlay && (
-          <LoadingOverlay
-            isLoading={true}
-            message={loadingMessage}
-            progress={loadingProgress}
-          />
-        )}
-      </Suspense> */}
-      {/* <LoadingOverlay isLoading={isLoading} /> */}
        <LoadingOverlay 
         isLoading={isLoading}
         loadingStatus={loadingStatus}
@@ -201,16 +175,6 @@ const App = () => {
       <MainLayout>
         <MapContainer onMapLoad={handleMapLoad} />
 
-        {/* Marker Renderer - Hidden component that manages markers */}
-        {/* <MapMarkersRenderer
-          isMapLoaded={isMapLoaded}
-          isZooming={isZooming}
-          viewMode={viewMode}
-          filteredByViewport={filteredByViewport}
-          queueMarkerForBatch={queueMarkerForBatch}
-          removeInvalidMarkers={removeInvalidMarkers}
-          processBatchedMarkers={processBatchedMarkers}
-        /> */}
         <MapMarkersRenderer
           isMapLoaded={isMapLoaded}
           isZooming={isZooming}
@@ -249,7 +213,6 @@ const App = () => {
 
         {/* Object Details Card */}
         {selectedObject && (
-          // <div className="absolute top-2 bottom-12 left-1/2 transform -translate-x-1/2 z-10 max-w-xl">
           <div className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 max-w-xl">
             <ObjectDetailsCard
               selectedObject={selectedObject}
@@ -280,15 +243,6 @@ const App = () => {
         mapRef={mapRef}
         onObjectSelect={handleObjectSelect}
       />
-
-      {/* <LODMarkersRenderer
-        isMapLoaded={isMapLoaded}
-        currentZoom={currentZoom}
-        isZooming={isZooming}
-        viewMode={viewMode}
-        filteredByViewport={filteredByViewport}
-        mapRef={mapRef}
-      /> */}
     </>
   );
 };

@@ -152,7 +152,7 @@ const OrbitVisualizerPanel = ({
           <select
             value={duration}
             onChange={(e) => setDuration(Number(e.target.value))}
-            className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            className="mt-1 w-full px-3 py-2 cursor-pointer border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value={30}>30 minutes</option>
             <option value={60}>60 minutes</option>
