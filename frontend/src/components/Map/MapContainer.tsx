@@ -31,14 +31,15 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       zoom: 1.5,
       pitch: 0,
       bearing: 0,
-      // ✅ CRITICAL: Use correct projection type string
+      // CRITICAL: Use correct projection type string
       projection: "globe",
       maxPitch: 85,
       renderWorldCopies: false,
       attributionControl: false,
       clickTolerance: 3,
       minZoom: 1.5,
-      maxZoom: 7.5
+      maxZoom: 7.5,
+      geolocateControl: false,
     });
 
     map.on("load", () => {
