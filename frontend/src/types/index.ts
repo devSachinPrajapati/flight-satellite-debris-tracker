@@ -33,6 +33,7 @@ export interface SatelliteObject {
   period_minutes?: number;
   operator?: string;
   object_type: "satellite" | "debris";
+  orbit_type?: 'LEO' | 'MEO' | 'GEO' | 'HEO'; // Added orbit_type
   visible: boolean;
   epoch?: string;
   conjunction_risk?: boolean;

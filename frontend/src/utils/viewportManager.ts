@@ -10,7 +10,7 @@ class ViewportManager {
   private lastBounds: { north: number; south: number; east: number; west: number } | null = null;
   private lastZoom: number = 1.5;
   private debugMode: boolean = false;
-  
+
   // ✅ NEW: Cache of selected objects for stable rendering
   private selectedObjectIds = {
     aircraft: new Set<string>(),
@@ -28,14 +28,14 @@ class ViewportManager {
 
     const bounds = this.map.getBounds();
     const newZoom = this.map.getZoom();
-    
+
     // ✅ NEW: Clear cache when zooming OUT (fewer objects)
     if (newZoom < this.lastZoom - 0.5) {
       this.selectedObjectIds.aircraft.clear();
       this.selectedObjectIds.satellites.clear();
       this.selectedObjectIds.debris.clear();
     }
-    
+
     this.lastBounds = {
       north: bounds.getNorth(),
       south: bounds.getSouth(),
@@ -46,9 +46,9 @@ class ViewportManager {
   }
 
   private isValidCoordinate(lat: number, lng: number): boolean {
-    if (lat === undefined || lng === undefined || 
-        isNaN(lat) || isNaN(lng) || 
-        !isFinite(lat) || !isFinite(lng)) {
+    if (lat === undefined || lng === undefined ||
+      isNaN(lat) || isNaN(lng) ||
+      !isFinite(lat) || !isFinite(lng)) {
       return false;
     }
 
@@ -69,6 +69,10 @@ class ViewportManager {
 
   private isInViewport(lat: number, lng: number): boolean {
     if (!this.lastBounds) return true;
+    if (this.debugMode) {
+      return true;
+    }
+
 
     const { north, south, east, west } = this.lastBounds;
 
@@ -94,7 +98,7 @@ class ViewportManager {
 
   private getObjectTypeQuota(type: 'aircraft' | 'satellite' | 'debris'): number {
     const totalLimit = this.getTotalRenderLimit();
-    
+
     switch (type) {
       case 'aircraft':
         return Math.floor(totalLimit * 0.45);
@@ -169,7 +173,7 @@ class ViewportManager {
       const cellX = Math.floor((obj.lng + 180) / cellWidth);
       const cellY = Math.floor((obj.lat + 90) / cellHeight);
       const key = `${cellX},${cellY}`;
-      
+
       if (!grid.has(key)) {
         grid.set(key, []);
       }

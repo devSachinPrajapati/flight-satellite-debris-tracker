@@ -109,6 +109,25 @@ const OrbitVisualizerPanel = ({
     return null;
   }
 
+  // CRITICAL FIX: Use satellite.orbit_type from backend instead of recalculating
+  const orbitType = satellite.orbit_type || prediction.orbit_type;
+
+  // Get orbit description
+  const getOrbitDescription = (type: string) => {
+    switch (type) {
+      case 'LEO':
+        return 'Low Earth Orbit (160-2000 km)';
+      case 'MEO':
+        return 'Medium Earth Orbit (2000-35786 km)';
+      case 'GEO':
+        return 'Geostationary Orbit (~35786 km)';
+      case 'HEO':
+        return 'High Earth Orbit (>35786 km)';
+      default:
+        return 'Unknown Orbit';
+    }
+  };
+
   return (
     <div className="fixed right-16 top-2 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl w-96">
 
@@ -134,13 +153,15 @@ const OrbitVisualizerPanel = ({
         <div className="bg-linear-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
           <div className="text-xs text-indigo-600 dark:text-indigo-400 mb-1">ORBIT TYPE</div>
           <div className="text-2xl font-bold text-gray-900 dark:text-white">
-            {prediction.orbit_type}
+            {/* {prediction.orbit_type} */}
+            {orbitType}
           </div>
           <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-            {prediction.orbit_type === 'LEO' && 'Low Earth Orbit (160-2000 km)'}
+            {/* {prediction.orbit_type === 'LEO' && 'Low Earth Orbit (160-2000 km)'}
             {prediction.orbit_type === 'MEO' && 'Medium Earth Orbit (2000-35786 km)'}
             {prediction.orbit_type === 'GEO' && 'Geostationary Orbit (~35786 km)'}
-            {prediction.orbit_type === 'HEO' && 'High Earth Orbit (>35786 km)'}
+            {prediction.orbit_type === 'HEO' && 'High Earth Orbit (>35786 km)'} */}
+            {getOrbitDescription(orbitType)}
           </div>
         </div>
 
