@@ -56,6 +56,7 @@ export class LODManager {
     zoom: number,
   ): SimplifiedMarker {
     const lodLevel = this.getLODLevel(zoom);
+    console.log(this.lastLODLevel, lodLevel);    
     
     const base: SimplifiedMarker = {
       id: `aircraft-${aircraft.hex}`,
