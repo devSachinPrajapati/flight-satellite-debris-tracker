@@ -36,7 +36,7 @@ export class LODManager {
   };
 
   private lastLODLevel: LODLevel | null = null;
-  
+
 
   /**
    * Determine LOD level for current zoom
@@ -56,8 +56,9 @@ export class LODManager {
     zoom: number,
   ): SimplifiedMarker {
     const lodLevel = this.getLODLevel(zoom);
-    console.log(this.lastLODLevel, lodLevel);    
-    
+    console.log(`LOD changed: ${this.lastLODLevel} → ${lodLevel}`);
+    this.lastLODLevel = lodLevel;
+
     const base: SimplifiedMarker = {
       id: `aircraft-${aircraft.hex}`,
       lat: aircraft.lat,
@@ -74,20 +75,20 @@ export class LODManager {
           icon: '✈️',
           color: '#3b82f6',
         };
-      
+
       case 'medium':
         return {
           ...base,
           icon: '✈️',
           color: '#3b82f6',
         };
-      
+
       case 'low':
         return {
           ...base,
           color: '#3b82f6',
         };
-      
+
       case 'minimal':
         return {
           ...base,
@@ -104,7 +105,7 @@ export class LODManager {
     zoom: number
   ): SimplifiedMarker {
     const lodLevel = this.getLODLevel(zoom);
-    
+
     const base: SimplifiedMarker = {
       id: `satellite-${satellite.norad_id}`,
       lat: satellite.lat,
@@ -121,14 +122,14 @@ export class LODManager {
           icon: '🛰️',
           color: '#10b981',
         };
-      
+
       case 'medium':
         return {
           ...base,
           icon: '🛰️',
           color: '#10b981',
         };
-      
+
       case 'low':
       case 'minimal':
         return {
@@ -146,7 +147,7 @@ export class LODManager {
     zoom: number
   ): SimplifiedMarker {
     const lodLevel = this.getLODLevel(zoom);
-    
+
     const base: SimplifiedMarker = {
       id: `debris-${debris.norad_id}`,
       lat: debris.lat,
@@ -163,14 +164,14 @@ export class LODManager {
           icon: '🗑️',
           color: '#ef4444',
         };
-      
+
       case 'medium':
         return {
           ...base,
           icon: '•',
           color: '#ef4444',
         };
-      
+
       case 'low':
       case 'minimal':
         return {
@@ -208,13 +209,13 @@ export class LODManager {
   ): boolean {
     const currentLOD = this.getLODLevel(currentZoom);
     const previousLOD = this.getLODLevel(previousZoom);
-    
+
     const changed = currentLOD !== previousLOD;
-    
+
     if (changed) {
       console.log(`🔄 LOD changed: ${previousLOD} → ${currentLOD}`);
     }
-    
+
     return changed;
   }
 
