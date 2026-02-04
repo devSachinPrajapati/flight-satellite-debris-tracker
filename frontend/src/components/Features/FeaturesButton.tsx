@@ -222,7 +222,7 @@ const FeatureButtons: React.FC<FeatureButtonsProps> = ({
               : 'bg-orange-500 text-white hover:bg-orange-600'
           }`}
         >
-          📊 Performance
+          📊 Aircraft Performance
         </button>
 
         <button
@@ -233,7 +233,7 @@ const FeatureButtons: React.FC<FeatureButtonsProps> = ({
               : 'bg-teal-500 text-white hover:bg-teal-600'
           }`}
         >
-          🛰️ Sat Tracker
+          🛰️ Satellite Tracker
         </button>
 
         <button
@@ -244,7 +244,7 @@ const FeatureButtons: React.FC<FeatureButtonsProps> = ({
               : 'bg-indigo-500 text-white hover:bg-indigo-600'
           }`}
         >
-          🪐 Orbit
+          🪐 Orbit Visualizer
         </button>
       </div>
 

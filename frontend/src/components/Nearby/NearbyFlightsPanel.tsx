@@ -8,7 +8,6 @@ import {
   findClosestAircraft,
   findSameDirectionFlights,
   findSimilarAltitudeFlights,
-  formatDistance,
   bearingToCompass,
   getRelativePositionDescription,
 } from "../../services/nearbyFlightsService";
@@ -19,6 +18,18 @@ interface NearbyFlightsPanelProps {
   onSelectFlight: (hex: string) => void;
   onClose?: () => void;
 }
+
+// ✅ FIX: Helper function to convert km to nautical miles
+const kmToNauticalMiles = (km: number): string => {
+  const nm = km * 0.539957; // 1 km = 0.539957 nautical miles
+  if (nm < 1) {
+    return `${nm.toFixed(2)} nm`;
+  } else if (nm < 10) {
+    return `${nm.toFixed(1)} nm`;
+  } else {
+    return `${Math.round(nm)} nm`;
+  }
+};
 
 const NearbyFlightsPanel = ({
   selectedAircraft,
@@ -172,10 +183,11 @@ const NearbyFlightsPanel = ({
             onChange={(e) => setRadiusKm(Number(e.target.value))}
             className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white cursor-pointer focus:ring-2 focus:ring-blue-500 flex-1 mr-2"
           >
-            <option value={100}>100 km</option>
-            <option value={250}>250 km</option>
-            <option value={500}>500 km</option>
-            <option value={1000}>1000 km</option>
+            {/* ✅ FIX: Show both km and nm for clarity */}
+            <option value={100}>100 km (54 nm)</option>
+            <option value={250}>250 km (135 nm)</option>
+            <option value={500}>500 km (270 nm)</option>
+            <option value={1000}>1000 km (540 nm)</option>
           </select>
           
           {/* Flight Count Badge */}
@@ -211,6 +223,7 @@ const NearbyFlightsPanel = ({
       {/* Statistics Cards */}
       <div className="flex-shrink-0 p-3 bg-white dark:bg-gray-800">
         <div className="grid grid-cols-3 gap-2">
+          {/* ✅ FIX: CLOSEST now uses nautical miles (nm) */}
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 border border-blue-200 dark:border-blue-800">
             <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium mb-1">
               CLOSEST
@@ -218,7 +231,7 @@ const NearbyFlightsPanel = ({
             {closest ? (
               <>
                 <div className="text-sm font-bold text-gray-900 dark:text-white">
-                  {formatDistance(closest.distance_km)}
+                  {kmToNauticalMiles(closest.distance_km)}
                 </div>
                 <div className="text-[10px] text-gray-600 dark:text-gray-400 truncate">
                   {closest.flight_icao || closest.hex}
@@ -232,6 +245,7 @@ const NearbyFlightsPanel = ({
             )}
           </div>
 
+          {/* ✅ FASTEST uses knots (kts) - already correct */}
           <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 border border-green-200 dark:border-green-800">
             <div className="text-[10px] text-green-600 dark:text-green-400 font-medium mb-1">
               FASTEST
@@ -245,7 +259,7 @@ const NearbyFlightsPanel = ({
                   {fastest.flight_icao || fastest.hex}
                 </div>
                 <div className="text-[9px] text-gray-500 dark:text-gray-500">
-                  {formatDistance(fastest.distance_km)}
+                  {kmToNauticalMiles(fastest.distance_km)}
                 </div>
               </>
             ) : (
@@ -253,6 +267,7 @@ const NearbyFlightsPanel = ({
             )}
           </div>
 
+          {/* ✅ LOWEST uses feet (ft) - already correct */}
           <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2 border border-purple-200 dark:border-purple-800">
             <div className="text-[10px] text-purple-600 dark:text-purple-400 font-medium mb-1">
               LOWEST
@@ -266,7 +281,7 @@ const NearbyFlightsPanel = ({
                   {lowest.flight_icao || lowest.hex}
                 </div>
                 <div className="text-[9px] text-gray-500 dark:text-gray-500">
-                  {formatDistance(lowest.distance_km)}
+                  {kmToNauticalMiles(lowest.distance_km)}
                 </div>
               </>
             ) : (
