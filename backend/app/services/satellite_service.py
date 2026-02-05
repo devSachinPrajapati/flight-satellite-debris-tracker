@@ -1,5 +1,5 @@
 """
-Satellite Data Service - PERFORMANCE OPTIMIZED
+Satellite Data Service
 Caches propagated positions to avoid expensive recalculations
 """
 import asyncio
@@ -13,8 +13,8 @@ from app.config import settings
 class SatelliteService:
     def __init__(self):
         self.tle_cache: Dict[str, dict] = {}  # Raw TLE data
-        self.position_cache: Dict[str, dict] = {}  # ✅ NEW: Propagated positions cache
-        self.last_propagation: Optional[datetime] = None  # ✅ NEW: Track when we last propagated
+        self.position_cache: Dict[str, dict] = {}  # Propagated positions cache
+        self.last_propagation: Optional[datetime] = None  # Track when we last propagated
         self.timescale = load.timescale()
         self.last_api_call: Optional[datetime] = None
         self.is_ready = False
@@ -39,7 +39,7 @@ class SatelliteService:
             tle_data = await self.fetch_tle_data()
             if tle_data:
                 self.update_cache_from_tle(tle_data)
-                # ✅ NEW: Propagate all positions immediately after TLE fetch
+                # Propagate all positions immediately after TLE fetch
                 self._propagate_all_satellites()
                 print(f"✅ TLE data loaded: {len(self.tle_cache)} objects, {len(self.position_cache)} positions cached")
         except Exception as e:
@@ -191,7 +191,7 @@ class SatelliteService:
 
     def _propagate_all_satellites(self):
         """
-        ✅ OPTIMIZED: Propagate ALL satellites with better error handling
+        Propagate ALL satellites with better error handling
         Uses batch processing for speed
         """
         import time
@@ -201,7 +201,7 @@ class SatelliteService:
         propagated_count = 0
         failed_count = 0
         
-        # ✅ NEW: Pre-calculate current time (reuse for all satellites)
+        # Pre-calculate current time (reuse for all satellites)
         t = self.timescale.now()
         
         for norad_id, tle_data in self.tle_cache.items():
@@ -213,14 +213,14 @@ class SatelliteService:
                     self.timescale
                 )
                 
-                # ✅ OPTIMIZED: Reuse pre-calculated time
+                # Reuse pre-calculated time
                 geocentric = satellite.at(t)
                 subpoint = wgs84.subpoint(geocentric)
                 
                 velocity = geocentric.velocity.km_per_s
                 speed = (velocity[0]**2 + velocity[1]**2 + velocity[2]**2)**0.5
                 
-                # ✅ OPTIMIZED: Pre-calculate constants
+                # Pre-calculate constants
                 lat = float(subpoint.latitude.degrees)
                 lng = float(subpoint.longitude.degrees)
                 alt = float(subpoint.elevation.km)
@@ -265,7 +265,7 @@ class SatelliteService:
         print(f"✅ Propagated {propagated_count} satellites in {elapsed:.2f}s ({failed_count} failed)")
     def propagate_satellite(self, norad_id: str) -> Optional[dict]:
         """
-        ✅ OPTIMIZED: Return cached position instead of recalculating
+        Return cached position instead of recalculating
         Only recalculate if cache is stale (>60 seconds old)
         """
         # Check if we need to refresh the cache
@@ -278,7 +278,7 @@ class SatelliteService:
     
     def get_all_propagated(self) -> List[dict]:
         """
-        ✅ OPTIMIZED: Return cached positions instead of recalculating
+        Return cached positions instead of recalculating
         This is called by WebSocket every 2 seconds - must be fast!
         """
         # Check if we need to refresh the cache
@@ -291,8 +291,7 @@ class SatelliteService:
     
     async def background_update_loop(self):
         """
-        Background updates
-        ✅ OPTIMIZED: Propagate positions every 60 seconds instead of on-demand
+        Background updates Propagate positions every 60 seconds instead of on-demand
         """
         print("🚀 Satellite update loop started")
         
@@ -302,7 +301,7 @@ class SatelliteService:
             await self._initial_fetch_task
         
         while True:
-            await asyncio.sleep(60)  # ✅ NEW: Re-propagate every 60 seconds
+            await asyncio.sleep(60)  # Re-propagate every 60 seconds
             
             try:
                 # Refresh positions from existing TLE cache

@@ -1,7 +1,7 @@
 """
 Airport REST API Routes - Airport Board Support
 """
-from fastapi import APIRouter, HTTPException #type: ignore
+from fastapi import APIRouter, HTTPException # type: ignore
 from app.services.airport_service import airport_service # type: ignore
 
 router = APIRouter(prefix="/api/airports", tags=["airports"])

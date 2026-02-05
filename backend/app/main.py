@@ -19,14 +19,14 @@ from app.spatial.data_store import data_store
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    ✅ OPTIMIZED: Non-blocking startup
+    Non-blocking startup
     Start background tasks immediately, don't wait for data
     """
     print("=" * 60)
     print("🚀 Starting Flight & Satellite Tracker (Instant Mode)")
     print("=" * 60)
     
-    # ✅ CHANGED: Don't await initialization - start immediately
+    # Don't await initialization - start immediately
     asyncio.create_task(flight_service.initialize())
     asyncio.create_task(satellite_service.initialize())
     asyncio.create_task(spatial_service.initialize())
@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(spatial_service.background_celestrak_loop())
     ]
     
-    # ✅ CHANGED: Don't wait - server is ready immediately!
+    # Don't wait - server is ready immediately!
     print("✅ Server ready instantly!")
     print(f"📡 WebSocket broadcast: {settings.WEBSOCKET_BROADCAST_INTERVAL}s")
     print(f"✈️ Flight refresh: {settings.AIRLABS_FETCH_INTERVAL}s")
@@ -104,7 +104,7 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "loading_status": {  # ✅ NEW: Tell frontend what's loading
+        "loading_status": {  # Tell frontend what's loading
             "flights_ready": flight_service.is_ready,
             "flights_loading": not flight_service.is_ready,
             "satellites_ready": satellite_service.is_ready,

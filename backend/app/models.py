@@ -1,5 +1,5 @@
 """
-Data Models - ALIGNED WITH FRONTEND TYPES
+Data Models 
 """
 from pydantic import BaseModel # type: ignore
 from typing import Optional

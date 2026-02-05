@@ -1,8 +1,8 @@
 """
-Satellite API Router - QUICK FIX
+Satellite API Router
 Just fixes the AttributeError without changing too much
 """
-from fastapi import APIRouter, HTTPException #type: ignore
+from fastapi import APIRouter, HTTPException # type: ignore
 from typing import Dict, Any
 from datetime import datetime
 import math

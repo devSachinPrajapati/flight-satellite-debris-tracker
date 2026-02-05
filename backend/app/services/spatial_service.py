@@ -242,7 +242,7 @@ class SpatialService:
             if len(valid_objects) < len(all_objects):
                 print(f"⚠️ Filtered out {len(all_objects) - len(valid_objects)} invalid objects before indexing")
             
-            # OPTIMIZED: Bulk load for 23K+ objects (O(n log n) complexity)
+            # Bulk load for 23K+ objects (O(n log n) complexity)
             new_index = RTreeIndex()
             new_index.bulk_load(valid_objects)
             
@@ -375,7 +375,7 @@ class SpatialService:
         
         while True:
             try:
-                # ✅ Refresh from service cache (not API)
+                # Refresh from service cache (not API)
                 await self._refresh_celestrak()
                 await self._rebuild_index()
                 await asyncio.sleep(120)  # Every 2 minutes (satellite positions update)
