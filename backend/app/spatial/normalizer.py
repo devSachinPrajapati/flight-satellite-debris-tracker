@@ -1,11 +1,11 @@
 """
-Data Normalizers - FIXED VERSION
-Proper altitude validation for all orbital regimes
+Data Normalizers
+ALL altitudes stored in KILOMETERS for consistency
 """
 from typing import Dict, Any, Optional
 from datetime import datetime
 from app.spatial.rtree import SpatialObject
-from skyfield.api import load, EarthSatellite, wgs84 #type: ignore
+from skyfield.api import load, EarthSatellite, wgs84
 import math
 
 
@@ -14,25 +14,34 @@ timescale = load.timescale()
 
 
 def normalize_airlabs_flight(raw_flight: Dict[str, Any]) -> Optional[SpatialObject]:
-    """Convert AirLabs flight to SpatialObject with validation"""
+    """
+    Convert AirLabs flight to SpatialObject with validation
+    Altitude stored in KILOMETERS (not meters)
+    """
     try:
         # Extract and validate coordinates
         lat = float(raw_flight.get('lat', 0))
         lng = float(raw_flight.get('lng', 0))
-        alt = float(raw_flight.get('alt', 0)) * 0.3048  # feet to meters
         
-        # ✅ Validate coordinates (aircraft altitude range)
-        if not is_valid_aircraft_coordinate(lat, lng, alt):
-            print(f"⚠️ Invalid coordinates for flight {raw_flight.get('hex')}: lat={lat}, lng={lng}, alt={alt}")
+        # Convert feet to KILOMETERS (not meters)
+        alt_feet = float(raw_flight.get('alt', 0))
+        alt_km = alt_feet * 0.3048 / 1000  # feet → meters → kilometers
+        
+        # Validate coordinates (aircraft altitude range in KM)
+        if not is_valid_aircraft_coordinate(lat, lng, alt_km):
             return None
+        
+        # Convert speed from knots to km/s
+        speed_knots = float(raw_flight.get('speed', 0))
+        speed_kms = speed_knots * 1.852 / 3600  # knots → km/h → km/s
         
         return SpatialObject(
             id=f"air_{raw_flight.get('hex', 'UNKNOWN')}",
             object_type='aircraft',
             lat=lat,
             lng=lng,
-            alt=alt,
-            velocity=float(raw_flight.get('speed', 0)) * 0.514444,  # knots to m/s
+            alt=alt_km,  # Stored in kilometers
+            velocity=speed_kms,  # Stored in km/s
             heading=float(raw_flight.get('dir', 0)),
             name=raw_flight.get('flight_icao') or raw_flight.get('hex', 'UNKNOWN'),
             operator=raw_flight.get('airline_icao'),
@@ -59,7 +68,10 @@ def normalize_airlabs_flight(raw_flight: Dict[str, Any]) -> Optional[SpatialObje
 
 
 def normalize_celestrak_object(tle_data: Dict[str, str]) -> Optional[SpatialObject]:
-    """Convert Celestrak TLE to SpatialObject with proper validation for all orbital regimes"""
+    """
+    Convert Celestrak TLE to SpatialObject with proper validation
+    Altitude already in kilometers from Skyfield
+    """
     try:
         # Create satellite from TLE
         satellite = EarthSatellite(
@@ -74,23 +86,21 @@ def normalize_celestrak_object(tle_data: Dict[str, str]) -> Optional[SpatialObje
         geocentric = satellite.at(t)
         subpoint = wgs84.subpoint(geocentric)
         
-        # Extract coordinates
+        # Extract coordinates (altitude already in km from Skyfield)
         lat = float(subpoint.latitude.degrees)
         lng = float(subpoint.longitude.degrees)
         alt = float(subpoint.elevation.km)
         
-        # ✅ CRITICAL FIX: Validate with proper satellite altitude ranges
+        # Validate with proper satellite altitude ranges
         if not is_valid_satellite_coordinate(lat, lng, alt):
-            print(f"⚠️ Invalid coordinates for {tle_data['name']}: lat={lat}, lng={lng}, alt={alt}")
             return None
         
-        # Calculate velocity
+        # Calculate velocity (already in km/s from Skyfield)
         velocity = geocentric.velocity.km_per_s
         speed = float((velocity[0]**2 + velocity[1]**2 + velocity[2]**2)**0.5)
         
         # Validate velocity
         if not is_valid_number(speed) or speed < 0:
-            print(f"⚠️ Invalid velocity for {tle_data['name']}: {speed}")
             return None
         
         # Determine object type
@@ -102,7 +112,6 @@ def normalize_celestrak_object(tle_data: Dict[str, str]) -> Optional[SpatialObje
         
         # Validate orbital parameters
         if not is_valid_number(inclination) or not is_valid_number(period_minutes):
-            print(f"⚠️ Invalid orbital parameters for {tle_data['name']}")
             return None
         
         return SpatialObject(
@@ -143,7 +152,8 @@ def is_valid_number(value: float) -> bool:
 def is_valid_aircraft_coordinate(lat: float, lng: float, alt: float) -> bool:
     """
     Validate aircraft coordinates
-    Aircraft fly at -500m to 20km altitude
+    Aircraft altitude in KILOMETERS
+    Aircraft fly at -0.5km to 20km altitude
     """
     # Check for NaN and Inf
     if not is_valid_number(lat) or not is_valid_number(lng) or not is_valid_number(alt):
@@ -157,8 +167,9 @@ def is_valid_aircraft_coordinate(lat: float, lng: float, alt: float) -> bool:
     if lng < -180 or lng > 180:
         return False
     
-    # Check aircraft altitude range (-500m to 20km = 20,000m)
-    if alt < -500 or alt > 20000:
+    # Check aircraft altitude range in KILOMETERS
+    # -0.5km (below sea level) to 20km (~65,000 feet)
+    if alt < -0.5 or alt > 20:
         return False
     
     return True
@@ -168,13 +179,13 @@ def is_valid_satellite_coordinate(lat: float, lng: float, alt: float) -> bool:
     """
     Validate satellite coordinates
     
-    Orbital Regimes:
+    Orbital Regimes (in kilometers):
     - LEO (Low Earth Orbit): 160-2,000 km
     - MEO (Medium Earth Orbit): 2,000-35,786 km (GPS, GLONASS)
     - GEO (Geostationary): ~35,786 km
-    - HEO (Highly Elliptical): 500-200,000 km (MMS, THEMIS, scientific satellites)
+    - HEO (Highly Elliptical): 500-200,000 km
     
-    ✅ FIXED: Accept altitudes up to 250,000 km to include all valid orbits
+    Accept altitudes from 150 km to 250,000 km
     """
     # Check for NaN and Inf
     if not is_valid_number(lat) or not is_valid_number(lng) or not is_valid_number(alt):
@@ -188,9 +199,9 @@ def is_valid_satellite_coordinate(lat: float, lng: float, alt: float) -> bool:
     if lng < -180 or lng > 180:
         return False
     
-    # ✅ CRITICAL FIX: Proper satellite altitude validation
+    # Satellite altitude validation in KILOMETERS
     # Minimum: 150 km (below this, atmospheric drag prevents stable orbit)
-    # Maximum: 250,000 km (beyond this is lunar orbit range, not Earth satellites)
+    # Maximum: 250,000 km (beyond this is lunar orbit range)
     if alt < 150 or alt > 250000:
         return False
     

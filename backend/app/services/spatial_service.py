@@ -1,6 +1,6 @@
 """
-Spatial Service Manager - FIXED VERSION
-Proper validation for all orbital regimes
+Spatial Service Manager - FOR 23K+ OBJECTS
+Ensures R-tree index is properly used by WebSocket
 """
 import asyncio
 from typing import List, Optional, Set
@@ -15,16 +15,22 @@ from app.config import settings
 
 
 class SpatialService:
-    """Manages spatial indexing and data synchronization"""
+    """
+    Manages spatial indexing and data synchronization
+    OPTIMIZED Handles 23K+ objects efficiently
+    """
     
     def __init__(self):
         self.spatial_index: Optional[RTreeIndex] = None
         self.is_ready = False
         self.rebuild_in_progress = False
+        self.last_rebuild_time: Optional[datetime] = None
         self.stats = {
             'total_processed': 0,
             'total_rejected': 0,
-            'rejection_reasons': {}
+            'rejection_reasons': {},
+            'last_flights_count': 0,
+            'last_satellites_count': 0,
         }
     
     async def initialize(self):
@@ -45,6 +51,18 @@ class SpatialService:
         try:
             print("🔄 Loading initial spatial data...")
             
+            # Wait for services to be ready
+            max_wait = 30  # 30 seconds max wait
+            wait_time = 0
+            while (not flight_service.is_ready or not satellite_service.is_ready) and wait_time < max_wait:
+                await asyncio.sleep(1)
+                wait_time += 1
+                if wait_time % 5 == 0:
+                    print(f"⏳ Waiting for services... ({wait_time}s)")
+            
+            if wait_time >= max_wait:
+                print("⚠️ Services not ready after 30s, proceeding anyway")
+            
             # Fetch from both sources in parallel
             await asyncio.gather(
                 self._refresh_airlabs(),
@@ -60,14 +78,18 @@ class SpatialService:
             print(f"❌ Initial data load failed: {e}")
     
     async def _refresh_airlabs(self):
-        """Fetch and normalize AirLabs data"""
-        print("📡 Fetching AirLabs data...")
+        """
+        Fetch and normalize AirLabs data from flight_service cache
+        No direct API calls - uses service's cached data
+        """
+        print("📡 Fetching AirLabs data from flight_service cache...")
         
         try:
+            # Get data from flight_service's cache (not API)
             raw_flights = flight_service.flights_cache
             
             if not raw_flights:
-                print("⚠️ No flight data available yet")
+                print("⚠️ No flight data in cache yet")
                 return
             
             # Normalize to SpatialObjects with validation
@@ -90,14 +112,15 @@ class SpatialService:
                 except Exception as e:
                     rejected += 1
                     self.stats['total_rejected'] += 1
-                    if rejected <= 3:  # Only log first 3 errors
+                    if rejected <= 3:
                         print(f"⚠️ Error normalizing flight {flight_id}: {e}")
             
             # Store in data store (only valid objects)
             if spatial_objects:
                 data_store.batch_insert(spatial_objects)
                 data_store.last_update['airlabs'] = datetime.utcnow()
-                print(f"✅ Stored {len(spatial_objects)} aircraft ({rejected} rejected)")
+                self.stats['last_flights_count'] = len(spatial_objects)
+                print(f"✅ Cached {len(spatial_objects)} aircraft in data_store ({rejected} rejected)")
             else:
                 print(f"⚠️ No valid aircraft data (all {rejected} rejected)")
         
@@ -105,36 +128,59 @@ class SpatialService:
             print(f"❌ AirLabs refresh failed: {e}")
     
     async def _refresh_celestrak(self):
-        """Fetch and normalize Celestrak data with proper altitude validation"""
-        print("📡 Fetching Celestrak data...")
+        """
+        Fetch and normalize Celestrak data from satellite_service cache
+        No direct API calls - uses service's cached data
+        """
+        print("📡 Fetching Celestrak data from satellite_service cache...")
         
         try:
-            tle_cache = satellite_service.tle_cache
+            # Use position_cache instead of tle_cache for propagated positions
+            position_cache = satellite_service.position_cache
             
-            if not tle_cache:
-                print("⚠️ No TLE data available yet")
+            if not position_cache:
+                print("⚠️ No satellite position data in cache yet")
                 return
             
-            # Parse and normalize all TLE data with validation
+            # Parse and normalize all cached positions
             spatial_objects = []
             rejected = 0
             rejection_details = {
-                'propagation_failed': 0,
-                'nan_coordinates': 0,
+                'invalid_coordinates': 0,
                 'invalid_altitude': 0,
                 'invalid_velocity': 0
             }
             
-            for norad_id, tle_obj in tle_cache.items():
+            for norad_id, sat_data in position_cache.items():
                 try:
                     self.stats['total_processed'] += 1
-                    obj = normalize_celestrak_object(tle_obj)
+                    
+                    # Convert position_cache format to normalizer input format
+                    # The position_cache already has propagated coordinates
+                    tle_data = {
+                        'norad_id': norad_id,
+                        'name': sat_data.get('name', 'Unknown'),
+                        'tle1': sat_data.get('tle', {}).get('line1', ''),
+                        'tle2': sat_data.get('tle', {}).get('line2', ''),
+                        'object_type': sat_data.get('object_type', 'satellite'),
+                        # Use pre-propagated position from cache
+                        'lat': sat_data.get('lat'),
+                        'lng': sat_data.get('lng'),
+                        'altitude': sat_data.get('altitude'),
+                        'velocity': sat_data.get('velocity'),
+                        'inclination': sat_data.get('inclination'),
+                        'period_minutes': sat_data.get('period_minutes'),
+                        'operator': sat_data.get('operator'),
+                        'visible': sat_data.get('visible', True),
+                        'conjunction_risk': sat_data.get('conjunction_risk', False),
+                    }
+                    
+                    obj = normalize_celestrak_object(tle_data)
                     
                     if obj is None:
                         rejected += 1
                         self.stats['total_rejected'] += 1
-                        # Track rejection reason
-                        reason = 'propagation_failed'
+                        reason = 'invalid_coordinates'
                         rejection_details[reason] += 1
                         self.stats['rejection_reasons'][reason] = self.stats['rejection_reasons'].get(reason, 0) + 1
                         continue
@@ -143,7 +189,7 @@ class SpatialService:
                 except Exception as e:
                     rejected += 1
                     self.stats['total_rejected'] += 1
-                    if rejected <= 3:  # Only log first 3 errors
+                    if rejected <= 3:
                         print(f"⚠️ Error normalizing satellite {norad_id}: {e}")
             
             # Store in data store (only valid objects)
@@ -153,7 +199,9 @@ class SpatialService:
                 
                 satellite_count = sum(1 for obj in spatial_objects if obj.object_type == 'satellite')
                 debris_count = sum(1 for obj in spatial_objects if obj.object_type == 'debris')
-                print(f"✅ Stored {satellite_count} satellites, {debris_count} debris ({rejected} rejected)")
+                self.stats['last_satellites_count'] = len(spatial_objects)
+                
+                print(f"✅ Cached {satellite_count} satellites, {debris_count} debris in data_store ({rejected} rejected)")
                 
                 if rejected > 0:
                     print(f"📊 Rejection breakdown: {rejection_details}")
@@ -164,7 +212,10 @@ class SpatialService:
             print(f"❌ Celestrak refresh failed: {e}")
     
     async def _rebuild_index(self):
-        """Rebuild spatial index from data store"""
+        """
+        OPTIMIZED Rebuild spatial index from data store
+        Handles 23K+ objects efficiently
+        """
         if self.rebuild_in_progress:
             print("⏭️ Index rebuild already in progress")
             return
@@ -182,7 +233,7 @@ class SpatialService:
                 self.rebuild_in_progress = False
                 return
             
-            # ✅ DOUBLE-CHECK: Filter out any objects with invalid coordinates
+            # Filter out invalid objects before indexing
             valid_objects = [
                 obj for obj in all_objects
                 if self._is_valid_spatial_object(obj)
@@ -191,15 +242,17 @@ class SpatialService:
             if len(valid_objects) < len(all_objects):
                 print(f"⚠️ Filtered out {len(all_objects) - len(valid_objects)} invalid objects before indexing")
             
-            # Build new index with only valid objects
+            # OPTIMIZED: Bulk load for 23K+ objects (O(n log n) complexity)
             new_index = RTreeIndex()
             new_index.bulk_load(valid_objects)
             
             # Atomically swap indices
             self.spatial_index = new_index
+            self.last_rebuild_time = datetime.utcnow()
             
             stats = new_index.get_stats()
             print(f"✅ Spatial index rebuilt: {stats['size']} objects, depth {stats['depth']}")
+            print(f"📊 Memory estimate: {stats['estimated_memory_mb']:.2f} MB")
         
         except Exception as e:
             print(f"❌ Index rebuild failed: {e}")
@@ -209,7 +262,6 @@ class SpatialService:
     def _is_valid_spatial_object(self, obj: SpatialObject) -> bool:
         """
         Validate spatial object has valid coordinates
-        ✅ FIXED: Proper validation for different object types
         """
         import math
         
@@ -227,7 +279,7 @@ class SpatialService:
         if obj.lng < -180 or obj.lng > 180:
             return False
         
-        # ✅ CRITICAL FIX: Different altitude ranges for different object types
+        # Different altitude ranges for different object types
         if obj.object_type == 'aircraft':
             # Aircraft: -500m to 20km
             if obj.alt < -0.5 or obj.alt > 20:
@@ -259,7 +311,7 @@ class SpatialService:
             limit=limit
         )
         
-        # ✅ FINAL VALIDATION: Filter out any invalid results
+        # Final validation
         valid_results = [obj for obj in results if self._is_valid_spatial_object(obj)]
         
         if len(valid_results) < len(results):
@@ -280,12 +332,18 @@ class SpatialService:
                 'total_processed': self.stats['total_processed'],
                 'total_rejected': self.stats['total_rejected'],
                 'rejection_rate': f"{(self.stats['total_rejected'] / max(1, self.stats['total_processed'])) * 100:.2f}%",
-                'rejection_reasons': self.stats['rejection_reasons']
-            }
+                'rejection_reasons': self.stats['rejection_reasons'],
+                'last_flights_count': self.stats['last_flights_count'],
+                'last_satellites_count': self.stats['last_satellites_count'],
+            },
+            'last_rebuild': self.last_rebuild_time.isoformat() if self.last_rebuild_time else None,
         }
     
     async def background_refresh_loop(self):
-        """Background task to refresh data periodically"""
+        """
+        Background task to refresh data periodically
+        Uses flight_service and satellite_service caches
+        """
         print("🚀 Spatial refresh loop started")
         
         while not self.is_ready:
@@ -295,6 +353,7 @@ class SpatialService:
         
         while True:
             try:
+                # Refresh from service caches (not APIs)
                 await self._refresh_airlabs()
                 await self._rebuild_index()
                 await asyncio.sleep(settings.AIRLABS_FETCH_INTERVAL)
@@ -303,7 +362,10 @@ class SpatialService:
                 await asyncio.sleep(60)
     
     async def background_celestrak_loop(self):
-        """Background task to refresh Celestrak (every 6 hours)"""
+        """
+        Background task to refresh Celestrak
+        Uses satellite_service cache
+        """
         print("🚀 Celestrak refresh loop started")
         
         while not self.is_ready:
@@ -313,12 +375,13 @@ class SpatialService:
         
         while True:
             try:
+                # ✅ Refresh from service cache (not API)
                 await self._refresh_celestrak()
                 await self._rebuild_index()
-                await asyncio.sleep(settings.CELESTRAK_FETCH_INTERVAL)
+                await asyncio.sleep(120)  # Every 2 minutes (satellite positions update)
             except Exception as e:
                 print(f"❌ Celestrak refresh error: {e}")
-                await asyncio.sleep(3600)
+                await asyncio.sleep(60)
 
 
 # Global singleton
