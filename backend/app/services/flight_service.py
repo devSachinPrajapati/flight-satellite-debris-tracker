@@ -1,10 +1,9 @@
 """
-Flight Data Service - IMPROVED WITH BETTER TIMEOUT & DEBUGGING
+Flight Data Service - Real API Data Only (No Mock Data)
 """
 import asyncio
-import aiohttp # type: ignore
+import aiohttp
 import math
-import random
 import time
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -16,76 +15,51 @@ class FlightService:
         self.flights_cache: Dict[str, dict] = {}
         self.last_api_call: Optional[datetime] = None
         self.api_call_count = 0
-        self.use_mock_data = False
         self.is_ready = False
         self._initial_fetch_task: Optional[asyncio.Task] = None
         
-        # ✅ NEW: Performance tracking
+        # Performance tracking
         self.api_response_times: List[float] = []
         self.api_failure_count = 0
         self.last_error: Optional[str] = None
         self.last_error_time: Optional[datetime] = None
         
     async def initialize(self):
-        """NON-BLOCKING: Initialize with mock data, fetch real data in background"""
+        """Initialize and fetch real data"""
         if self.is_ready:
             return
             
-        print("⚡ Flight service initializing with mock data...")
-        mock_flights = self.generate_mock_flights()
-        self.update_cache_from_api(mock_flights)
-        self.is_ready = True
-        print(f"✅ Flight service ready with {len(self.flights_cache)} mock flights")
+        print("⚡ Flight service initializing...")
         
-        if not self._initial_fetch_task:
-            self._initial_fetch_task = asyncio.create_task(self._fetch_real_data_async())
-    
-    async def _fetch_real_data_async(self):
-        """Background task to fetch real data without blocking startup"""
+        # Try to fetch real data immediately
         try:
-            print("🔄 Fetching real flight data in background...")
             flights = await self.fetch_from_airlabs()
-            if flights and not self.use_mock_data:
+            if flights:
                 self.update_cache_from_api(flights)
-                print(f"✅ Switched to real flight data: {len(self.flights_cache)} flights")
+                print(f"✅ Flight service ready with {len(self.flights_cache)} real flights")
+            else:
+                print("⚠️ No flights received from API")
         except Exception as e:
-            print(f"⚠️ Background fetch failed, continuing with mock data: {e}")
+            print(f"⚠️ Initial fetch failed: {e}")
+        
+        self.is_ready = True
     
     async def fetch_from_airlabs(self) -> List[dict]:
-        """
-        Fetch from AirLabs API with improved timeout handling
-        
-        TIMEOUT CONFIGURATION:
-        - total: 30s (maximum time for entire request)
-        - connect: 5s (time to establish TCP connection)
-        - sock_read: 15s (time to read each chunk of data)
-        
-        This is more forgiving than 10s total timeout while still failing fast
-        """
+        """Fetch from AirLabs API with improved timeout handling"""
         if not settings.AIRLABS_API_KEY:
-            self.use_mock_data = True
+            print("❌ No API key configured")
             return []
         
         params = {"api_key": settings.AIRLABS_API_KEY}
         if settings.FLIGHT_BBOX:
             params["bbox"] = settings.FLIGHT_BBOX
         
-        # ✅ IMPROVED: Granular timeout instead of just total
-        timeout = aiohttp.ClientTimeout(
-            total=30,      # Max 30s for entire request
-            connect=5,     # Max 5s to connect (fails fast if network down)
-            sock_read=15   # Max 15s to read response (patient with slow data)
-        )
-        
+        timeout = aiohttp.ClientTimeout(total=30, connect=5, sock_read=15)
         start_time = time.time()
         
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    settings.AIRLABS_FLIGHTS_URL,
-                    params=params,
-                    timeout=timeout
-                ) as resp:
+                async with session.get(settings.AIRLABS_FLIGHTS_URL, params=params, timeout=timeout) as resp:
                     elapsed = time.time() - start_time
                     
                     if resp.status == 200:
@@ -93,25 +67,15 @@ class FlightService:
                         self.api_call_count += 1
                         flights = data.get("response", [])
                         
-                        # ✅ Track performance
                         self.api_response_times.append(elapsed)
                         if len(self.api_response_times) > 100:
                             self.api_response_times.pop(0)
                         
                         avg_time = sum(self.api_response_times) / len(self.api_response_times)
-                        
-                        # ✅ Better logging with performance metrics
                         print(f"✅ AirLabs API: {len(flights)} flights in {elapsed:.2f}s (avg: {avg_time:.2f}s)")
                         
                         if len(flights) == 0:
                             print("⚠️ Airlabs returned 0 flights")
-                            self.use_mock_data = True
-                            return []
-                        
-                        # ✅ Reset flags on success
-                        if self.use_mock_data:
-                            print("🔄 Switched from mock to real data")
-                            self.use_mock_data = False
                         
                         return flights
                     else:
@@ -119,7 +83,6 @@ class FlightService:
                         self.last_error = f"HTTP {resp.status}"
                         self.last_error_time = datetime.utcnow()
                         print(f"⚠️ Airlabs API error {resp.status} after {elapsed:.2f}s")
-                        self.use_mock_data = True
                         return []
                         
         except asyncio.TimeoutError:
@@ -127,102 +90,16 @@ class FlightService:
             self.api_failure_count += 1
             self.last_error = f"Timeout after {elapsed:.2f}s"
             self.last_error_time = datetime.utcnow()
-            
-            # ✅ More informative timeout message
-            if elapsed < 6:
-                print(f"⚠️ Airlabs connection timeout after {elapsed:.2f}s (couldn't connect to server)")
-            else:
-                print(f"⚠️ Airlabs read timeout after {elapsed:.2f}s (connected but response too slow)")
-            
-            self.use_mock_data = True
-            return []
-            
-        except aiohttp.ClientError as e:
-            elapsed = time.time() - start_time
-            self.api_failure_count += 1
-            self.last_error = f"Client error: {str(e)}"
-            self.last_error_time = datetime.utcnow()
-            print(f"⚠️ Airlabs network error after {elapsed:.2f}s: {e}")
-            self.use_mock_data = True
+            print(f"⚠️ Airlabs timeout after {elapsed:.2f}s")
             return []
             
         except Exception as e:
             elapsed = time.time() - start_time
             self.api_failure_count += 1
-            self.last_error = f"Unknown error: {str(e)}"
+            self.last_error = f"Error: {str(e)}"
             self.last_error_time = datetime.utcnow()
-            print(f"⚠️ Airlabs unexpected error after {elapsed:.2f}s: {e}")
-            self.use_mock_data = True
+            print(f"⚠️ Airlabs error after {elapsed:.2f}s: {e}")
             return []
-    
-    def generate_mock_flights(self) -> List[dict]:
-        """Generate realistic mock flight data"""
-        airports = [
-            {"lat": 40.6413, "lng": -73.7781, "iata": "JFK", "icao": "KJFK", "city": "New York"},
-            {"lat": 51.4700, "lng": -0.4543, "iata": "LHR", "icao": "EGLL", "city": "London"},
-            {"lat": 35.5494, "lng": 139.7798, "iata": "NRT", "icao": "RJAA", "city": "Tokyo"},
-            {"lat": 1.3644, "lng": 103.9915, "iata": "SIN", "icao": "WSSS", "city": "Singapore"},
-            {"lat": 28.5562, "lng": 77.1000, "iata": "DEL", "icao": "VIDP", "city": "Delhi"},
-            {"lat": 25.2532, "lng": 55.3657, "iata": "DXB", "icao": "OMDB", "city": "Dubai"},
-            {"lat": 37.6213, "lng": -122.3790, "iata": "SFO", "icao": "KSFO", "city": "San Francisco"},
-            {"lat": 33.9416, "lng": -118.4085, "iata": "LAX", "icao": "KLAX", "city": "Los Angeles"},
-            {"lat": 41.9742, "lng": -87.9073, "iata": "ORD", "icao": "KORD", "city": "Chicago"},
-            {"lat": 49.0097, "lng": 2.5479, "iata": "CDG", "icao": "LFPG", "city": "Paris"},
-        ]
-        
-        airlines = [
-            {"icao": "UAL", "name": "United"},
-            {"icao": "DAL", "name": "Delta"},
-            {"icao": "AAL", "name": "American"},
-            {"icao": "BAW", "name": "British Airways"},
-            {"icao": "JAL", "name": "Japan Airlines"},
-            {"icao": "SIA", "name": "Singapore Airlines"},
-            {"icao": "UAE", "name": "Emirates"},
-            {"icao": "DLH", "name": "Lufthansa"},
-        ]
-        
-        aircraft_types = ["B738", "A320", "B777", "A359", "B787", "A350"]
-        flights = []
-        
-        for i in range(50):
-            dep_airport = random.choice(airports)
-            arr_airport = random.choice([a for a in airports if a["iata"] != dep_airport["iata"]])
-            airline = random.choice(airlines)
-            
-            progress = random.uniform(0.2, 0.8)
-            lat = dep_airport["lat"] + (arr_airport["lat"] - dep_airport["lat"]) * progress
-            lng = dep_airport["lng"] + (arr_airport["lng"] - dep_airport["lng"]) * progress
-            
-            lat += (random.random() - 0.5) * 2
-            lng += (random.random() - 0.5) * 2
-            
-            heading = self.calculate_bearing(lat, lng, arr_airport["lat"], arr_airport["lng"])
-            flight_number = f"{airline['icao']}{random.randint(100, 9999)}"
-            
-            flight = {
-                "hex": f"mock{i:03d}",
-                "flight_icao": flight_number,
-                "flight_number": flight_number,
-                "reg_number": f"N{i:05d}",
-                "lat": lat,
-                "lng": lng,
-                "alt": random.randint(25000, 40000),
-                "speed": random.randint(400, 550),
-                "dir": heading,
-                "v_speed": random.randint(-500, 500),
-                "aircraft_icao": random.choice(aircraft_types),
-                "airline_icao": airline["icao"],
-                "status": "en-route",
-                "dep_iata": dep_airport["iata"],
-                "dep_icao": dep_airport["icao"],
-                "arr_iata": arr_airport["iata"],
-                "arr_icao": arr_airport["icao"],
-                "flag": "US",
-                "updated": int(datetime.utcnow().timestamp()),
-            }
-            flights.append(flight)
-        
-        return flights
     
     def calculate_bearing(self, lat1: float, lng1: float, lat2: float, lng2: float) -> float:
         """Calculate bearing between two points"""
@@ -237,100 +114,94 @@ class FlightService:
         return (bearing + 360) % 360
     
     def update_cache_from_api(self, api_response: List[dict]):
-        """Store flight data - PRESERVE ALL FIELDS FROM AIRLABS"""
+        """Store flight data from API"""
         self.last_api_call = datetime.utcnow()
         valid_count = 0
         skipped_count = 0
         
         for flight in api_response:
-            # Get primary identifier
-            flight_id = flight.get("hex") or flight.get("flight_icao") or flight.get("reg_number")
+            flight_id = flight.get("hex") or flight.get("flight_icao")
             if not flight_id:
                 skipped_count += 1
                 continue
             
             try:
-                lat = flight.get("lat")
-                lng = flight.get("lng")
+                lat = float(flight.get("lat", 0))
+                lng = float(flight.get("lng", 0))
                 
-                if lat is None or lng is None:
+                if abs(lat) > 90 or abs(lng) > 180:
                     skipped_count += 1
                     continue
                 
-                lat_float = float(lat)
-                lng_float = float(lng)
-                alt_float = float(flight.get("alt", 0))
-                speed_float = float(flight.get("speed", 0))
-                dir_float = float(flight.get("dir", 0))
+                # Store previous position for v_speed calculation
+                prev_data = self.flights_cache.get(flight_id)
+                current_time = self.last_api_call.timestamp()
                 
-                if abs(lat_float) > 90 or abs(lng_float) > 180:
-                    skipped_count += 1
-                    continue
+                # Calculate v_speed if we have previous data
+                v_speed = flight.get("v_speed")
+                if v_speed is None and prev_data:
+                    time_diff = current_time - prev_data["updated"]
+                    if time_diff > 0 and time_diff < 300:  # Less than 5 minutes
+                        alt_diff = float(flight.get("alt", 0)) - prev_data["alt"]
+                        # Convert to ft/min
+                        v_speed = (alt_diff / time_diff) * 60
+                        print(f"🔧 Calculated v_speed for {flight_id}: {v_speed:.0f} ft/min")
                 
-                # ✅ CRITICAL FIX: Preserve ALL fields from AirLabs API
                 self.flights_cache[flight_id] = {
-                    # Primary identifiers
                     "hex": flight_id,
                     "flight_icao": flight.get("flight_icao"),
                     "flight_number": flight.get("flight_number"),
                     "reg_number": flight.get("reg_number"),
-                    
-                    # Position data
-                    "lat": lat_float,
-                    "lng": lng_float,
-                    "alt": alt_float,
-                    "dir": dir_float,
-                    "speed": speed_float,
-                    "v_speed": flight.get("v_speed"),
-                    
-                    # Aircraft info
+                    "lat": lat,
+                    "lng": lng,
+                    "alt": float(flight.get("alt", 0)),
+                    "dir": float(flight.get("dir", 0)),
+                    "speed": float(flight.get("speed", 0)),
+                    "v_speed": v_speed,  # Use calculated or API value
                     "aircraft_icao": flight.get("aircraft_icao"),
                     "airline_icao": flight.get("airline_icao"),
                     "flag": flight.get("flag"),
-                    
-                    # ✅ PRESERVE AIRPORT CODES (CRITICAL FOR FRONTEND)
                     "dep_iata": flight.get("dep_iata"),
                     "dep_icao": flight.get("dep_icao"),
                     "arr_iata": flight.get("arr_iata"),
                     "arr_icao": flight.get("arr_icao"),
-                    
-                    # Status
                     "status": flight.get("status", "en-route"),
-                    
-                    # Metadata
-                    "updated": int(self.last_api_call.timestamp()),
+                    "updated": int(current_time),
                     "interpolated": False,
                     "seconds_since_update": 0,
                 }
                 valid_count += 1
                 
             except (ValueError, TypeError) as e:
-                if skipped_count < 5:
-                    print(f"⚠️ Skipping invalid flight {flight_id}: {e}")
+                print(f"⚠️ Error processing flight {flight_id}: {e}")
                 skipped_count += 1
                 continue
         
-        if valid_count > 0 or skipped_count > 0:
-            print(f"📊 Processed: {valid_count} valid, {skipped_count} skipped")
+        if valid_count > 0:
+            print(f"📊 Cached: {valid_count} flights ({skipped_count} skipped)")
     
     def interpolate_position(self, flight_id: str) -> Optional[dict]:
-        """Calculate interpolated position"""
+        """Calculate interpolated position for smooth animation"""
         if flight_id not in self.flights_cache:
             return None
         
         flight = self.flights_cache[flight_id]
-        elapsed = (datetime.utcnow().timestamp() - flight["updated"])
+        elapsed = datetime.utcnow().timestamp() - flight["updated"]
         
-        if elapsed > 300:  # 5 minutes
+        # Remove stale data (older than 5 minutes)
+        if elapsed > 300:
             return None
         
-        speed_ms = flight["speed"] * 1000 / 3600
-        distance_m = speed_ms * elapsed
+        # Don't interpolate if speed is 0 or very low
+        if flight["speed"] < 50:
+            return {**flight, "interpolated": False, "seconds_since_update": int(elapsed)}
         
+        # Calculate new position based on speed and heading
+        speed_ms = flight["speed"] * 1000 / 3600  # Convert knots to m/s
+        distance_m = speed_ms * elapsed
         heading_rad = math.radians(flight["dir"])
         lat_rad = math.radians(flight["lat"])
-        
-        R = 6371000
+        R = 6371000  # Earth radius in meters
         
         new_lat_rad = math.asin(
             math.sin(lat_rad) * math.cos(distance_m / R) +
@@ -351,40 +222,45 @@ class FlightService:
         }
     
     def get_all_interpolated(self) -> List[dict]:
-        """Get all flights with interpolated positions"""
+        """Get all current flight positions with interpolation"""
         positions = []
+        stale_flights = []
+        
         for flight_id in list(self.flights_cache.keys()):
             pos = self.interpolate_position(flight_id)
             if pos:
                 positions.append(pos)
             else:
-                del self.flights_cache[flight_id]
+                stale_flights.append(flight_id)
+        
+        # Remove stale flights
+        for flight_id in stale_flights:
+            del self.flights_cache[flight_id]
+        
+        if stale_flights:
+            print(f"🧹 Removed {len(stale_flights)} stale flights")
+        
         return positions
     
     async def background_update_loop(self):
-        """Background updates"""
+        """Background task to periodically fetch new data"""
         print("🚀 Flight update loop started")
-        
         await self.initialize()
         
         while True:
             try:
                 flights = await self.fetch_from_airlabs()
-                if flights and not self.use_mock_data:
+                if flights:
                     self.update_cache_from_api(flights)
                     if self.api_call_count % 5 == 0:
-                        print(f"✅ Updated {len(self.flights_cache)} flights")
-                elif self.use_mock_data and self.api_call_count % 10 == 0:
-                    mock_flights = self.generate_mock_flights()
-                    self.update_cache_from_api(mock_flights)
+                        print(f"✅ Updated {len(self.flights_cache)} flights (API call #{self.api_call_count})")
             except Exception as e:
                 print(f"❌ Flight update error: {e}")
             
             await asyncio.sleep(settings.AIRLABS_FETCH_INTERVAL)
     
-    # ✅ NEW: Debug and monitoring methods
     def get_service_stats(self) -> dict:
-        """Get service statistics for debugging"""
+        """Get service statistics"""
         avg_response_time = (
             sum(self.api_response_times) / len(self.api_response_times)
             if self.api_response_times else 0
@@ -392,7 +268,6 @@ class FlightService:
         
         return {
             "is_ready": self.is_ready,
-            "use_mock_data": self.use_mock_data,
             "total_flights": len(self.flights_cache),
             "api_call_count": self.api_call_count,
             "api_failure_count": self.api_failure_count,
