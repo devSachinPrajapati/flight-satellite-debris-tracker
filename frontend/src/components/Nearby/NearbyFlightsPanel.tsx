@@ -253,7 +253,7 @@ const NearbyFlightsPanel = ({
             {fastest ? (
               <>
                 <div className="text-sm font-bold text-gray-900 dark:text-white">
-                  {fastest.speed} kts
+                 {fastest.speed.toFixed(3)} kts
                 </div>
                 <div className="text-[10px] text-gray-600 dark:text-gray-400 truncate">
                   {fastest.flight_icao || fastest.hex}
