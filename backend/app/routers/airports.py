@@ -22,7 +22,7 @@ async def get_airport_info(airport_code: str):
 
 
 @router.get("/{airport_code}/schedules/arrivals")
-async def get_airport_arrivals(airport_code: str, limit: int = 50):
+async def get_airport_arrivals(airport_code: str, limit: int = None):
     """
     Get arrival schedules for an airport
     Returns list of arriving flights with times, gates, status, etc.
@@ -30,7 +30,7 @@ async def get_airport_arrivals(airport_code: str, limit: int = 50):
     schedules = await airport_service.get_schedules(
         airport_code, 
         schedule_type="arrivals",
-        limit=limit
+        limit=None
     )
     
     return {
@@ -43,7 +43,7 @@ async def get_airport_arrivals(airport_code: str, limit: int = 50):
 
 
 @router.get("/{airport_code}/schedules/departures")
-async def get_airport_departures(airport_code: str, limit: int = 50):
+async def get_airport_departures(airport_code: str, limit: int = None):
     """
     Get departure schedules for an airport
     Returns list of departing flights with times, gates, status, etc.
@@ -51,7 +51,7 @@ async def get_airport_departures(airport_code: str, limit: int = 50):
     schedules = await airport_service.get_schedules(
         airport_code, 
         schedule_type="departures",
-        limit=limit
+        limit=None
     )
     
     return {

@@ -65,7 +65,7 @@ const ObjectDetailsCard = ({
             <div>
               <span className="text-gray-600 block">Speed</span>
               <span className="font-semibold text-blue-600">
-                {aircraft.speed ? `${aircraft.speed} knots` : "N/A"}
+                {aircraft.speed ? `${aircraft.speed.toFixed(3)} knots` : "N/A"}
               </span>
             </div>
           </div>
@@ -202,9 +202,8 @@ const ObjectDetailsCard = ({
           <div className="flex items-center justify-between">
             <span className="text-gray-600">Visibility Status</span>
             <span
-              className={`font-semibold flex items-center space-x-1 ${
-                obj.visible ? "text-green-600" : "text-red-600"
-              }`}
+              className={`font-semibold flex items-center space-x-1 ${obj.visible ? "text-green-600" : "text-red-600"
+                }`}
             >
               <Radio size={12} />
               <span>{obj.visible ? "Visible" : "Not Visible"}</span>
@@ -214,9 +213,8 @@ const ObjectDetailsCard = ({
             <div className="flex items-center justify-between">
               <span className="text-gray-600">Conjunction Risk</span>
               <span
-                className={`font-semibold ${
-                  obj.conjunction_risk ? "text-red-600" : "text-green-600"
-                }`}
+                className={`font-semibold ${obj.conjunction_risk ? "text-red-600" : "text-green-600"
+                  }`}
               >
                 {obj.conjunction_risk ? "⚠ High Risk" : "✓ Low Risk"}
               </span>
