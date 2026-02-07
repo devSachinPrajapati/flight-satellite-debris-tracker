@@ -1,6 +1,7 @@
 /**
  * Airport Service - ALL DATA FROM BACKEND ONLY
  * ✅ NO DIRECT CALLS TO AIRLABS
+ * ✅ CACHING: Airport info cached, schedules refreshed
  */
 import type {
   Airport,
@@ -12,11 +13,63 @@ import type {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 // ============================================
+// IN-MEMORY CACHE FOR STATIC AIRPORT DATA
+// ============================================
+
+interface CachedAirport {
+  data: Airport;
+  timestamp: number;
+}
+
+const airportCache = new Map<string, CachedAirport>();
+const AIRPORT_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours (airport info rarely changes)
+
+/**
+ * Get cached airport data if valid
+ */
+const getCachedAirport = (code: string): Airport | null => {
+  const cached = airportCache.get(code.toUpperCase());
+  
+  if (!cached) {
+    return null;
+  }
+  
+  const age = Date.now() - cached.timestamp;
+  if (age > AIRPORT_CACHE_TTL) {
+    airportCache.delete(code.toUpperCase());
+    return null;
+  }
+  
+  console.log(`✅ Cache HIT for airport ${code} (age: ${Math.round(age / 1000 / 60)}min)`);
+  return cached.data;
+};
+
+/**
+ * Cache airport data
+ */
+const cacheAirport = (code: string, data: Airport): void => {
+  airportCache.set(code.toUpperCase(), {
+    data,
+    timestamp: Date.now(),
+  });
+  console.log(`💾 Cached airport ${code}`);
+};
+
+/**
+ * Clear all cached airport data (useful for debugging)
+ */
+export const clearAirportCache = (): void => {
+  airportCache.clear();
+  console.log("🗑️ Airport cache cleared");
+};
+
+// ============================================
 // AIRPORT DATA FETCHING (FROM BACKEND)
 // ============================================
 
 export const fetchAirportByCode = async (
-  code: string
+  code: string,
+  useCache: boolean = true
 ): Promise<APIResponse<Airport>> => {
   // ✅ VALIDATION: Check for empty/invalid code
   if (!code || code.trim().length === 0) {
@@ -28,14 +81,34 @@ export const fetchAirportByCode = async (
     };
   }
 
+  const normalizedCode = code.trim().toUpperCase();
+
+  // ✅ Check cache first (if enabled)
+  if (useCache) {
+    const cached = getCachedAirport(normalizedCode);
+    if (cached) {
+      return {
+        success: true,
+        data: cached,
+        timestamp: Date.now(),
+      };
+    }
+  }
+
   try {
-    const response = await fetch(`${API_BASE_URL}/api/airports/${code.trim()}`);
+    console.log(`🌐 Fetching airport ${normalizedCode} from API...`);
+    const response = await fetch(`${API_BASE_URL}/api/airports/${normalizedCode}`);
 
     if (!response.ok) {
       throw new Error(`Airport API error: ${response.status}`);
     }
 
     const data = await response.json();
+
+    // ✅ Cache the result
+    if (useCache) {
+      cacheAirport(normalizedCode, data as Airport);
+    }
 
     return {
       success: true,

@@ -1,6 +1,7 @@
 """
 Data Normalizers
 ALL altitudes stored in KILOMETERS for consistency
+FIXED: Proper null island (0,0) detection
 """
 from typing import Dict, Any, Optional
 from datetime import datetime
@@ -27,7 +28,7 @@ def normalize_airlabs_flight(raw_flight: Dict[str, Any]) -> Optional[SpatialObje
         alt_feet = float(raw_flight.get('alt', 0))
         alt_km = alt_feet * 0.3048 / 1000  # feet → meters → kilometers
         
-        # Validate coordinates (aircraft altitude range in KM)
+        # ✅ FIXED: Validate coordinates (rejects null island)
         if not is_valid_aircraft_coordinate(lat, lng, alt_km):
             return None
         
@@ -91,7 +92,7 @@ def normalize_celestrak_object(tle_data: Dict[str, str]) -> Optional[SpatialObje
         lng = float(subpoint.longitude.degrees)
         alt = float(subpoint.elevation.km)
         
-        # Validate with proper satellite altitude ranges
+        # ✅ FIXED: Validate with proper satellite altitude ranges (rejects null island)
         if not is_valid_satellite_coordinate(lat, lng, alt):
             return None
         
@@ -151,9 +152,17 @@ def is_valid_number(value: float) -> bool:
 
 def is_valid_aircraft_coordinate(lat: float, lng: float, alt: float) -> bool:
     """
-    Validate aircraft coordinates
+    ✅ FIXED: Validate aircraft coordinates with null island detection
+    
     Aircraft altitude in KILOMETERS
     Aircraft fly at -0.5km to 20km altitude
+    
+    Common invalid patterns rejected:
+    - (0, 0) = "Null Island" - API null/missing data
+    - Near (0, 0) within 0.1° - likely invalid
+    - NaN or Inf values
+    - Out of range lat/lng
+    - Unrealistic altitudes
     """
     # Check for NaN and Inf
     if not is_valid_number(lat) or not is_valid_number(lng) or not is_valid_number(alt):
@@ -167,8 +176,18 @@ def is_valid_aircraft_coordinate(lat: float, lng: float, alt: float) -> bool:
     if lng < -180 or lng > 180:
         return False
     
+    # ✅ CRITICAL FIX: Reject "Null Island" (0, 0) coordinates
+    # This is the most common indicator of missing/invalid API data
+    if lat == 0 and lng == 0:
+        return False
+    
+    # ✅ ADDITIONAL: Reject coordinates very close to (0, 0)
+    # Within 0.1 degrees of null island is highly suspicious for aircraft
+    if abs(lat) < 0.1 and abs(lng) < 0.1:
+        return False
+    
     # Check aircraft altitude range in KILOMETERS
-    # -0.5km (below sea level) to 20km (~65,000 feet)
+    # -0.5km (below sea level - Dead Sea, Death Valley) to 20km (~65,000 feet - SR-71)
     if alt < -0.5 or alt > 20:
         return False
     
@@ -177,7 +196,7 @@ def is_valid_aircraft_coordinate(lat: float, lng: float, alt: float) -> bool:
 
 def is_valid_satellite_coordinate(lat: float, lng: float, alt: float) -> bool:
     """
-    Validate satellite coordinates
+    ✅ FIXED: Validate satellite coordinates with null island detection
     
     Orbital Regimes (in kilometers):
     - LEO (Low Earth Orbit): 160-2,000 km
@@ -186,6 +205,9 @@ def is_valid_satellite_coordinate(lat: float, lng: float, alt: float) -> bool:
     - HEO (Highly Elliptical): 500-200,000 km
     
     Accept altitudes from 150 km to 250,000 km
+    
+    Note: Satellites CAN legitimately pass through (0, 0) in their orbits,
+    but we still validate for suspicious patterns
     """
     # Check for NaN and Inf
     if not is_valid_number(lat) or not is_valid_number(lng) or not is_valid_number(alt):
@@ -197,6 +219,16 @@ def is_valid_satellite_coordinate(lat: float, lng: float, alt: float) -> bool:
     
     # Check longitude range (-180 to 180)
     if lng < -180 or lng > 180:
+        return False
+    
+    # ✅ CRITICAL FIX: Reject exact (0, 0) with zero altitude
+    # This pattern indicates API failure, not a valid satellite position
+    if lat == 0 and lng == 0 and alt == 0:
+        return False
+    
+    # ✅ ADDITIONAL: Reject (0, 0) with unrealistic altitude for satellites
+    # Valid satellites might cross (0, 0) but will have proper altitude
+    if lat == 0 and lng == 0 and alt < 150:
         return False
     
     # Satellite altitude validation in KILOMETERS

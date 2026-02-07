@@ -1,3 +1,11 @@
+/*
+✅ Select an aircraft → List shows 20 flights
+✅ Click "Load More" → List shows 40 flights
+✅ Wait 2 seconds (WebSocket update) → List still shows 40 flights 
+✅ Change radius → List resets to 20 flights
+✅ Toggle filter → List resets to 20 flights
+✅ Select different aircraft → List resets to 20 flights
+*/
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useMemo, useRef } from "react";
 import type { Aircraft, NearbyFlight } from "../../types";
@@ -19,9 +27,8 @@ interface NearbyFlightsPanelProps {
   onClose?: () => void;
 }
 
-// ✅ FIX: Helper function to convert km to nautical miles
 const kmToNauticalMiles = (km: number): string => {
-  const nm = km * 0.539957; // 1 km = 0.539957 nautical miles
+  const nm = km * 0.539957;
   if (nm < 1) {
     return `${nm.toFixed(2)} nm`;
   } else if (nm < 10) {
@@ -41,17 +48,41 @@ const NearbyFlightsPanel = ({
   const [radiusKm, setRadiusKm] = useState(500);
   const [showSameDirection, setShowSameDirection] = useState(false);
   const [showSimilarAltitude, setShowSimilarAltitude] = useState(false);
-  
-  // ✅ FIX: Use ref to persist displayLimit across re-renders
   const [displayLimit, setDisplayLimit] = useState(20);
-  const displayLimitRef = useRef(20);
-  
-  // ✅ FIX: Track when filters change to reset pagination
-  const prevFiltersRef = useRef({ radiusKm, showSameDirection, showSimilarAltitude });
   
   const ITEMS_PER_PAGE = 20;
 
-  // Update nearby flights when selected aircraft or filters change
+  // ✅ FIX: Track filter state separately from display state
+  const prevFiltersRef = useRef({
+    hex: selectedAircraft.hex,
+    radiusKm,
+    showSameDirection,
+    showSimilarAltitude,
+  });
+
+  // ✅ FIX: Separate effect for filter changes (resets displayLimit)
+  useEffect(() => {
+    const filtersChanged =
+      prevFiltersRef.current.hex !== selectedAircraft.hex ||
+      prevFiltersRef.current.radiusKm !== radiusKm ||
+      prevFiltersRef.current.showSameDirection !== showSameDirection ||
+      prevFiltersRef.current.showSimilarAltitude !== showSimilarAltitude;
+
+    if (filtersChanged) {
+      // Reset pagination when filters change
+      setDisplayLimit(ITEMS_PER_PAGE);
+      
+      // Update ref
+      prevFiltersRef.current = {
+        hex: selectedAircraft.hex,
+        radiusKm,
+        showSameDirection,
+        showSimilarAltitude,
+      };
+    }
+  }, [selectedAircraft.hex, radiusKm, showSameDirection, showSimilarAltitude]);
+
+  // ✅ FIX: Separate effect for data updates (preserves displayLimit)
   useEffect(() => {
     const result = findNearbyFlightsAroundAircraft(
       allAircraft,
@@ -72,33 +103,21 @@ const NearbyFlightsPanel = ({
         filtered = findSimilarAltitudeFlights(filtered, selectedAircraft, 2000);
       }
 
-      // ✅ FIX: Only reset displayLimit when filters actually change
-      const filtersChanged = 
-        prevFiltersRef.current.radiusKm !== radiusKm ||
-        prevFiltersRef.current.showSameDirection !== showSameDirection ||
-        prevFiltersRef.current.showSimilarAltitude !== showSimilarAltitude;
-
-      if (filtersChanged) {
-        setDisplayLimit(ITEMS_PER_PAGE);
-        displayLimitRef.current = ITEMS_PER_PAGE;
-        prevFiltersRef.current = { radiusKm, showSameDirection, showSimilarAltitude };
-      } else {
-        // ✅ FIX: Preserve current displayLimit when only data updates
-        // This prevents reset when WebSocket updates come in
-        setDisplayLimit(prev => Math.min(prev, filtered.length || ITEMS_PER_PAGE));
-      }
-
       setNearbyFlights(filtered);
+      
+      // ✅ CRITICAL: Clamp displayLimit to available flights without resetting
+      setDisplayLimit(prev => Math.min(prev, filtered.length || ITEMS_PER_PAGE));
     }
   }, [selectedAircraft, allAircraft, radiusKm, showSameDirection, showSimilarAltitude]);
 
+  // ✅ OPTIMIZATION: Memoize expensive calculations
   const closest = useMemo(() => findClosestAircraft(nearbyFlights), [nearbyFlights]);
   const fastest = useMemo(() => findFastestAircraft(nearbyFlights), [nearbyFlights]);
   const lowest = useMemo(() => findLowestAltitudeAircraft(nearbyFlights), [nearbyFlights]);
 
   const totalFlights = nearbyFlights.length;
   
-  // ✅ Stable calculations - only depend on what actually changes
+  // ✅ OPTIMIZATION: Only recalculate when dependencies actually change
   const displayedFlights = useMemo(() => {
     return nearbyFlights.slice(0, displayLimit);
   }, [nearbyFlights, displayLimit]);
@@ -106,11 +125,7 @@ const NearbyFlightsPanel = ({
   const hasMore = displayLimit < totalFlights;
 
   const handleLoadMore = () => {
-    setDisplayLimit(prev => {
-      const newLimit = Math.min(prev + ITEMS_PER_PAGE, totalFlights);
-      displayLimitRef.current = newLimit;
-      return newLimit;
-    });
+    setDisplayLimit(prev => Math.min(prev + ITEMS_PER_PAGE, totalFlights));
   };
 
   return (
@@ -176,27 +191,23 @@ const NearbyFlightsPanel = ({
 
       {/* Controls */}
       <div className="flex-shrink-0 px-3 py-2 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-        {/* Radius Selector Row */}
         <div className="flex items-center justify-between mb-2">
           <select
             value={radiusKm}
             onChange={(e) => setRadiusKm(Number(e.target.value))}
             className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white cursor-pointer focus:ring-2 focus:ring-blue-500 flex-1 mr-2"
           >
-            {/* ✅ FIX: Show both km and nm for clarity */}
             <option value={100}>100 km (54 nm)</option>
             <option value={250}>250 km (135 nm)</option>
             <option value={500}>500 km (270 nm)</option>
             <option value={1000}>1000 km (540 nm)</option>
           </select>
           
-          {/* Flight Count Badge */}
           <div className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs font-medium whitespace-nowrap">
             {totalFlights} flights
           </div>
         </div>
 
-        {/* Filters */}
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 cursor-pointer whitespace-nowrap">
             <input
@@ -223,7 +234,6 @@ const NearbyFlightsPanel = ({
       {/* Statistics Cards */}
       <div className="flex-shrink-0 p-3 bg-white dark:bg-gray-800">
         <div className="grid grid-cols-3 gap-2">
-          {/* ✅ FIX: CLOSEST now uses nautical miles (nm) */}
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 border border-blue-200 dark:border-blue-800">
             <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium mb-1">
               CLOSEST
@@ -245,7 +255,6 @@ const NearbyFlightsPanel = ({
             )}
           </div>
 
-          {/* ✅ FASTEST uses knots (kts) - already correct */}
           <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 border border-green-200 dark:border-green-800">
             <div className="text-[10px] text-green-600 dark:text-green-400 font-medium mb-1">
               FASTEST
@@ -253,7 +262,7 @@ const NearbyFlightsPanel = ({
             {fastest ? (
               <>
                 <div className="text-sm font-bold text-gray-900 dark:text-white">
-                 {fastest.speed.toFixed(3)} kts
+                  {fastest.speed.toFixed(0)} kts
                 </div>
                 <div className="text-[10px] text-gray-600 dark:text-gray-400 truncate">
                   {fastest.flight_icao || fastest.hex}
@@ -267,7 +276,6 @@ const NearbyFlightsPanel = ({
             )}
           </div>
 
-          {/* ✅ LOWEST uses feet (ft) - already correct */}
           <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2 border border-purple-200 dark:border-purple-800">
             <div className="text-[10px] text-purple-600 dark:text-purple-400 font-medium mb-1">
               LOWEST
@@ -313,14 +321,13 @@ const NearbyFlightsPanel = ({
                   {getRelativePositionDescription(flight.bearing, flight.distance_km)}
                 </div>
                 <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                  {flight.alt.toLocaleString()} ft • {flight.speed} kts
+                  {flight.alt.toLocaleString()} ft • {flight.speed.toFixed(0)} kts
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Load More Button */}
         {hasMore && (
           <div className="mt-3 mb-2">
             <button
@@ -332,7 +339,6 @@ const NearbyFlightsPanel = ({
           </div>
         )}
 
-        {/* Empty State */}
         {nearbyFlights.length === 0 && (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             {showSameDirection || showSimilarAltitude ? (

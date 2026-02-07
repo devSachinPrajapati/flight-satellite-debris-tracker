@@ -1,4 +1,9 @@
-import { useState } from "react";
+/*
+Without debounce: s→search, a→search, t→search, ...
+With debounce:    s, a, t, e, l, l, i, t, e [300ms pause] →search (once!)
+
+*/
+import { useState, useEffect, useRef } from "react";
 import { Search, Filter, X } from "lucide-react";
 
 export interface FilterOptions {
@@ -20,14 +25,46 @@ const SearchPanel = ({ onSearch }: SearchPanelProps) => {
     objectType: "all",
   });
 
+  // Debounce timer reference
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, []);
+
   const handleSearch = () => {
     onSearch(query, filters);
+  };
+
+  // Debounced search function
+  const debouncedSearch = (searchQuery: string, searchFilters: FilterOptions) => {
+    // Clear existing timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    // Set new timer
+    debounceTimer.current = setTimeout(() => {
+      onSearch(searchQuery, searchFilters);
+    }, 300); // 300ms delay
   };
 
   const handleClearFilters = () => {
     const clearedFilters = { objectType: "all" as const };
     setFilters(clearedFilters);
     setQuery("");
+    
+    // Clear any pending debounced searches
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    
+    // Execute clear immediately (no debounce for clear action)
     onSearch("", clearedFilters);
   };
 
@@ -63,8 +100,10 @@ const SearchPanel = ({ onSearch }: SearchPanelProps) => {
                 type="text"
                 value={query}
                 onChange={(e) => {
-                  setQuery(e.target.value);
-                  onSearch(e.target.value, filters);
+                  const newQuery = e.target.value;
+                  setQuery(newQuery);
+                  // Use debounced search instead of immediate search
+                  debouncedSearch(newQuery, filters);
                 }}
                 placeholder="Search by name, ID, or flight..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
@@ -73,6 +112,11 @@ const SearchPanel = ({ onSearch }: SearchPanelProps) => {
                 <button
                   onClick={() => {
                     setQuery("");
+                    // Clear debounce timer
+                    if (debounceTimer.current) {
+                      clearTimeout(debounceTimer.current);
+                    }
+                    // Clear immediately (no debounce)
                     onSearch("", filters);
                   }}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"

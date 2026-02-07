@@ -3,7 +3,7 @@ Spatial Service Manager - FOR 23K+ OBJECTS
 Ensures R-tree index is properly used by WebSocket
 """
 import asyncio
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple
 from datetime import datetime
 
 from app.spatial.data_store import data_store
@@ -32,6 +32,8 @@ class SpatialService:
             'last_flights_count': 0,
             'last_satellites_count': 0,
         }
+        # Add lock for data store operations
+        self._data_store_lock = asyncio.Lock()
     
     async def initialize(self):
         """Initialize spatial index with initial data"""
@@ -47,7 +49,10 @@ class SpatialService:
         print("✅ Spatial service ready (loading data in background)")
     
     async def _initial_data_load(self):
-        """Load initial data from both sources"""
+        """
+        Load initial data from both sources with proper synchronization
+        FIXED: Ensures all data is loaded before building index
+        """
         try:
             print("🔄 Loading initial spatial data...")
             
@@ -63,24 +68,51 @@ class SpatialService:
             if wait_time >= max_wait:
                 print("⚠️ Services not ready after 30s, proceeding anyway")
             
-            # Fetch from both sources in parallel
-            await asyncio.gather(
+            # FIXED: Fetch from both sources in parallel with error isolation
+            results = await asyncio.gather(
                 self._refresh_airlabs(),
-                self._refresh_celestrak()
+                self._refresh_celestrak(),
+                return_exceptions=True  # Don't let one failure kill both
             )
             
-            # Build spatial index
+            # Check for errors in either refresh
+            airlabs_success = not isinstance(results[0], Exception)
+            celestrak_success = not isinstance(results[1], Exception)
+            
+            if isinstance(results[0], Exception):
+                print(f"⚠️ AirLabs refresh failed: {results[0]}")
+            if isinstance(results[1], Exception):
+                print(f"⚠️ Celestrak refresh failed: {results[1]}")
+            
+            # Verify data was actually inserted
+            all_objects_count = len(data_store.get_all())
+            
+            if all_objects_count == 0:
+                print("❌ No data loaded - skipping index build")
+                return
+            
+            # FIXED: Only rebuild after confirming data is in store
+            print(f"✅ Data verification: {all_objects_count} objects in store")
+            print(f"   - AirLabs: {'✓' if airlabs_success else '✗'} ({self.stats['last_flights_count']} flights)")
+            print(f"   - Celestrak: {'✓' if celestrak_success else '✗'} ({self.stats['last_satellites_count']} satellites)")
+            
+            # Build spatial index with verified data
             await self._rebuild_index()
             
             print("✅ Initial spatial data loaded")
             print(f"📊 Stats: {self.stats['total_processed']} accepted, {self.stats['total_rejected']} rejected")
         except Exception as e:
             print(f"❌ Initial data load failed: {e}")
+            import traceback
+            traceback.print_exc()
     
-    async def _refresh_airlabs(self):
+    async def _refresh_airlabs(self) -> Tuple[int, int]:
         """
         Fetch and normalize AirLabs data from flight_service cache
         No direct API calls - uses service's cached data
+        
+        Returns:
+            Tuple of (objects_inserted, objects_rejected)
         """
         print("📡 Fetching AirLabs data from flight_service cache...")
         
@@ -90,7 +122,7 @@ class SpatialService:
             
             if not raw_flights:
                 print("⚠️ No flight data in cache yet")
-                return
+                return (0, 0)
             
             # Normalize to SpatialObjects with validation
             spatial_objects = []
@@ -115,22 +147,30 @@ class SpatialService:
                     if rejected <= 3:
                         print(f"⚠️ Error normalizing flight {flight_id}: {e}")
             
-            # Store in data store (only valid objects)
+            # FIXED: Thread-safe batch insert with lock
             if spatial_objects:
-                data_store.batch_insert(spatial_objects)
-                data_store.last_update['airlabs'] = datetime.utcnow()
-                self.stats['last_flights_count'] = len(spatial_objects)
+                async with self._data_store_lock:
+                    data_store.batch_insert(spatial_objects)
+                    data_store.last_update['airlabs'] = datetime.utcnow()
+                    self.stats['last_flights_count'] = len(spatial_objects)
+                
                 print(f"✅ Cached {len(spatial_objects)} aircraft in data_store ({rejected} rejected)")
+                return (len(spatial_objects), rejected)
             else:
                 print(f"⚠️ No valid aircraft data (all {rejected} rejected)")
+                return (0, rejected)
         
         except Exception as e:
             print(f"❌ AirLabs refresh failed: {e}")
+            raise  # Propagate to caller for error tracking
     
-    async def _refresh_celestrak(self):
+    async def _refresh_celestrak(self) -> Tuple[int, int]:
         """
         Fetch and normalize Celestrak data from satellite_service cache
         No direct API calls - uses service's cached data
+        
+        Returns:
+            Tuple of (objects_inserted, objects_rejected)
         """
         print("📡 Fetching Celestrak data from satellite_service cache...")
         
@@ -140,7 +180,7 @@ class SpatialService:
             
             if not position_cache:
                 print("⚠️ No satellite position data in cache yet")
-                return
+                return (0, 0)
             
             # Parse and normalize all cached positions
             spatial_objects = []
@@ -192,10 +232,11 @@ class SpatialService:
                     if rejected <= 3:
                         print(f"⚠️ Error normalizing satellite {norad_id}: {e}")
             
-            # Store in data store (only valid objects)
+            # FIXED: Thread-safe batch insert with lock
             if spatial_objects:
-                data_store.batch_insert(spatial_objects)
-                data_store.last_update['celestrak'] = datetime.utcnow()
+                async with self._data_store_lock:
+                    data_store.batch_insert(spatial_objects)
+                    data_store.last_update['celestrak'] = datetime.utcnow()
                 
                 satellite_count = sum(1 for obj in spatial_objects if obj.object_type == 'satellite')
                 debris_count = sum(1 for obj in spatial_objects if obj.object_type == 'debris')
@@ -205,16 +246,21 @@ class SpatialService:
                 
                 if rejected > 0:
                     print(f"📊 Rejection breakdown: {rejection_details}")
+                
+                return (len(spatial_objects), rejected)
             else:
                 print(f"⚠️ No valid satellite data (all {rejected} rejected)")
+                return (0, rejected)
         
         except Exception as e:
             print(f"❌ Celestrak refresh failed: {e}")
+            raise  # Propagate to caller for error tracking
     
     async def _rebuild_index(self):
         """
         OPTIMIZED Rebuild spatial index from data store
         Handles 23K+ objects efficiently
+        FIXED: Acquires lock to ensure data consistency
         """
         if self.rebuild_in_progress:
             print("⏭️ Index rebuild already in progress")
@@ -225,8 +271,10 @@ class SpatialService:
         try:
             print("🔄 Rebuilding spatial index...")
             
-            # Get all objects from store
-            all_objects = data_store.get_all()
+            # FIXED: Acquire lock to ensure no concurrent writes
+            async with self._data_store_lock:
+                # Get all objects from store
+                all_objects = data_store.get_all()
             
             if not all_objects:
                 print("⚠️ No objects to index")
@@ -256,6 +304,8 @@ class SpatialService:
         
         except Exception as e:
             print(f"❌ Index rebuild failed: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
             self.rebuild_in_progress = False
     

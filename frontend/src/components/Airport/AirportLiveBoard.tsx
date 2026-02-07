@@ -30,9 +30,11 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ============================================
+  // ✅ OPTIMIZATION: Load airport info ONCE on mount
+  // ============================================
   useEffect(() => {
-    const loadAirportData = async () => {
-      // ✅ Validate iataCode before making requests
+    const loadStaticAirportInfo = async () => {
       if (!iataCode || iataCode.trim().length === 0) {
         console.error("Invalid IATA code:", iataCode);
         setError("Invalid airport code");
@@ -40,27 +42,49 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
         return;
       }
 
-      setLoading(true);
-      setError(null);
-
       try {
-        // ✅ Fetch all data without limits - backend will return all available flights
-        const [airportRes, arrivalsRes, departuresRes, delayedRes, statsData] =
-          await Promise.all([
-            fetchAirportByCode(iataCode),
-            fetchAirportSchedules(iataCode, "arrivals"), // No limit parameter
-            fetchAirportSchedules(iataCode, "departures"), // No limit parameter
-            fetchDelayedFlights(iataCode), // No limit parameter
-            calculateAirportStats(iataCode),
-          ]);
+        console.log("📍 Loading static airport info (cached)...");
+        const airportRes = await fetchAirportByCode(iataCode, true); // ✅ Use cache
 
         if (airportRes.success && airportRes.data) {
           setAirport(airportRes.data);
         } else {
           setError("Airport not found");
         }
+      } catch (err) {
+        console.error("Error loading airport info:", err);
+        setError("Failed to load airport info");
+      }
+    };
 
-        // ✅ Set all flight data - no slicing or limiting
+    loadStaticAirportInfo();
+  }, [iataCode]); // ✅ Only runs when iataCode changes
+
+  // ============================================
+  // ✅ OPTIMIZATION: Refresh schedules/stats separately
+  // ============================================
+  useEffect(() => {
+    const loadDynamicData = async () => {
+      if (!iataCode || iataCode.trim().length === 0) {
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        console.log("🔄 Refreshing schedules and stats...");
+        
+        // ✅ Only fetch dynamic data (schedules, delays, stats)
+        const [arrivalsRes, departuresRes, delayedRes, statsData] =
+          await Promise.all([
+            fetchAirportSchedules(iataCode, "arrivals"),
+            fetchAirportSchedules(iataCode, "departures"),
+            fetchDelayedFlights(iataCode),
+            calculateAirportStats(iataCode),
+          ]);
+
+        // ✅ Set all flight data
         if (arrivalsRes.success && arrivalsRes.data) {
           setArrivals(arrivalsRes.data);
           console.log(`✅ Loaded ${arrivalsRes.data.length} arrivals`);
@@ -79,17 +103,22 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
         // ✅ Set stats from backend response
         setStats(statsData);
       } catch (err) {
-        console.error("Error loading airport data:", err);
-        setError("Failed to load airport data");
+        console.error("Error loading dynamic data:", err);
+        setError("Failed to load flight data");
       } finally {
         setLoading(false);
       }
     };
 
-    loadAirportData();
+    // ✅ Load immediately on mount
+    loadDynamicData();
 
-    // ✅ Auto-refresh every 60 seconds
-    const interval = setInterval(loadAirportData, 60000);
+    // ✅ Auto-refresh ONLY schedules/stats every 60 seconds
+    // Airport info is NOT refetched (uses cache)
+    const interval = setInterval(() => {
+      console.log("⏰ Auto-refresh triggered (60s interval)");
+      loadDynamicData();
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [iataCode]);
