@@ -13,26 +13,26 @@ const transformSatelliteData = (satellite: any): SatelliteObject => {
     // Backend sends all these fields directly!
     norad_id: satellite.norad_id || 'UNKNOWN',
     name: satellite.name || 'Unknown Satellite',
-    
+
     // Position (backend uses 'altitude', not 'alt')
     lat: satellite.lat || 0,
     lng: satellite.lng || 0,
     altitude: satellite.altitude || 0,  // ✅ Already correct from backend
     velocity: satellite.velocity || 0,
-    
+
     // Orbital parameters
     inclination: satellite.inclination,
     period_minutes: satellite.period_minutes,
-    
+
     // Classification
     object_type: satellite.object_type || 'satellite',  // ✅ Correct field name
     operator: satellite.operator,
-    
+
     // Visibility
     visible: satellite.visible !== undefined ? satellite.visible : true,
     epoch: satellite.epoch,
     conjunction_risk: satellite.conjunction_risk || false,
-    
+
     // TLE data (backend now includes this!)
     tle: satellite.tle ? {
       name: satellite.tle.name,
@@ -79,17 +79,17 @@ export function useSatelliteData(_refreshInterval: number = 2000): {
   useEffect(() => {
     if (initialData?.data && initialData.data.length > 0) {
       const transformedSatellites = initialData.data.map(transformSatelliteData);
-      
+
       // Separate satellites and debris based on object_type
       const sats = transformedSatellites.filter(s => s.object_type === 'satellite');
       const deb = transformedSatellites.filter(s => s.object_type === 'debris');
-      
+
       setSatellites(sats);
       setDebris(deb);
       setLastFetchTime(new Date());
       setStatus('ok');
       console.log(`📦 Loaded ${sats.length} satellites and ${deb.length} debris initially`);
-      
+
       // Debug: Verify TLE data
       const withTLE = transformedSatellites.filter(s => s.tle);
       console.log(`✅ ${withTLE.length} objects have TLE data`);
@@ -100,14 +100,14 @@ export function useSatelliteData(_refreshInterval: number = 2000): {
   const handleWebSocketMessage = useCallback((message: any) => {
     if (message.type === 'initial_data' && message.data?.satellites) {
       const transformedSatellites = message.data.satellites.map(transformSatelliteData);
-      
+
       const sats = transformedSatellites.filter((s: SatelliteObject) => 
         s.object_type === 'satellite'
       );
       const deb = transformedSatellites.filter((s: SatelliteObject) => 
         s.object_type === 'debris'
       );
-      
+
       setSatellites(sats);
       setDebris(deb);
       setLastFetchTime(new Date());
@@ -116,19 +116,19 @@ export function useSatelliteData(_refreshInterval: number = 2000): {
       wsConnectedRef.current = true;
     } else if (message.type === 'position_update' && message.data?.satellites) {
       const transformedSatellites = message.data.satellites.map(transformSatelliteData);
-      
+
       const sats = transformedSatellites.filter((s: SatelliteObject) => 
         s.object_type === 'satellite'
       );
       const deb = transformedSatellites.filter((s: SatelliteObject) => 
         s.object_type === 'debris'
       );
-      
+
       setSatellites(sats);
       setDebris(deb);
       setLastFetchTime(new Date());
       setStatus('ok');
-      
+
       // Log every 30 updates
       if (Math.random() < 0.033) {
         console.log(`📡 Position update: ${sats.length} satellites, ${deb.length} debris`);
