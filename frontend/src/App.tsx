@@ -19,13 +19,14 @@ import useFPS from "./hooks/useFPS";
 import { useMapManager } from "./hooks/useMapManager";
 import { useMarkerManager } from "./hooks/useMarkerManager";
 import { useRenderStats } from "./hooks/useRenderStats";
-import { type LoadingStatus } from "./types/index"; 
+import { type LoadingStatus } from "./types/index";
 
 import { recordFlightPosition } from "./services/flightHistoryService";
 import { mapStatus } from "./utils/mapStatus";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { errorToast } from "./utils/toast";
 
 const App = () => {
 
@@ -86,25 +87,37 @@ const App = () => {
   // ❌ REMOVED: Search is now handled inside ObjectsList component
   // const { filteredAircraft, filteredSatellites, filteredDebris } = useSearch(...);
 
+  useEffect(() => {
+    const handleConnectionFailed = (event: CustomEvent) => {
+      // Show user-friendly error
+      errorToast(`Unable to connect to server after ${event.detail.attempts} attempts. Please refresh the page.`);
+    };
+
+    window.addEventListener('websocket-connection-failed', handleConnectionFailed as EventListener);
+
+    return () => {
+      window.removeEventListener('websocket-connection-failed', handleConnectionFailed as EventListener);
+    };
+  }, []);
   // FPS monitoring
   const fps = useFPS();
 
   // WebSocket connection for loading status
   useEffect(() => {
     const ws = new WebSocket('ws://localhost:8000/ws');
-    
+
     ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      
+
       if (message.type === 'initial_data' || message.type === 'position_update') {
         setLoadingStatus(message.loading_status);
       }
     };
-    
+
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
     };
-    
+
     return () => ws.close();
   }, []);
 
@@ -135,7 +148,7 @@ const App = () => {
 
   return (
     <>
-      <LoadingOverlay 
+      <LoadingOverlay
         isLoading={isLoading}
         loadingStatus={loadingStatus}
         flightsCount={aircraft.length}
