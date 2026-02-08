@@ -200,9 +200,6 @@ def is_valid_satellite_coordinate(lat: float, lng: float, alt: float) -> bool:
     
     Orbital Regimes (in kilometers):
     - LEO (Low Earth Orbit): 160-2,000 km
-    - MEO (Medium Earth Orbit): 2,000-35,786 km (GPS, GLONASS)
-    - GEO (Geostationary): ~35,786 km
-    - HEO (Highly Elliptical): 500-200,000 km
     
     Accept altitudes from 150 km to 250,000 km
     
