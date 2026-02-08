@@ -1,6 +1,6 @@
 """
-WebSocket Manager - USES R-TREE SPATIAL INDEX 
-Queries spatial_service R-tree with global bounds
+WebSocket Manager - USES R-TREE SPATIAL INDEX
+✅ FIXED: Queries spatial_service R-tree instead of data_store
 """
 from fastapi import WebSocket, WebSocketDisconnect
 from typing import List, Dict, Any
@@ -9,7 +9,6 @@ import json
 import math
 from datetime import datetime
 
-# Import spatial_service and BoundingBox
 from app.services.spatial_service import spatial_service
 from app.spatial.rtree import BoundingBox
 from app.spatial.data_store import data_store
@@ -36,7 +35,6 @@ def validate_spatial_object(obj: Dict[str, Any]) -> bool:
         if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
             return False
         
-        # Check altitude based on object type
         alt = float(obj.get('alt', 0) if 'alt' in obj else obj.get('altitude', 0))
         if not is_valid_number(alt):
             return False
@@ -66,11 +64,10 @@ class WebSocketManager:
     
     async def send_initial_data(self, websocket: WebSocket):
         """
-        Get initial data from R-tree spatial index
-        Uses global bounds to get all cached objects
+        ✅ FIXED: Get initial data from R-tree spatial index
+        Uses spatial_service.query_viewport with global bounds
         """
         try:
-            # Check if spatial service is ready
             if not spatial_service.is_ready:
                 await websocket.send_json({
                     "type": "initial_data",
@@ -94,7 +91,6 @@ class WebSocketManager:
                 print("⏳ Spatial service not ready, sent loading status")
                 return
             
-            # Check if spatial index exists
             if not spatial_service.spatial_index:
                 await websocket.send_json({
                     "type": "initial_data",
@@ -118,11 +114,10 @@ class WebSocketManager:
                 print("⏳ Spatial index not built yet, sent loading status")
                 return
             
-            # Get data from R-tree spatial index (not data_store)
+            # ✅ CRITICAL FIX: Get data from R-tree spatial index
             flights_data = self._get_flights_from_rtree()
-            # satellites_data = self._get_satellites_from_rtree()
             
-             # ✅ FIX #2: Retry logic for satellites (may take 3-4 seconds to propagate)
+            # Retry logic for satellites (may take time to propagate)
             satellites_data = []
             max_retries = 5
             retry_delay = 1.0
@@ -131,23 +126,16 @@ class WebSocketManager:
                 satellites_data = self._get_satellites_from_rtree()
                 
                 if satellites_data or attempt == max_retries - 1:
-                    # if satellites_data:
-                    # Only log if it took more than 1 attempt (interesting case)
                     if attempt > 0:
                         print(f"✅ Satellites loaded on attempt {attempt + 1}")
                     break
-                if attempt == max_retries - 1:
-                    print(f"⏳ Satellites not ready, retrying in {retry_delay}s (attempt {attempt + 1}/{max_retries})")
-                    break
-                # await asyncio.sleep(retry_delay)
-                # Calculate exponential backoff: 1s, 1.5s, 2s, 2.5s, 3s
-                retry_delay = retry_delay * (1 + attempt * 0.5)
                 
-                # Only log first retry to reduce noise
                 if attempt == 0:
                     print(f"⏳ Waiting for satellites (will retry up to {max_retries} times)...")
                 
+                retry_delay = retry_delay * (1 + attempt * 0.5)
                 await asyncio.sleep(retry_delay)
+            
             flights_ready = len(flights_data) > 0
             satellites_ready = len(satellites_data) > 0
             
@@ -169,12 +157,11 @@ class WebSocketManager:
                     "satellites_count": len(satellites_data),
                     "source": "rtree_spatial_index",
                     "cache_stats": data_store.get_stats(),
-                    "satellites_propagating": not satellites_ready, 
+                    "satellites_propagating": not satellites_ready,
                     "spatial_stats": spatial_service.get_stats()
                 }
             }
             
-            # Test JSON serialization
             json_str = json.dumps(message)
             await websocket.send_text(json_str)
             
@@ -188,15 +175,13 @@ class WebSocketManager:
     
     def _get_flights_from_rtree(self) -> List[Dict[str, Any]]:
         """
-        Get ALL flights from R-tree spatial index using global bounds
-        Altitude passed as separate parameters, NOT in BoundingBox
+        ✅ FIXED: Get ALL flights from R-tree spatial index using global bounds
         """
         try:
             if not spatial_service.spatial_index:
                 print("⚠️ Spatial index not available for flights query")
                 return []
             
-            # BoundingBox only takes lat/lng, not altitude
             global_bbox = BoundingBox(
                 min_lat=-90.0,
                 max_lat=90.0,
@@ -204,34 +189,30 @@ class WebSocketManager:
                 max_lng=180.0
             )
             
-            # Pass altitude as separate min_alt/max_alt parameters
             aircraft_objects = spatial_service.query_viewport(
                 viewport=global_bbox,
                 object_types={'aircraft'},
-                min_alt=-0.5,      # Aircraft min altitude in km
-                max_alt=20.0,      # Aircraft max altitude in km
+                min_alt=-0.5,
+                max_alt=20.0,
                 limit=10000
             )
             
             if not aircraft_objects:
-                # Try fallback to data_store if R-tree returns empty
                 print("⚠️ R-tree returned no aircraft, checking data_store...")
                 aircraft_objects = data_store.get_by_type('aircraft')
             
             flights = []
             for obj in aircraft_objects:
-                # Convert SpatialObject to frontend format
                 flight_data = {
                     'hex': obj.id.replace('air_', ''),
                     'lat': obj.lat,
                     'lng': obj.lng,
-                    'alt': obj.alt * 3.28084,  # Convert km to feet for frontend
+                    'alt': obj.alt * 3.28084,
                     'dir': obj.heading,
-                    'speed': obj.velocity / 0.514444,  # Convert m/s to knots
+                    'speed': obj.velocity / 0.514444,
                     'flight_icao': obj.name,
                 }
                 
-                # Add extra fields if available
                 if obj.extra:
                     flight_data.update({
                         'flight_number': obj.extra.get('flight_number'),
@@ -246,7 +227,6 @@ class WebSocketManager:
                         'updated': obj.extra.get('updated', obj.timestamp // 1000),
                     })
                 
-                # Validate before including
                 if validate_spatial_object(flight_data):
                     flights.append(flight_data)
             
@@ -254,7 +234,6 @@ class WebSocketManager:
             
         except Exception as e:
             print(f"⚠️ Error getting flights from R-tree: {e}")
-            # Fallback to data_store
             try:
                 print("⚠️ Attempting fallback to data_store for flights...")
                 aircraft_objects = data_store.get_by_type('aircraft')
@@ -291,15 +270,13 @@ class WebSocketManager:
     
     def _get_satellites_from_rtree(self) -> List[Dict[str, Any]]:
         """
-        Get ALL satellites from R-tree spatial index using global bounds
-        Altitude passed as separate parameters, NOT in BoundingBox
+        ✅ FIXED: Get ALL satellites from R-tree with guaranteed TLE data
         """
         try:
             if not spatial_service.spatial_index:
                 print("⚠️ Spatial index not available for satellites query")
                 return []
             
-            # BoundingBox only takes lat/lng, not altitude
             global_bbox = BoundingBox(
                 min_lat=-90.0,
                 max_lat=90.0,
@@ -307,48 +284,66 @@ class WebSocketManager:
                 max_lng=180.0
             )
             
-            # Pass altitude as separate min_alt/max_alt parameters
             sat_objects = spatial_service.query_viewport(
                 viewport=global_bbox,
                 object_types={'satellite', 'debris'},
-                min_alt=150.0,      # Satellite min altitude in km
-                max_alt=250000.0,   # Satellite max altitude in km
+                min_alt=150.0,
+                max_alt=250000.0,
                 limit=20000
             )
             
             if not sat_objects:
-                # Try fallback to data_store if R-tree returns empty
-                # print("⚠️ R-tree returned no satellites, checking data_store...")
                 satellite_objects = data_store.get_by_type('satellite')
                 debris_objects = data_store.get_by_type('debris')
                 sat_objects = satellite_objects + debris_objects
             
             satellites = []
             for obj in sat_objects:
-                # Convert SpatialObject to frontend format
                 sat_data = {
                     'norad_id': obj.id.replace('sat_', ''),
                     'name': obj.name,
                     'lat': obj.lat,
                     'lng': obj.lng,
-                    'altitude': obj.alt,  # Already in km
-                    'velocity': obj.velocity,  # Already in km/s
+                    'altitude': obj.alt,
+                    'velocity': obj.velocity,
                     'object_type': obj.object_type,
                     'operator': obj.operator,
                     'visible': True,
                 }
                 
-                # Add extra fields if available
+                # ✅ CRITICAL FIX: Always include TLE structure
                 if obj.extra:
+                    tle_data = obj.extra.get('tle')
+                    if tle_data and isinstance(tle_data, dict):
+                        # TLE exists - use it
+                        sat_data['tle'] = {
+                            'name': str(tle_data.get('name', obj.name)),
+                            'line1': str(tle_data.get('line1', '')),
+                            'line2': str(tle_data.get('line2', '')),
+                        }
+                    else:
+                        # No TLE - use empty structure
+                        sat_data['tle'] = {
+                            'name': str(obj.name),
+                            'line1': '',
+                            'line2': '',
+                        }
+                    
+                    # Add other extra fields
                     sat_data.update({
                         'inclination': obj.extra.get('inclination'),
                         'period_minutes': obj.extra.get('period_minutes'),
                         'visible': obj.extra.get('visible', True),
                         'conjunction_risk': obj.extra.get('conjunction_risk', False),
-                        'tle': obj.extra.get('tle'),
                     })
+                else:
+                    # No extra data at all - provide empty TLE
+                    sat_data['tle'] = {
+                        'name': str(obj.name),
+                        'line1': '',
+                        'line2': '',
+                    }
                 
-                # Validate before including
                 if validate_spatial_object(sat_data):
                     satellites.append(sat_data)
             
@@ -356,7 +351,6 @@ class WebSocketManager:
             
         except Exception as e:
             print(f"⚠️ Error getting satellites from R-tree: {e}")
-            # Fallback to data_store
             try:
                 print("⚠️ Attempting fallback to data_store for satellites...")
                 satellite_objects = data_store.get_by_type('satellite')
@@ -376,14 +370,36 @@ class WebSocketManager:
                         'operator': obj.operator,
                         'visible': True,
                     }
+                    
+                    # ✅ Same TLE handling in fallback
                     if obj.extra:
+                        tle_data = obj.extra.get('tle')
+                        if tle_data and isinstance(tle_data, dict):
+                            sat_data['tle'] = {
+                                'name': str(tle_data.get('name', obj.name)),
+                                'line1': str(tle_data.get('line1', '')),
+                                'line2': str(tle_data.get('line2', '')),
+                            }
+                        else:
+                            sat_data['tle'] = {
+                                'name': str(obj.name),
+                                'line1': '',
+                                'line2': '',
+                            }
+                        
                         sat_data.update({
                             'inclination': obj.extra.get('inclination'),
                             'period_minutes': obj.extra.get('period_minutes'),
                             'visible': obj.extra.get('visible', True),
                             'conjunction_risk': obj.extra.get('conjunction_risk', False),
-                            'tle': obj.extra.get('tle'),
                         })
+                    else:
+                        sat_data['tle'] = {
+                            'name': str(obj.name),
+                            'line1': '',
+                            'line2': '',
+                        }
+                    
                     if validate_spatial_object(sat_data):
                         satellites.append(sat_data)
                 return satellites
@@ -393,22 +409,15 @@ class WebSocketManager:
     
     async def broadcast_updates(self):
         """
-        Broadcast updates using R-tree spatial index
-        Queries with global bounds to get all cached objects
+        ✅ FIXED: Broadcast updates using R-tree spatial index
         """
         if not self.active_connections:
             return
         
         try:
-            # Check if spatial service is ready
-            if not spatial_service.is_ready:
+            if not spatial_service.is_ready or not spatial_service.spatial_index:
                 return
             
-            # Check if spatial index exists
-            if not spatial_service.spatial_index:
-                return
-            
-            # Get data from R-tree spatial index
             flights_data = self._get_flights_from_rtree()
             satellites_data = self._get_satellites_from_rtree()
             
@@ -437,10 +446,8 @@ class WebSocketManager:
                 }
             }
             
-            # Test JSON serialization
             json_str = json.dumps(message)
             
-            # Send to all connected clients
             disconnected = []
             for connection in self.active_connections:
                 try:
@@ -448,14 +455,12 @@ class WebSocketManager:
                 except:
                     disconnected.append(connection)
             
-            # Clean up disconnected clients
             for conn in disconnected:
                 self.disconnect(conn)
             
             self.last_broadcast = datetime.utcnow()
             self.broadcast_count += 1
             
-            # Log every 30 broadcasts (1 minute at 2s interval)
             if self.broadcast_count % 30 == 0:
                 print(f"📡 Broadcast #{self.broadcast_count} from R-tree: {len(flights_data)} flights, {len(satellites_data)} satellites")
             
@@ -506,5 +511,4 @@ class WebSocketManager:
             pass
 
 
-# Global instance
 ws_manager = WebSocketManager()

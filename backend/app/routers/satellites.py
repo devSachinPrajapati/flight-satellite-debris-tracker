@@ -1,8 +1,8 @@
 """
-Satellite API Router
-Just fixes the AttributeError without changing too much
+Satellite API Router - FIXED TLE DATA INCLUSION
+Ensures TLE data is always present in responses
 """
-from fastapi import APIRouter, HTTPException # type: ignore
+from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
 from datetime import datetime
 import math
@@ -29,17 +29,73 @@ def safe_float(value, default=0.0):
         f = float(value)
         if math.isnan(f) or math.isinf(f):
             return default
-        # Reject extreme altitudes
         if abs(f) > 100000:
-            return None  # Signal to reject
+            return None
         return f
     except (ValueError, TypeError):
         return default
 
 
+def build_satellite_response(norad_id: str, sat_data: dict) -> dict:
+    """
+    ✅ FIXED: Build satellite response with guaranteed TLE data
+    Always includes TLE structure, even if empty
+    """
+    # Validate coordinates
+    lat = safe_float(sat_data.get('lat', 0))
+    lng = safe_float(sat_data.get('lng', 0))
+    alt = safe_float(sat_data.get('altitude', 0))
+    
+    if lat is None or lng is None or alt is None:
+        raise ValueError(f"Invalid coordinates for satellite {norad_id}")
+    
+    if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
+        raise ValueError(f"Out-of-range coordinates for satellite {norad_id}")
+    
+    if alt > 100000:
+        raise ValueError(f"Invalid altitude for satellite {norad_id}: {alt} km")
+    
+    # ✅ CRITICAL FIX: Always build TLE structure
+    tle_data = sat_data.get('tle')
+    if tle_data and isinstance(tle_data, dict):
+        # TLE data exists - use it
+        tle_response = {
+            'name': str(tle_data.get('name', sat_data.get('name', 'Unknown'))),
+            'line1': str(tle_data.get('line1', '')),
+            'line2': str(tle_data.get('line2', '')),
+        }
+    else:
+        # ✅ NO TLE DATA - Return empty structure (not None!)
+        # This ensures frontend always has a TLE object to check
+        tle_response = {
+            'name': str(sat_data.get('name', 'Unknown')),
+            'line1': '',
+            'line2': '',
+        }
+        print(f"⚠️ No TLE data for satellite {norad_id}, using empty structure")
+    
+    # Build full response
+    return {
+        'norad_id': str(norad_id),
+        'name': str(sat_data.get('name', 'Unknown')),
+        'lat': lat,
+        'lng': lng,
+        'altitude': alt,
+        'velocity': safe_float(sat_data.get('velocity', 0)),
+        'inclination': safe_float(sat_data.get('inclination')),
+        'period_minutes': safe_float(sat_data.get('period_minutes')),
+        'operator': sat_data.get('operator'),
+        'object_type': str(sat_data.get('object_type', 'satellite')),
+        'visible': bool(sat_data.get('visible', False)),
+        'epoch': sat_data.get('epoch'),
+        'conjunction_risk': bool(sat_data.get('conjunction_risk', False)),
+        'tle': tle_response,  # ✅ Always present, never None
+    }
+
+
 @router.get("")
 async def get_all_satellites():
-    """Get all satellites and debris - SAFE VERSION"""
+    """Get all satellites and debris - USES POSITION CACHE"""
     
     if not satellite_service.is_ready:
         raise HTTPException(status_code=503, detail="Satellite service not ready")
@@ -47,51 +103,15 @@ async def get_all_satellites():
     all_satellites = []
     rejected = 0
     
-    for norad_id, tle_data in satellite_service.tle_cache.items():
+    # ✅ Use position_cache (already propagated positions)
+    for norad_id, sat_data in satellite_service.position_cache.items():
         try:
-            # Validate coordinates
-            lat = safe_float(tle_data.get('lat', 0))
-            lng = safe_float(tle_data.get('lng', 0))
-            alt = safe_float(tle_data.get('altitude', 0))
-            
-            # Skip if any coordinate is None (invalid/extreme)
-            if lat is None or lng is None or alt is None:
-                rejected += 1
-                continue
-            
-            # Validate ranges
-            if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
-                rejected += 1
-                continue
-            
-            # Skip satellites with extreme altitudes (>100,000 km)
-            if alt > 100000:
-                rejected += 1
-                continue
-            
-            # Build safe satellite object
-            sat_obj = {
-                'norad_id': norad_id,
-                'name': tle_data.get('name', 'Unknown'),
-                'lat': lat,
-                'lng': lng,
-                'altitude': alt,
-                'velocity': safe_float(tle_data.get('velocity', 0)),
-                'inclination': safe_float(tle_data.get('inclination')),
-                'period_minutes': safe_float(tle_data.get('period_minutes')),
-                'operator': tle_data.get('operator'),
-                'object_type': tle_data.get('object_type', 'satellite'),
-                'visible': bool(tle_data.get('visible', False)),
-                'epoch': tle_data.get('epoch'),
-                'conjunction_risk': bool(tle_data.get('conjunction_risk', False)),
-                'tle': tle_data.get('tle')
-            }
-            
+            sat_obj = build_satellite_response(norad_id, sat_data)
             all_satellites.append(sat_obj)
-            
-        except Exception as e:
+        except (ValueError, Exception) as e:
             rejected += 1
-            print(f"⚠️ Error processing satellite {norad_id}: {e}")
+            if rejected <= 3:
+                print(f"⚠️ Error processing satellite {norad_id}: {e}")
             continue
     
     # Separate by type
@@ -106,7 +126,7 @@ async def get_all_satellites():
         "satellite_count": len(satellites),
         "debris_count": len(debris_list),
         "rejected_count": rejected,
-        "last_update": datetime.utcnow().isoformat()  # ✅ FIXED: Use datetime.utcnow() directly
+        "last_update": datetime.utcnow().isoformat(),
     }
 
 
@@ -117,40 +137,14 @@ async def get_satellite(norad_id: str):
     if not satellite_service.is_ready:
         raise HTTPException(status_code=503, detail="Satellite service not ready")
     
-    tle_data = satellite_service.tle_cache.get(norad_id)
+    # ✅ Get from position_cache (has TLE data)
+    sat_data = satellite_service.position_cache.get(norad_id)
     
-    if not tle_data:
+    if not sat_data:
         raise HTTPException(status_code=404, detail=f"Satellite {norad_id} not found")
     
-    # Validate and build safe object
-    lat = safe_float(tle_data.get('lat', 0))
-    lng = safe_float(tle_data.get('lng', 0))
-    alt = safe_float(tle_data.get('altitude', 0))
-    
-    if lat is None or lng is None or alt is None:
-        raise HTTPException(status_code=422, detail="Satellite has invalid coordinates")
-    
-    if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
-        raise HTTPException(status_code=422, detail="Satellite has out-of-range coordinates")
-    
-    if alt > 100000:
-        raise HTTPException(status_code=422, detail="Satellite altitude too high (>100,000 km)")
-    
-    sat_obj = {
-        'norad_id': norad_id,
-        'name': tle_data.get('name', 'Unknown'),
-        'lat': lat,
-        'lng': lng,
-        'altitude': alt,
-        'velocity': safe_float(tle_data.get('velocity', 0)),
-        'inclination': safe_float(tle_data.get('inclination')),
-        'period_minutes': safe_float(tle_data.get('period_minutes')),
-        'operator': tle_data.get('operator'),
-        'object_type': tle_data.get('object_type', 'satellite'),
-        'visible': bool(tle_data.get('visible', False)),
-        'epoch': tle_data.get('epoch'),
-        'conjunction_risk': bool(tle_data.get('conjunction_risk', False)),
-        'tle': tle_data.get('tle')
-    }
-    
-    return sat_obj
+    try:
+        sat_obj = build_satellite_response(norad_id, sat_data)
+        return sat_obj
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
