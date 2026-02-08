@@ -7,7 +7,7 @@ from app.services.flight_service import flight_service
 router = APIRouter(prefix="/api/flights", tags=["flights"])
 
 
-@router.get("/")
+@router.get("")
 async def get_flights():
     """
     Get current flight positions (interpolated)

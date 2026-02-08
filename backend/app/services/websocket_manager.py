@@ -120,8 +120,34 @@ class WebSocketManager:
             
             # Get data from R-tree spatial index (not data_store)
             flights_data = self._get_flights_from_rtree()
-            satellites_data = self._get_satellites_from_rtree()
+            # satellites_data = self._get_satellites_from_rtree()
             
+             # ✅ FIX #2: Retry logic for satellites (may take 3-4 seconds to propagate)
+            satellites_data = []
+            max_retries = 5
+            retry_delay = 1.0
+            
+            for attempt in range(max_retries):
+                satellites_data = self._get_satellites_from_rtree()
+                
+                if satellites_data or attempt == max_retries - 1:
+                    # if satellites_data:
+                    # Only log if it took more than 1 attempt (interesting case)
+                    if attempt > 0:
+                        print(f"✅ Satellites loaded on attempt {attempt + 1}")
+                    break
+                if attempt == max_retries - 1:
+                    print(f"⏳ Satellites not ready, retrying in {retry_delay}s (attempt {attempt + 1}/{max_retries})")
+                    break
+                # await asyncio.sleep(retry_delay)
+                # Calculate exponential backoff: 1s, 1.5s, 2s, 2.5s, 3s
+                retry_delay = retry_delay * (1 + attempt * 0.5)
+                
+                # Only log first retry to reduce noise
+                if attempt == 0:
+                    print(f"⏳ Waiting for satellites (will retry up to {max_retries} times)...")
+                
+                await asyncio.sleep(retry_delay)
             flights_ready = len(flights_data) > 0
             satellites_ready = len(satellites_data) > 0
             
@@ -143,6 +169,7 @@ class WebSocketManager:
                     "satellites_count": len(satellites_data),
                     "source": "rtree_spatial_index",
                     "cache_stats": data_store.get_stats(),
+                    "satellites_propagating": not satellites_ready, 
                     "spatial_stats": spatial_service.get_stats()
                 }
             }
@@ -291,7 +318,7 @@ class WebSocketManager:
             
             if not sat_objects:
                 # Try fallback to data_store if R-tree returns empty
-                print("⚠️ R-tree returned no satellites, checking data_store...")
+                # print("⚠️ R-tree returned no satellites, checking data_store...")
                 satellite_objects = data_store.get_by_type('satellite')
                 debris_objects = data_store.get_by_type('debris')
                 sat_objects = satellite_objects + debris_objects

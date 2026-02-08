@@ -37,7 +37,7 @@ def safe_float(value, default=0.0):
         return default
 
 
-@router.get("/")
+@router.get("")
 async def get_all_satellites():
     """Get all satellites and debris - SAFE VERSION"""
     

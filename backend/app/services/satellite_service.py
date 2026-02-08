@@ -19,6 +19,8 @@ class SatelliteService:
         self.last_api_call: Optional[datetime] = None
         self.is_ready = False
         self._initial_fetch_task: Optional[asyncio.Task] = None
+        # ✅ FIX #3: Track problematic satellites
+        self.failed_satellites: Dict[str, str] = {}  # norad_id -> error reason
         
     async def initialize(self):
         """NON-BLOCKING: Initialize with minimal data"""
@@ -42,6 +44,13 @@ class SatelliteService:
                 # Propagate all positions immediately after TLE fetch
                 self._propagate_all_satellites()
                 print(f"✅ TLE data loaded: {len(self.tle_cache)} objects, {len(self.position_cache)} positions cached")
+                                # ✅ Log failed satellites summary
+                if self.failed_satellites:
+                    print(f"⚠️ {len(self.failed_satellites)} satellites failed propagation:")
+                    for norad_id, reason in list(self.failed_satellites.items())[:5]:
+                        print(f"   - NORAD {norad_id}: {reason}")
+                    if len(self.failed_satellites) > 5:
+                        print(f"   ... and {len(self.failed_satellites) - 5} more")
         except Exception as e:
             print(f"⚠️ Background TLE fetch failed: {e}")
         
@@ -243,9 +252,11 @@ class SatelliteService:
                             propagated_count += 1
                         else:
                             failed_count += 1
+                            self.failed_satellites[result['norad_id']] = result.get('error', 'Unknown error')
+
                             # Only log first few failures
-                            if failed_count <= 3:
-                                print(f"⚠️ Error propagating {result['norad_id']}: {result.get('error', 'Unknown')}")
+                            # if failed_count <= 3:
+                                # print(f"⚠️ Error propagating {result['norad_id']}: {result.get('error', 'Unknown')}")
                 except Exception as e:
                     print(f"⚠️ Batch processing error: {e}")
                     failed_count += batch_size
@@ -287,11 +298,20 @@ class SatelliteService:
                 alt = float(subpoint.elevation.km)
                 
                 # Validate coordinates early
-                if not (-90 <= lat <= 90 and -180 <= lng <= 180 and alt < 100000):
+                if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+                # if not (-90 <= lat <= 90 and -180 <= lng <= 180 and alt < 100000):
                     results.append({
                         'norad_id': norad_id,
                         'success': False,
                         'error': 'Invalid coordinates'
+                    })
+                    continue
+                
+                if alt < 0 or alt > 100000:
+                    results.append({
+                        'norad_id': norad_id,
+                        'success': False,
+                        'error': f'Invalid altitude: {alt:.2f} km'
                     })
                     continue
                 
@@ -324,10 +344,16 @@ class SatelliteService:
                 })
                 
             except Exception as e:
+                 # ✅ Better error tracking
+                error_type = type(e).__name__
+                error_msg = f'{error_type}: {str(e)[:50]}'  # Truncate long errors
+                
                 results.append({
                     'norad_id': norad_id,
                     'success': False,
-                    'error': str(e)
+                    # 'error': str(e)
+                    'error': error_msg
+                    
                 })
         
         return results
