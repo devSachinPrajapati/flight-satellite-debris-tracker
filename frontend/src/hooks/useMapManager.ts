@@ -1,12 +1,15 @@
 import { useState, useRef, useCallback } from "react";
 import * as maptilersdk from "@maptiler/sdk";
 import { viewportManager } from "../utils/viewportManager";
+import { ZOOM_CONFIG, clampZoom } from '../config/zoom';
 
 export const useMapManager = () => {
   const mapRef = useRef<maptilersdk.Map | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [isGlobeView, setIsGlobeView] = useState(true);
-  const [currentZoom, setCurrentZoom] = useState(1.5);
+  // const [currentZoom, setCurrentZoom] = useState(1.5);
+  const [currentZoom, setCurrentZoom] = useState<number>(ZOOM_CONFIG.DEFAULT_ZOOM);  // ✅ Use config
+
   const [isZooming, setIsZooming] = useState(false);
 
   const handleMapLoad = useCallback((map: maptilersdk.Map) => {
@@ -31,7 +34,9 @@ export const useMapManager = () => {
       if (now - lastZoomUpdate < 500) return;
 
       lastZoomUpdate = now;
-      const newZoom = map.getZoom();
+      // const newZoom = map.getZoom();
+      // setCurrentZoom(newZoom);
+      const newZoom = clampZoom(map.getZoom());  // ✅ Clamp to valid range
       setCurrentZoom(newZoom);
 
       if (zoomTimeout) {
@@ -45,10 +50,13 @@ export const useMapManager = () => {
 
     map.on('zoomend', () => {
       setIsZooming(false);
-      setCurrentZoom(map.getZoom());
+      // setCurrentZoom(map.getZoom());
+      const newZoom = clampZoom(map.getZoom());  // ✅ Clamp to valid range
+      setCurrentZoom(newZoom);
     });
 
-    setCurrentZoom(map.getZoom());
+    // setCurrentZoom(map.getZoom());
+    setCurrentZoom(clampZoom(map.getZoom()));  // ✅ Initial zoom clamped
     console.log("✅ Map ready for markers");
   }, []);
 

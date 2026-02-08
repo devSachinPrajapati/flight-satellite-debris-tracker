@@ -1,6 +1,7 @@
 import { useRef, useEffect } from "react";
 import * as maptilersdk from "@maptiler/sdk";
 import "@maptiler/sdk/dist/maptiler-sdk.css";
+import { ZOOM_CONFIG } from '../../config/zoom';
 
 interface MapContainerProps {
   onMapLoad: (map: maptilersdk.Map) => void;
@@ -28,7 +29,8 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       apiKey: apiKey,
       style: maptilersdk.MapStyle.SATELLITE,
       center: [0, 20],
-      zoom: 1.5,
+      // zoom: 1.5,
+      zoom: ZOOM_CONFIG.DEFAULT_ZOOM,      // Use config
       pitch: 0,
       bearing: 0,
       // CRITICAL: Use correct projection type string
@@ -37,8 +39,10 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       renderWorldCopies: false,
       attributionControl: false,
       clickTolerance: 3,
-      minZoom: 1.5,
-      maxZoom: 7.5,
+      // minZoom: 1.5,
+      // maxZoom: 7.5,
+      minZoom: ZOOM_CONFIG.MIN_ZOOM,       // Use config
+      maxZoom: ZOOM_CONFIG.MAX_ZOOM,        // Use config
       geolocateControl: false,
     });
 
@@ -85,9 +89,9 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       if (timestamp - lastRotationTime >= FRAME_DURATION) {
         const center = mapRef.current.getCenter();
         center.lng -= rotationSpeed;
-        
+
         mapRef.current.jumpTo({ center });
-        
+
         lastRotationTime = timestamp;
       }
 
@@ -142,7 +146,7 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
     // Zoom handling
     map.on("zoom", () => {
       const currentZoom = map.getZoom();
-      
+
       if (currentZoom > ZOOM_THRESHOLD) {
         stopRotation();
       } else if (currentZoom <= ZOOM_THRESHOLD && !userInteracting) {
@@ -154,7 +158,7 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
     map.on("projectionchange", () => {
       const projection = map.getProjection();
       console.log(`📐 Projection changed to: ${projection.type}`);
-      
+
       if (projection.type === 'mercator') {
         stopRotation();
       } else if (projection.type === 'globe' && !userInteracting) {
@@ -168,7 +172,7 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
     const handleInteractionStart = () => {
       userInteracting = true;
       stopRotation();
-      
+
       if (interactionTimer) {
         clearTimeout(interactionTimer);
         interactionTimer = null;
@@ -179,7 +183,7 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       if (interactionTimer) {
         clearTimeout(interactionTimer);
       }
-      
+
       interactionTimer = setTimeout(() => {
         userInteracting = false;
         scheduleRotation();
@@ -232,7 +236,7 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
     <div
       ref={mapContainerRef}
       className="absolute inset-0"
-      style={{ 
+      style={{
         background: "#0B1026",
         pointerEvents: "auto"
       }}

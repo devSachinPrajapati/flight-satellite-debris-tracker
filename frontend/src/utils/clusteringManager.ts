@@ -8,6 +8,7 @@
  */
 
 import type { Aircraft, SatelliteObject } from "../types";
+import { ZOOM_CONFIG, getClusterGridSize, shouldCluster } from '../config/zoom';
 
 export interface ClusterPoint {
   lat: number;
@@ -34,71 +35,88 @@ export interface ClusterConfig {
 export class ClusteringManager {
   private config: ClusterConfig;
 
+  // constructor(config: Partial<ClusterConfig> = {}) {
+  //   // ✅ OPTIMIZED: Based on your screenshot analysis
+  //   this.config = {
+  //     minZoomForClustering: config.minZoomForClustering ?? 2, // Start at zoom 2 (880 objects)
+  //     maxZoomForClustering: config.maxZoomForClustering ?? 4.5, // Stop at zoom 4.5 (857 objects)
+  //     gridSizeByZoom: config.gridSizeByZoom ?? {
+  //       // ✅ CRITICAL: These values are tuned for your data density
+  //       0: 40,  // Extreme world view - very aggressive clustering
+  //       1: 35,  // World view - aggressive (210 objects → ~30 clusters)
+  //       2: 20,  // Continental - moderate (880 objects → ~80 clusters) ⚠️ KEY ZOOM
+  //       3: 12,  // Regional - light (865 objects → ~120 clusters) ⚠️ KEY ZOOM
+  //       4: 6,   // Local - very light (857 objects → ~200 clusters) ⚠️ KEY ZOOM
+  //       5: 0,   // ✅ NO CLUSTERING - show all (perfect at 77 objects)
+  //     },
+  //     minClusterSize: config.minClusterSize ?? 3, // Only cluster if 3+ objects nearby
+  //     maxClusterSize: config.maxClusterSize ?? 500, // Reasonable max per cluster
+  //   };
+  // }
+
   constructor(config: Partial<ClusterConfig> = {}) {
-    // ✅ OPTIMIZED: Based on your screenshot analysis
     this.config = {
-      minZoomForClustering: config.minZoomForClustering ?? 2, // Start at zoom 2 (880 objects)
-      maxZoomForClustering: config.maxZoomForClustering ?? 4.5, // Stop at zoom 4.5 (857 objects)
-      gridSizeByZoom: config.gridSizeByZoom ?? {
-        // ✅ CRITICAL: These values are tuned for your data density
-        0: 40,  // Extreme world view - very aggressive clustering
-        1: 35,  // World view - aggressive (210 objects → ~30 clusters)
-        2: 20,  // Continental - moderate (880 objects → ~80 clusters) ⚠️ KEY ZOOM
-        3: 12,  // Regional - light (865 objects → ~120 clusters) ⚠️ KEY ZOOM
-        4: 6,   // Local - very light (857 objects → ~200 clusters) ⚠️ KEY ZOOM
-        5: 0,   // ✅ NO CLUSTERING - show all (perfect at 77 objects)
-      },
-      minClusterSize: config.minClusterSize ?? 3, // Only cluster if 3+ objects nearby
-      maxClusterSize: config.maxClusterSize ?? 500, // Reasonable max per cluster
+      minZoomForClustering: config.minZoomForClustering ?? ZOOM_CONFIG.THRESHOLDS.CLUSTERING_START,
+      maxZoomForClustering: config.maxZoomForClustering ?? ZOOM_CONFIG.THRESHOLDS.CLUSTERING_END,
+      gridSizeByZoom: config.gridSizeByZoom ?? ZOOM_CONFIG.CLUSTER_GRID_SIZES,
+      minClusterSize: config.minClusterSize ?? 3,
+      maxClusterSize: config.maxClusterSize ?? 500,
     };
   }
 
   /**
    * ✅ OPTIMIZED: Determine if clustering should be used for given zoom level
    */
+  // public shouldCluster(zoom: number): boolean {
+  //   return (
+  //     zoom >= this.config.minZoomForClustering &&
+  //     zoom <= this.config.maxZoomForClustering
+  //   );
+  // }
+
   public shouldCluster(zoom: number): boolean {
-    return (
-      zoom >= this.config.minZoomForClustering &&
-      zoom <= this.config.maxZoomForClustering
-    );
+    return shouldCluster(zoom);  // ✅ Use centralized function
   }
 
   /**
    * Get grid size for current zoom level with smooth interpolation
    */
+  // private getGridSize(zoom: number): number {
+  //   const zoomLevel = Math.floor(zoom);
+    
+  //   // Return exact value if defined
+  //   if (this.config.gridSizeByZoom[zoomLevel] !== undefined) {
+  //     return this.config.gridSizeByZoom[zoomLevel];
+  //   }
+
+  //   // ✅ OPTIMIZED: Interpolate between defined zoom levels for smooth transitions
+  //   const definedZooms = Object.keys(this.config.gridSizeByZoom)
+  //     .map(Number)
+  //     .sort((a, b) => a - b);
+    
+  //   // Find surrounding zoom levels for interpolation
+  //   let lowerZoom = definedZooms[0];
+  //   let upperZoom = definedZooms[definedZooms.length - 1];
+    
+  //   for (let i = 0; i < definedZooms.length - 1; i++) {
+  //     if (zoom >= definedZooms[i] && zoom <= definedZooms[i + 1]) {
+  //       lowerZoom = definedZooms[i];
+  //       upperZoom = definedZooms[i + 1];
+  //       break;
+  //     }
+  //   }
+    
+  //   // Linear interpolation
+  //   const lowerSize = this.config.gridSizeByZoom[lowerZoom];
+  //   const upperSize = this.config.gridSizeByZoom[upperZoom];
+  //   const ratio = (zoom - lowerZoom) / (upperZoom - lowerZoom);
+    
+  //   return Math.round(lowerSize + (upperSize - lowerSize) * ratio);
+  // }
+
   private getGridSize(zoom: number): number {
-    const zoomLevel = Math.floor(zoom);
-    
-    // Return exact value if defined
-    if (this.config.gridSizeByZoom[zoomLevel] !== undefined) {
-      return this.config.gridSizeByZoom[zoomLevel];
-    }
-
-    // ✅ OPTIMIZED: Interpolate between defined zoom levels for smooth transitions
-    const definedZooms = Object.keys(this.config.gridSizeByZoom)
-      .map(Number)
-      .sort((a, b) => a - b);
-    
-    // Find surrounding zoom levels for interpolation
-    let lowerZoom = definedZooms[0];
-    let upperZoom = definedZooms[definedZooms.length - 1];
-    
-    for (let i = 0; i < definedZooms.length - 1; i++) {
-      if (zoom >= definedZooms[i] && zoom <= definedZooms[i + 1]) {
-        lowerZoom = definedZooms[i];
-        upperZoom = definedZooms[i + 1];
-        break;
-      }
-    }
-    
-    // Linear interpolation
-    const lowerSize = this.config.gridSizeByZoom[lowerZoom];
-    const upperSize = this.config.gridSizeByZoom[upperZoom];
-    const ratio = (zoom - lowerZoom) / (upperZoom - lowerZoom);
-    
-    return Math.round(lowerSize + (upperSize - lowerSize) * ratio);
+    return getClusterGridSize(zoom);  // ✅ Use centralized function
   }
-
   /**
    * Create grid cell key from coordinates
    */
@@ -404,17 +422,25 @@ export class ClusteringManager {
 }
 
 // ✅ OPTIMIZED: Create singleton with YOUR calibrated settings
+// export const clusteringManager = new ClusteringManager({
+//   minZoomForClustering: 2,    // Start clustering at zoom 2 (880 objects)
+//   maxZoomForClustering: 4.5,  // Stop clustering at zoom 4.5 (857 objects)
+//   gridSizeByZoom: {
+//     0: 40,  // Extreme world view
+//     1: 35,  // World view (210 objects)
+//     2: 20,  // Continental (880 objects) ⚠️ CRITICAL
+//     3: 12,  // Regional (865 objects) ⚠️ CRITICAL
+//     4: 6,   // Local (857 objects) ⚠️ CRITICAL
+//     5: 0,   // No clustering (77 objects - perfect!)
+//   },
+//   minClusterSize: 3,          // Only cluster if 3+ objects in same grid cell
+//   maxClusterSize: 500,        // Max objects per cluster
+// });
+
 export const clusteringManager = new ClusteringManager({
-  minZoomForClustering: 2,    // Start clustering at zoom 2 (880 objects)
-  maxZoomForClustering: 4.5,  // Stop clustering at zoom 4.5 (857 objects)
-  gridSizeByZoom: {
-    0: 40,  // Extreme world view
-    1: 35,  // World view (210 objects)
-    2: 20,  // Continental (880 objects) ⚠️ CRITICAL
-    3: 12,  // Regional (865 objects) ⚠️ CRITICAL
-    4: 6,   // Local (857 objects) ⚠️ CRITICAL
-    5: 0,   // No clustering (77 objects - perfect!)
-  },
-  minClusterSize: 3,          // Only cluster if 3+ objects in same grid cell
-  maxClusterSize: 500,        // Max objects per cluster
+  minZoomForClustering: ZOOM_CONFIG.THRESHOLDS.CLUSTERING_START,
+  maxZoomForClustering: ZOOM_CONFIG.THRESHOLDS.CLUSTERING_END,
+  gridSizeByZoom: ZOOM_CONFIG.CLUSTER_GRID_SIZES,
+  minClusterSize: 3,
+  maxClusterSize: 500,
 });

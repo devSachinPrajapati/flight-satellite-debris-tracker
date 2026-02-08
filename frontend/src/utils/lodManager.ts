@@ -2,6 +2,7 @@
  * LOD (Level of Detail) Manager
  * Simplifies marker rendering based on distance/zoom
  */
+import {getLODLevel as getConfigLODLevel } from '../config/zoom';
 
 export type LODLevel = 'high' | 'medium' | 'low' | 'minimal';
 
@@ -28,12 +29,18 @@ export interface SimplifiedMarker {
 }
 
 export class LODManager {
-  private config: LODConfig = {
-    high: 6,      // Zoom >= 6: Full detail (labels, icons, data)
-    medium: 4,    // Zoom 4-6: Medium (icons, colors, no labels)
-    low: 2,       // Zoom 2-4: Low (simple dots with colors)
-    // Zoom < 2: Minimal (tiny dots, clustering)
-  };
+  // private config: LODConfig = {
+  //   high: 6,      // Zoom >= 6: Full detail (labels, icons, data)
+  //   medium: 4,    // Zoom 4-6: Medium (icons, colors, no labels)
+  //   low: 2,       // Zoom 2-4: Low (simple dots with colors)
+  //   // Zoom < 2: Minimal (tiny dots, clustering)
+  // };
+  
+  // private config: LODConfig = {
+  //   high: ZOOM_CONFIG.THRESHOLDS.LOD_HIGH,      // Use config
+  //   medium: ZOOM_CONFIG.THRESHOLDS.LOD_MEDIUM,  // Use config
+  //   low: ZOOM_CONFIG.THRESHOLDS.LOD_LOW,        // Use config
+  // };
 
   private lastLODLevel: LODLevel | null = null;
 
@@ -41,11 +48,14 @@ export class LODManager {
   /**
    * Determine LOD level for current zoom
    */
+  // getLODLevel(zoom: number): LODLevel {
+  //   if (zoom >= this.config.high) return 'high';
+  //   if (zoom >= this.config.medium) return 'medium';
+  //   if (zoom >= this.config.low) return 'low';
+  //   return 'minimal';
+  // }
   getLODLevel(zoom: number): LODLevel {
-    if (zoom >= this.config.high) return 'high';
-    if (zoom >= this.config.medium) return 'medium';
-    if (zoom >= this.config.low) return 'low';
-    return 'minimal';
+    return getConfigLODLevel(zoom);  // ✅ Use centralized function
   }
 
   /**

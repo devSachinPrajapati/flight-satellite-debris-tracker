@@ -4,6 +4,7 @@
  */
 import type * as maptilersdk from '@maptiler/sdk';
 import type { Aircraft, SatelliteObject } from '../types';
+import { getRenderLimit } from '../config/zoom';
 
 class ViewportManager {
   private map: maptilersdk.Map | null = null;
@@ -83,17 +84,20 @@ class ViewportManager {
     return lat >= south && lat <= north && lngInRange;
   }
 
-  private getTotalRenderLimit(): number {
-    const zoom = this.lastZoom;
+  // private getTotalRenderLimit(): number {
+  //   const zoom = this.lastZoom;
 
-    if (zoom < 1.5) return 50;
-    if (zoom < 2.5) return 120;
-    if (zoom < 3.5) return 250;
-    if (zoom < 4.5) return 400;
-    if (zoom < 5.5) return 600;
-    if (zoom < 6.5) return 800;
-    if (zoom < 7.5) return 1200;
-    return 2000;
+  //   if (zoom < 1.5) return 50;
+  //   if (zoom < 2.5) return 120;
+  //   if (zoom < 3.5) return 250;
+  //   if (zoom < 4.5) return 400;
+  //   if (zoom < 5.5) return 600;
+  //   if (zoom < 6.5) return 800;
+  //   if (zoom < 7.5) return 1200;
+  //   return 2000;
+  // }
+   private getTotalRenderLimit(): number {
+    return getRenderLimit(this.lastZoom);  // ✅ Use centralized function
   }
 
   private getObjectTypeQuota(type: 'aircraft' | 'satellite' | 'debris'): number {
