@@ -1,8 +1,5 @@
 """
-WebSocket Manager - FIXED WITH PROPER PING/PONG HANDLING
-Handles client ping requests
-Sends pong responses
-Prevents connection timeouts
+WebSocket Manager - FIXED: Race condition handling + better error recovery
 """
 from fastapi import WebSocket, WebSocketDisconnect
 from typing import List, Dict, Any
@@ -58,18 +55,34 @@ class WebSocketManager:
         await websocket.accept()
         self.active_connections.append(websocket)
         print(f"✅ WebSocket connected (Total: {len(self.active_connections)})")
-        await self.send_initial_data(websocket)
+        
+        # ✅ FIX: Send initial data in background to avoid blocking
+        asyncio.create_task(self._send_initial_data_safe(websocket))
     
     def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
         print(f"❌ WebSocket disconnected (Total: {len(self.active_connections)})")
     
+    async def _send_initial_data_safe(self, websocket: WebSocket):
+        """
+        ✅ FIX: Safely send initial data with connection checks
+        """
+        try:
+            # Check if still connected before starting
+            if websocket not in self.active_connections:
+                return
+                
+            await self.send_initial_data(websocket)
+        except Exception as e:
+            print(f"⚠️ Failed to send initial data (client may have disconnected): {e}")
+            self.disconnect(websocket)
+    
     async def send_initial_data(self, websocket: WebSocket):
         """Send initial data from R-tree spatial index"""
         try:
             if not spatial_service.is_ready:
-                await websocket.send_json({
+                await self._send_if_connected(websocket, {
                     "type": "initial_data",
                     "status": "loading",
                     "loading_status": {
@@ -92,7 +105,7 @@ class WebSocketManager:
                 return
             
             if not spatial_service.spatial_index:
-                await websocket.send_json({
+                await self._send_if_connected(websocket, {
                     "type": "initial_data",
                     "status": "loading",
                     "loading_status": {
@@ -117,12 +130,17 @@ class WebSocketManager:
             # Get data from R-tree spatial index
             flights_data = self._get_flights_from_rtree()
             
-            # Retry logic for satellites
+            # ✅ FIX: Retry logic with connection checks
             satellites_data = []
             max_retries = 5
-            retry_delay = 1.0
+            retry_delay = 0.5  # Start with shorter delay
             
             for attempt in range(max_retries):
+                # ✅ Check if client still connected
+                if websocket not in self.active_connections:
+                    print(f"⚠️ Client disconnected during satellite retry (attempt {attempt + 1})")
+                    return
+                
                 satellites_data = self._get_satellites_from_rtree()
                 
                 if satellites_data or attempt == max_retries - 1:
@@ -133,15 +151,16 @@ class WebSocketManager:
                 if attempt == 0:
                     print(f"⏳ Waiting for satellites (will retry up to {max_retries} times)...")
                 
-                retry_delay = retry_delay * (1 + attempt * 0.5)
+                # Progressive backoff
                 await asyncio.sleep(retry_delay)
+                retry_delay = min(retry_delay * 1.5, 3.0)  # Cap at 3 seconds
             
             flights_ready = len(flights_data) > 0
             satellites_ready = len(satellites_data) > 0
             
             message = {
                 "type": "initial_data",
-                "status": "ready" if (flights_ready and satellites_ready) else "loading",
+                "status": "ready" if (flights_ready or satellites_ready) else "loading",
                 "loading_status": {
                     "flights_ready": flights_ready,
                     "flights_loading": not flights_ready,
@@ -162,24 +181,34 @@ class WebSocketManager:
                 }
             }
             
-            json_str = json.dumps(message)
-            await websocket.send_text(json_str)
+            await self._send_if_connected(websocket, message)
             
             print(f"📤 Sent initial data: {len(flights_data)} flights, {len(satellites_data)} satellites")
             
-        except ValueError as e:
-            print(f"❌ JSON error in initial data: {e}")
-            await websocket.send_json({"type": "error", "message": "Data validation failed"})
         except Exception as e:
             print(f"❌ Error sending initial data: {e}")
             import traceback
             traceback.print_exc()
     
+    async def _send_if_connected(self, websocket: WebSocket, data: dict):
+        """
+        ✅ FIX: Only send if websocket is still connected
+        """
+        if websocket not in self.active_connections:
+            return
+        
+        try:
+            json_str = json.dumps(data)
+            await websocket.send_text(json_str)
+        except Exception as e:
+            # Connection closed, remove from active connections
+            self.disconnect(websocket)
+            raise
+    
     def _get_flights_from_rtree(self) -> List[Dict[str, Any]]:
         """Get ALL flights from R-tree spatial index"""
         try:
             if not spatial_service.spatial_index:
-                print("⚠️ Spatial index not available for flights query")
                 return []
             
             global_bbox = BoundingBox(
@@ -198,7 +227,6 @@ class WebSocketManager:
             )
             
             if not aircraft_objects:
-                print("⚠️ R-tree returned no aircraft, checking data_store...")
                 aircraft_objects = data_store.get_by_type('aircraft')
             
             flights = []
@@ -234,15 +262,12 @@ class WebSocketManager:
             
         except Exception as e:
             print(f"⚠️ Error getting flights from R-tree: {e}")
-            import traceback
-            traceback.print_exc()
             return []
     
     def _get_satellites_from_rtree(self) -> List[Dict[str, Any]]:
         """Get ALL satellites from R-tree with guaranteed TLE data"""
         try:
             if not spatial_service.spatial_index:
-                print("⚠️ Spatial index not available for satellites query")
                 return []
             
             global_bbox = BoundingBox(
@@ -315,8 +340,6 @@ class WebSocketManager:
             
         except Exception as e:
             print(f"⚠️ Error getting satellites from R-tree: {e}")
-            import traceback
-            traceback.print_exc()
             return []
     
     async def broadcast_updates(self):
@@ -336,7 +359,7 @@ class WebSocketManager:
             
             message = {
                 "type": "position_update",
-                "status": "ready" if (flights_ready and satellites_ready) else "loading",
+                "status": "ready" if (flights_ready or satellites_ready) else "loading",
                 "loading_status": {
                     "flights_ready": flights_ready,
                     "flights_loading": not flights_ready,
@@ -358,8 +381,9 @@ class WebSocketManager:
             
             json_str = json.dumps(message)
             
+            # ✅ FIX: Use list copy to avoid modification during iteration
             disconnected = []
-            for connection in self.active_connections:
+            for connection in list(self.active_connections):
                 try:
                     await connection.send_text(json_str)
                 except:
@@ -374,12 +398,8 @@ class WebSocketManager:
             if self.broadcast_count % 30 == 0:
                 print(f"📡 Broadcast #{self.broadcast_count}: {len(flights_data)} flights, {len(satellites_data)} satellites")
             
-        except ValueError as e:
-            print(f"❌ JSON error in broadcast: {e}")
         except Exception as e:
             print(f"❌ Broadcast error: {e}")
-            import traceback
-            traceback.print_exc()
     
     async def broadcast_loop(self):
         """Background broadcast loop"""
@@ -393,23 +413,19 @@ class WebSocketManager:
                 await asyncio.sleep(5)
     
     async def handle_client_message(self, websocket: WebSocket, message: str):
-        """
-        ✅ FIXED: Handle client messages including PING
-        """
+        """Handle client messages including PING"""
         try:
             data = json.loads(message)
             msg_type = data.get('type')
             
-            # ✅ CRITICAL FIX: Respond to ping from client
             if msg_type == 'ping':
-                await websocket.send_json({
+                await self._send_if_connected(websocket, {
                     "type": "pong",
                     "timestamp": time.time()
                 })
                 return
             
             elif msg_type == 'pong':
-                # Client responded to our ping
                 pass
             
             elif msg_type == 'request_update':
@@ -421,17 +437,17 @@ class WebSocketManager:
                     "data_store": data_store.get_stats(),
                     "spatial_index": spatial_service.get_stats() if spatial_service.is_ready else None
                 }
-                await websocket.send_json(stats)
+                await self._send_if_connected(websocket, stats)
             
             elif msg_type == 'get_rtree_stats':
                 if spatial_service.spatial_index:
                     rtree_stats = spatial_service.spatial_index.get_stats()
-                    await websocket.send_json({
+                    await self._send_if_connected(websocket, {
                         "type": "rtree_stats",
                         "stats": rtree_stats
                     })
                 else:
-                    await websocket.send_json({
+                    await self._send_if_connected(websocket, {
                         "type": "rtree_stats",
                         "error": "R-tree not built yet"
                     })

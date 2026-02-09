@@ -1,4 +1,13 @@
-/* Viewport-based Marker Management and avoid Memory Leak by 80% */
+/* 
+ * FIXED: Progressive Rendering with Smart Updates
+ * 
+ * Changes:
+ * 1. Tracks object signatures to detect actual changes
+ * 2. Allows batch completion before restarting
+ * 3. Implements delta updates for position changes
+ * 4. Debounces rapid updates
+ */
+
 import { useRef, useCallback, useEffect } from "react";
 import * as maptilersdk from "@maptiler/sdk";
 import type { Aircraft, SatelliteObject } from "../types";
@@ -21,6 +30,82 @@ export const useMarkerManager = (
   const isUpdatingRef = useRef<boolean>(false);
   const renderFrameRef = useRef<number | null>(null);
 
+  // ✅ NEW: Track rendering state
+  const renderStateRef = useRef({
+    isRendering: false,
+    currentBatchIndex: 0,
+    totalBatches: 0,
+    lastObjectSignature: '',
+    lastUpdateTime: 0,
+    pendingUpdate: null as any,
+  });
+
+  /**
+   * ✅ FIXED: Generate signature with reduced position precision
+   * Uses 2 decimal places (~1.1km precision) to avoid triggering on micro-movements
+   */
+  const getObjectSignature = useCallback((objects: Array<{ id: string; lat: number; lng: number }>) => {
+    // Sort IDs for consistent comparison
+    const ids = objects.map(obj => obj.id).sort().join(',');
+    
+    // ✅ CRITICAL FIX: Use 2 decimal places instead of 3
+    // This ignores micro-movements (<1.1km)
+    // 3 decimals = 111m precision (too sensitive, triggers on GPS jitter)
+    // 2 decimals = 1.1km precision (perfect for actual movement detection)
+    const positions = objects
+      .map(obj => `${obj.lat.toFixed(2)},${obj.lng.toFixed(2)}`)
+      .join('|');
+    
+    return `${ids}::${positions}`;
+  }, []);
+
+  /**
+   * ✅ ENHANCED: Check if objects changed significantly with threshold
+   */
+  const hasSignificantChange = useCallback((newSignature: string): boolean => {
+    const oldSignature = renderStateRef.current.lastObjectSignature;
+    
+    if (!oldSignature) return true; // First render
+    
+    // Split signature into IDs and positions
+    const [oldIds, oldPositions] = oldSignature.split('::');
+    const [newIds, newPositions] = newSignature.split('::');
+    
+    // ✅ CRITICAL: Check if object IDs changed
+    if (oldIds !== newIds) {
+      const oldIdArray = oldIds.split(',').filter(Boolean);
+      const newIdArray = newIds.split(',').filter(Boolean);
+      
+      // Count how many objects added/removed
+      const addedCount = newIdArray.filter(id => !oldIdArray.includes(id)).length;
+      const removedCount = oldIdArray.filter(id => !newIdArray.includes(id)).length;
+      
+      // Only significant if >5% of objects changed
+      const totalObjects = Math.max(oldIdArray.length, newIdArray.length);
+      const changePercent = totalObjects > 0 
+        ? ((addedCount + removedCount) / totalObjects) * 100 
+        : 0;
+      
+      if (changePercent > 5) {
+        console.log(`🔄 Significant change: ${changePercent.toFixed(1)}% of objects changed (+${addedCount} -${removedCount})`);
+        return true;
+      } else {
+        console.log(`⚡ Minor change: ${changePercent.toFixed(1)}% - using delta update`);
+        return false;
+      }
+    }
+    
+    // ✅ ENHANCED: Check if positions changed significantly
+    if (oldPositions !== newPositions) {
+      // Positions changed, but IDs same = just movement
+      // This is handled by delta update (not significant)
+      return false;
+    }
+    
+    // No changes at all
+    return false;
+  }, []);
+
   /**
    * ✅ FIXED: Get HARD LIMIT for total markers based on zoom
    */
@@ -32,7 +117,7 @@ export const useMarkerManager = (
     if (zoom < 5.5) return 600;
     if (zoom < 6.5) return 800;
     if (zoom < 7.5) return 1200;
-    return 2000; // Max at high zoom
+    return 2000;
   }, []);
 
   /**
@@ -48,29 +133,22 @@ export const useMarkerManager = (
   ) => {
     if (!mapRef.current) return;
 
-    // 1. Get simplified version based on LOD
     const simplified = type === 'aircraft'
       ? lodManager.simplifyAircraft(data, zoom)
       : type === 'debris'
         ? lodManager.simplifyDebris(data, zoom)
         : lodManager.simplifySatellite(data, zoom);
 
-    // ✅ Skip rendering at minimal LOD for distant objects
     if (simplified.lodLevel === 'minimal' && zoom < 2) {
-      // At extreme zoom out, only render 1 in every 5 objects
-      if (Math.random() > 0.2) {
-        return; // Skip 80% of markers
-      }
+      if (Math.random() > 0.2) return;
     }
 
-    // 2. Check if marker already exists
     let existingMarker = activeMarkersRef.current.get(id);
 
     if (existingMarker) {
-      // Update position
+      // ✅ OPTIMIZATION: Just update position, don't recreate
       existingMarker.marker.setLngLat([lng, lat]);
 
-      // Only update appearance if LOD level actually changed
       if (existingMarker.lodLevel !== simplified.lodLevel) {
         markerPool.updateMarkerLOD(
           existingMarker.pooled,
@@ -79,25 +157,20 @@ export const useMarkerManager = (
         );
         existingMarker.lodLevel = simplified.lodLevel;
       }
-
       return;
     }
 
-    // 3. Acquire marker from pool
     const pooled = markerPool.acquire(type);
     pooled.id = id;
 
-    // 4. Update marker appearance
     markerPool.updateMarkerLOD(pooled, simplified, simplified.lodLevel);
 
-    // 5. Add click handler (use passive event listener)
     pooled.element.onclick = (e) => {
       e.preventDefault();
       e.stopPropagation();
       handleObjectSelect({ type, data });
     };
 
-    // 6. Create MapTiler marker
     const marker = new maptilersdk.Marker({
       element: pooled.element,
       anchor: 'center',
@@ -107,13 +180,12 @@ export const useMarkerManager = (
 
     pooled.marker = marker;
 
-    // 7. Store reference
     activeMarkersRef.current.set(id, {
       marker,
       pooled,
       type,
       lodLevel: simplified.lodLevel,
-      lat, // ✅ Store position for viewport checks
+      lat,
       lng,
     });
 
@@ -131,13 +203,8 @@ export const useMarkerManager = (
         const markerData = activeMarkersRef.current.get(id);
 
         if (markerData) {
-          // Remove from map
           markerData.marker.remove();
-
-          // Return to pool
           markerPool.release(markerData.pooled);
-
-          // Remove from active markers
           activeMarkersRef.current.delete(id);
           removedCount++;
         }
@@ -150,8 +217,7 @@ export const useMarkerManager = (
   }, []);
 
   /**
-   * ✅ OPTIMIZED: Update all markers when zoom changes (LOD update)
-   * Only updates if LOD level actually changed
+   * ✅ OPTIMIZED: Update all markers when zoom changes
    */
   const updateMarkersForZoom = useCallback((newZoom: number) => {
     if (isUpdatingRef.current) return;
@@ -159,9 +225,8 @@ export const useMarkerManager = (
     const previousZoom = currentZoomRef.current;
     currentZoomRef.current = newZoom;
 
-    // Check if LOD level changed (not just zoom value)
     if (!lodManager.needsUpdate(newZoom, previousZoom)) {
-      return; // No LOD change, skip update
+      return;
     }
 
     isUpdatingRef.current = true;
@@ -169,12 +234,10 @@ export const useMarkerManager = (
     const newLOD = lodManager.getLODLevel(newZoom);
     let updatedCount = 0;
 
-    // Update all active markers
     activeMarkersRef.current.forEach((markerData, id) => {
       console.log(id);
 
       if (markerData.lodLevel !== newLOD) {
-        // Get fresh simplified data
         let simplified;
         if (markerData.type === 'aircraft') {
           simplified = lodManager.simplifyAircraft(markerData.pooled.element.dataset, newZoom);
@@ -196,8 +259,49 @@ export const useMarkerManager = (
   }, []);
 
   /**
-   * ✅ NEW: Progressive rendering using requestIdleCallback
-   * Spreads marker creation across multiple frames to avoid blocking
+   * ✅ NEW: Delta update for existing markers (position changes only)
+   * Much faster than full progressive render
+   */
+  const updateExistingMarkers = useCallback((
+    objects: Array<{
+      id: string;
+      lat: number;
+      lng: number;
+      type: 'aircraft' | 'satellite' | 'debris';
+      data: Aircraft | SatelliteObject;
+    }>,
+    zoom: number
+  ) => {
+    const validIds = new Set<string>();
+    let updatedCount = 0;
+    let createdCount = 0;
+
+    objects.forEach(({ id, lat, lng, type, data }) => {
+      validIds.add(id);
+      
+      const existingMarker = activeMarkersRef.current.get(id);
+      
+      if (existingMarker) {
+        // ✅ Just update position
+        existingMarker.marker.setLngLat([lng, lat]);
+        existingMarker.lat = lat;
+        existingMarker.lng = lng;
+        updatedCount++;
+      } else {
+        // ✅ Create new marker immediately (not in batch)
+        createOrUpdateMarker(id, lat, lng, type, data, zoom);
+        createdCount++;
+      }
+    });
+
+    // Remove markers that no longer exist
+    removeInvalidMarkers(validIds);
+
+    console.log(`⚡ Delta update: ${updatedCount} updated, ${createdCount} created`);
+  }, [createOrUpdateMarker, removeInvalidMarkers]);
+
+  /**
+   * ✅ FIXED: Progressive rendering with completion tracking
    */
   const renderProgressively = useCallback((
     objects: Array<{
@@ -210,37 +314,58 @@ export const useMarkerManager = (
     zoom: number,
     validIds: Set<string>
   ) => {
+    // ✅ Mark as rendering
+    renderStateRef.current.isRendering = true;
+    renderStateRef.current.currentBatchIndex = 0;
+    
+    const BATCH_SIZE = 20;
+    let index = 0;
+    const totalBatches = Math.ceil(objects.length / BATCH_SIZE);
+    renderStateRef.current.totalBatches = totalBatches;
+
     // Cancel any pending render
     if (renderFrameRef.current) {
       cancelIdleCallback(renderFrameRef.current);
     }
 
-    const BATCH_SIZE = 20; // Render 20 markers per frame
-    let index = 0;
-
-    // ✅ Clean up BEFORE rendering new batch
+    // Clean up BEFORE rendering new batch
     if (index === 0) {
       removeInvalidMarkers(validIds);
     }
 
     const renderBatch = (deadline: IdleDeadline) => {
-      // Render as many as we can in this frame (up to BATCH_SIZE)
+      // Render as many as we can in this frame
       while (index < objects.length && deadline.timeRemaining() > 1) {
         const obj = objects[index];
         createOrUpdateMarker(obj.id, obj.lat, obj.lng, obj.type, obj.data, zoom);
         index++;
 
-        // Stop after batch size even if we have time left
         if (index % BATCH_SIZE === 0) {
+          renderStateRef.current.currentBatchIndex++;
           break;
         }
       }
 
       // Schedule next batch if we have more to render
       if (index < objects.length) {
+        // ✅ Check if a new update is pending
+        const now = Date.now();
+        if (renderStateRef.current.pendingUpdate && 
+            now - renderStateRef.current.lastUpdateTime > 100) {
+          // New update waited patiently, pause and let it take over
+          console.log(`⏸️ Pausing progressive render at batch ${renderStateRef.current.currentBatchIndex}/${totalBatches} for new update`);
+          renderStateRef.current.isRendering = false;
+          
+          // Process pending update
+          const pending = renderStateRef.current.pendingUpdate;
+          renderStateRef.current.pendingUpdate = null;
+          processBatchedMarkers(pending.objects, pending.zoom);
+          return;
+        }
+        
         renderFrameRef.current = requestIdleCallback(renderBatch, { timeout: 16 });
       } else {
-        // ✅ Final validation cleanup
+        // ✅ Rendering complete
         const currentMarkers = new Set(activeMarkersRef.current.keys());
         const orphaned = [...currentMarkers].filter(id => !validIds.has(id));
         orphaned.forEach(id => {
@@ -251,7 +376,9 @@ export const useMarkerManager = (
             activeMarkersRef.current.delete(id);
           }
         });
-        console.log(`✅ Progressive render complete: ${objects.length} objects in ${Math.ceil(objects.length / BATCH_SIZE)} batches`);
+        
+        renderStateRef.current.isRendering = false;
+        console.log(`✅ Progressive render complete: ${objects.length} objects in ${totalBatches} batches`);
       }
     };
 
@@ -260,8 +387,8 @@ export const useMarkerManager = (
   }, [createOrUpdateMarker, removeInvalidMarkers]);
 
   /**
-   * ✅ CRITICAL OPTIMIZATION: Viewport-based culling
-   * Only renders markers that are actually visible
+   * ✅ CRITICAL FIX: Smart batched marker processing
+   * Detects type of update and chooses optimal strategy
    */
   const processBatchedMarkers = useCallback((
     objects: Array<{
@@ -273,7 +400,6 @@ export const useMarkerManager = (
     }>,
     zoom: number
   ) => {
-    // ✅ STEP 1: Get current viewport bounds
     const bounds = getViewportBounds(mapRef.current);
     
     if (!bounds) {
@@ -283,42 +409,83 @@ export const useMarkerManager = (
 
     currentBoundsRef.current = bounds;
 
-    // ✅ STEP 2: Filter to only visible objects (60-90% reduction)
-    const visibleObjects = filterByViewport(objects, bounds, true); // 20% buffer zone
+    // ✅ Filter to visible objects
+    const visibleObjects = filterByViewport(objects, bounds, true);
     
     const culledCount = objects.length - visibleObjects.length;
     if (culledCount > 0) {
-      console.log(`✂️ Viewport culling: ${visibleObjects.length}/${objects.length} visible (removed ${culledCount} off-screen)`);
+      console.log(`✂️ Viewport culling: ${visibleObjects.length}/${objects.length} visible`);
     }
 
-    // ✅ STEP 3: Apply hard limit on visible objects
+    // ✅ Apply hard limit
     const markerLimit = getMarkerLimit(zoom);
     let objectsToRender = visibleObjects;
 
     if (visibleObjects.length > markerLimit) {
-      // ✅ SMART PRIORITIZATION: Keep markers closest to viewport center
       objectsToRender = prioritizeByProximity(visibleObjects, bounds, markerLimit);
-      console.log(`⚡ Hard limit + proximity sort: Rendering ${markerLimit}/${visibleObjects.length} closest objects`);
+      console.log(`⚡ Rendering ${markerLimit}/${visibleObjects.length} closest objects`);
     }
 
-    // ✅ STEP 4: Collect valid IDs
-    const validIds = new Set<string>();
-    objectsToRender.forEach(({ id }) => {
-      validIds.add(id);
-    });
+    // ✅ Generate signature
+    const newSignature = getObjectSignature(objectsToRender);
+    const now = Date.now();
 
-    // ✅ STEP 6: Progressive rendering for better performance
+    // ✅ DECISION TREE: Choose rendering strategy
+
+    // Strategy 1: Progressive render is already running
+    if (renderStateRef.current.isRendering) {
+      const timeSinceLastUpdate = now - renderStateRef.current.lastUpdateTime;
+      
+      // If update is very recent (< 100ms), ignore it (debounce)
+      if (timeSinceLastUpdate < 100) {
+        console.log('⏭️ Skipping update (debounce)');
+        return;
+      }
+      
+      // If objects didn't change significantly, just store as pending
+      if (!hasSignificantChange(newSignature)) {
+        console.log(`⏳ Progressive render in progress (batch ${renderStateRef.current.currentBatchIndex}/${renderStateRef.current.totalBatches}), queuing position update`);
+        renderStateRef.current.pendingUpdate = { objects: objectsToRender, zoom };
+        renderStateRef.current.lastUpdateTime = now;
+        return;
+      }
+      
+      // Objects changed significantly, stop current render
+      console.log('🛑 Stopping progressive render - significant object change detected');
+      if (renderFrameRef.current) {
+        cancelIdleCallback(renderFrameRef.current);
+        renderFrameRef.current = null;
+      }
+      renderStateRef.current.isRendering = false;
+    }
+
+    // Strategy 2: Only positions changed (delta update - FAST)
+    if (!hasSignificantChange(newSignature) && renderStateRef.current.lastObjectSignature) {
+      console.log('⚡ Delta update (positions only)');
+      updateExistingMarkers(objectsToRender, zoom);
+      renderStateRef.current.lastUpdateTime = now;
+      return;
+    }
+
+    // Strategy 3: Significant change - full progressive render
+    console.log('🔄 Full progressive render (object list changed)');
+    renderStateRef.current.lastObjectSignature = newSignature;
+    renderStateRef.current.lastUpdateTime = now;
+    
+    const validIds = new Set<string>();
+    objectsToRender.forEach(({ id }) => validIds.add(id));
+
     if (objectsToRender.length > 50) {
       renderProgressively(objectsToRender, zoom, validIds);
     } else {
-      // For small batches, render immediately
+      // Small batch - render immediately
       objectsToRender.forEach(({ id, lat, lng, type, data }) => {
         createOrUpdateMarker(id, lat, lng, type, data, zoom);
       });
       removeInvalidMarkers(validIds);
+      renderStateRef.current.lastObjectSignature = newSignature;
     }
 
-    // ✅ STEP 7: Update LOD if zoom changed
     updateMarkersForZoom(zoom);
 
   }, [
@@ -328,11 +495,13 @@ export const useMarkerManager = (
     updateMarkersForZoom,
     getMarkerLimit,
     renderProgressively,
+    getObjectSignature,
+    hasSignificantChange,
+    updateExistingMarkers,
   ]);
 
   /**
-   * ✅ NEW: Handle viewport changes (pan/zoom)
-   * Re-render when user pans to show new markers
+   * Handle viewport changes
    */
   const handleViewportChange = useCallback(() => {
     const bounds = getViewportBounds(mapRef.current);
@@ -341,23 +510,20 @@ export const useMarkerManager = (
       return;
     }
 
-    // Check if viewport moved significantly (>10% of visible area)
     const latDelta = Math.abs(bounds.north - currentBoundsRef.current.north);
     const lngDelta = Math.abs(bounds.east - currentBoundsRef.current.east);
-    const threshold = 0.1; // 10% movement triggers re-render
+    const threshold = 0.1;
 
     const latRange = bounds.north - bounds.south;
     const lngRange = bounds.east - bounds.west;
 
     if (latDelta > latRange * threshold || lngDelta > lngRange * threshold) {
-      console.log('📍 Viewport moved significantly - checking for new markers');
-      // Trigger a re-render through parent component
-      // This will call processBatchedMarkers again with updated bounds
+      console.log('📍 Viewport moved significantly');
     }
   }, [mapRef]);
 
   /**
-   * ✅ PERFORMANCE: Track map move events
+   * Track map move events
    */
   useEffect(() => {
     if (!mapRef.current) return;
@@ -382,7 +548,6 @@ export const useMarkerManager = (
     return () => {
       console.log('🧹 Cleaning up all markers');
 
-      // Cancel pending renders
       if (renderFrameRef.current) {
         cancelIdleCallback(renderFrameRef.current);
       }
@@ -392,15 +557,24 @@ export const useMarkerManager = (
         markerPool.release(pooled);
       });
       activeMarkersRef.current.clear();
+      
+      // ✅ Reset render state
+      renderStateRef.current = {
+        isRendering: false,
+        currentBatchIndex: 0,
+        totalBatches: 0,
+        lastObjectSignature: '',
+        lastUpdateTime: 0,
+        pendingUpdate: null,
+      };
     };
   }, []);
 
   /**
-   * ✅ OPTIMIZED: Less frequent pool maintenance
+   * Pool maintenance
    */
   useEffect(() => {
     const interval = setInterval(() => {
-      // Only trim if pool is getting large
       const stats = markerPool.getStats();
 
       if (stats.available > 1000) {
@@ -408,11 +582,10 @@ export const useMarkerManager = (
         console.log(`✂️ Trimmed pool: ${stats.available} → 500 available`);
       }
 
-      // Log stats less frequently
       if (stats.inUse > 0) {
-        console.log(`📊 Pool: ${stats.inUse}/${stats.total} in use`);
+        console.log(`📊 Pool: ${stats.inUse}/${stats.total} in use | Rendering: ${renderStateRef.current.isRendering ? `Batch ${renderStateRef.current.currentBatchIndex}/${renderStateRef.current.totalBatches}` : 'Idle'}`);
       }
-    }, 60000); // Every 60s (was 30s)
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);
@@ -423,5 +596,11 @@ export const useMarkerManager = (
     getPoolStats: () => markerPool.getStats(),
     getActiveMarkersCount: () => activeMarkersRef.current.size,
     getCurrentBounds: () => currentBoundsRef.current,
+    // ✅ NEW: Expose render state for debugging
+    getRenderState: () => ({
+      isRendering: renderStateRef.current.isRendering,
+      currentBatch: renderStateRef.current.currentBatchIndex,
+      totalBatches: renderStateRef.current.totalBatches,
+    }),
   };
 };
