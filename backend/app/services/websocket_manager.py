@@ -1,6 +1,8 @@
 """
-WebSocket Manager - USES R-TREE SPATIAL INDEX
-✅ FIXED: Queries spatial_service R-tree instead of data_store
+WebSocket Manager - FIXED WITH PROPER PING/PONG HANDLING
+Handles client ping requests
+Sends pong responses
+Prevents connection timeouts
 """
 from fastapi import WebSocket, WebSocketDisconnect
 from typing import List, Dict, Any
@@ -8,6 +10,7 @@ import asyncio
 import json
 import math
 from datetime import datetime
+import time
 
 from app.services.spatial_service import spatial_service
 from app.spatial.rtree import BoundingBox
@@ -63,10 +66,7 @@ class WebSocketManager:
         print(f"❌ WebSocket disconnected (Total: {len(self.active_connections)})")
     
     async def send_initial_data(self, websocket: WebSocket):
-        """
-        ✅ FIXED: Get initial data from R-tree spatial index
-        Uses spatial_service.query_viewport with global bounds
-        """
+        """Send initial data from R-tree spatial index"""
         try:
             if not spatial_service.is_ready:
                 await websocket.send_json({
@@ -114,10 +114,10 @@ class WebSocketManager:
                 print("⏳ Spatial index not built yet, sent loading status")
                 return
             
-            # ✅ CRITICAL FIX: Get data from R-tree spatial index
+            # Get data from R-tree spatial index
             flights_data = self._get_flights_from_rtree()
             
-            # Retry logic for satellites (may take time to propagate)
+            # Retry logic for satellites
             satellites_data = []
             max_retries = 5
             retry_delay = 1.0
@@ -165,18 +165,18 @@ class WebSocketManager:
             json_str = json.dumps(message)
             await websocket.send_text(json_str)
             
-            print(f"📤 Sent initial data from R-tree: {len(flights_data)} flights, {len(satellites_data)} satellites")
+            print(f"📤 Sent initial data: {len(flights_data)} flights, {len(satellites_data)} satellites")
             
         except ValueError as e:
             print(f"❌ JSON error in initial data: {e}")
             await websocket.send_json({"type": "error", "message": "Data validation failed"})
         except Exception as e:
             print(f"❌ Error sending initial data: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _get_flights_from_rtree(self) -> List[Dict[str, Any]]:
-        """
-        ✅ FIXED: Get ALL flights from R-tree spatial index using global bounds
-        """
+        """Get ALL flights from R-tree spatial index"""
         try:
             if not spatial_service.spatial_index:
                 print("⚠️ Spatial index not available for flights query")
@@ -234,44 +234,12 @@ class WebSocketManager:
             
         except Exception as e:
             print(f"⚠️ Error getting flights from R-tree: {e}")
-            try:
-                print("⚠️ Attempting fallback to data_store for flights...")
-                aircraft_objects = data_store.get_by_type('aircraft')
-                flights = []
-                for obj in aircraft_objects:
-                    flight_data = {
-                        'hex': obj.id.replace('air_', ''),
-                        'lat': obj.lat,
-                        'lng': obj.lng,
-                        'alt': obj.alt * 3.28084,
-                        'dir': obj.heading,
-                        'speed': obj.velocity / 0.514444,
-                        'flight_icao': obj.name,
-                    }
-                    if obj.extra:
-                        flight_data.update({
-                            'flight_number': obj.extra.get('flight_number'),
-                            'aircraft_icao': obj.extra.get('aircraft_icao'),
-                            'airline_icao': obj.extra.get('airline_icao'),
-                            'dep_iata': obj.extra.get('dep_iata'),
-                            'dep_icao': obj.extra.get('dep_icao'),
-                            'arr_iata': obj.extra.get('arr_iata'),
-                            'arr_icao': obj.extra.get('arr_icao'),
-                            'flag': obj.extra.get('flag'),
-                            'v_speed': obj.extra.get('v_speed'),
-                            'updated': obj.extra.get('updated', obj.timestamp // 1000),
-                        })
-                    if validate_spatial_object(flight_data):
-                        flights.append(flight_data)
-                return flights
-            except Exception as fallback_error:
-                print(f"⚠️ Fallback also failed: {fallback_error}")
-                return []
+            import traceback
+            traceback.print_exc()
+            return []
     
     def _get_satellites_from_rtree(self) -> List[Dict[str, Any]]:
-        """
-        ✅ FIXED: Get ALL satellites from R-tree with guaranteed TLE data
-        """
+        """Get ALL satellites from R-tree with guaranteed TLE data"""
         try:
             if not spatial_service.spatial_index:
                 print("⚠️ Spatial index not available for satellites query")
@@ -311,25 +279,22 @@ class WebSocketManager:
                     'visible': True,
                 }
                 
-                # ✅ CRITICAL FIX: Always include TLE structure
+                # Always include TLE structure
                 if obj.extra:
                     tle_data = obj.extra.get('tle')
                     if tle_data and isinstance(tle_data, dict):
-                        # TLE exists - use it
                         sat_data['tle'] = {
                             'name': str(tle_data.get('name', obj.name)),
                             'line1': str(tle_data.get('line1', '')),
                             'line2': str(tle_data.get('line2', '')),
                         }
                     else:
-                        # No TLE - use empty structure
                         sat_data['tle'] = {
                             'name': str(obj.name),
                             'line1': '',
                             'line2': '',
                         }
                     
-                    # Add other extra fields
                     sat_data.update({
                         'inclination': obj.extra.get('inclination'),
                         'period_minutes': obj.extra.get('period_minutes'),
@@ -337,7 +302,6 @@ class WebSocketManager:
                         'conjunction_risk': obj.extra.get('conjunction_risk', False),
                     })
                 else:
-                    # No extra data at all - provide empty TLE
                     sat_data['tle'] = {
                         'name': str(obj.name),
                         'line1': '',
@@ -351,66 +315,12 @@ class WebSocketManager:
             
         except Exception as e:
             print(f"⚠️ Error getting satellites from R-tree: {e}")
-            try:
-                print("⚠️ Attempting fallback to data_store for satellites...")
-                satellite_objects = data_store.get_by_type('satellite')
-                debris_objects = data_store.get_by_type('debris')
-                all_objects = satellite_objects + debris_objects
-                
-                satellites = []
-                for obj in all_objects:
-                    sat_data = {
-                        'norad_id': obj.id.replace('sat_', ''),
-                        'name': obj.name,
-                        'lat': obj.lat,
-                        'lng': obj.lng,
-                        'altitude': obj.alt,
-                        'velocity': obj.velocity,
-                        'object_type': obj.object_type,
-                        'operator': obj.operator,
-                        'visible': True,
-                    }
-                    
-                    # ✅ Same TLE handling in fallback
-                    if obj.extra:
-                        tle_data = obj.extra.get('tle')
-                        if tle_data and isinstance(tle_data, dict):
-                            sat_data['tle'] = {
-                                'name': str(tle_data.get('name', obj.name)),
-                                'line1': str(tle_data.get('line1', '')),
-                                'line2': str(tle_data.get('line2', '')),
-                            }
-                        else:
-                            sat_data['tle'] = {
-                                'name': str(obj.name),
-                                'line1': '',
-                                'line2': '',
-                            }
-                        
-                        sat_data.update({
-                            'inclination': obj.extra.get('inclination'),
-                            'period_minutes': obj.extra.get('period_minutes'),
-                            'visible': obj.extra.get('visible', True),
-                            'conjunction_risk': obj.extra.get('conjunction_risk', False),
-                        })
-                    else:
-                        sat_data['tle'] = {
-                            'name': str(obj.name),
-                            'line1': '',
-                            'line2': '',
-                        }
-                    
-                    if validate_spatial_object(sat_data):
-                        satellites.append(sat_data)
-                return satellites
-            except Exception as fallback_error:
-                print(f"⚠️ Fallback also failed: {fallback_error}")
-                return []
+            import traceback
+            traceback.print_exc()
+            return []
     
     async def broadcast_updates(self):
-        """
-        ✅ FIXED: Broadcast updates using R-tree spatial index
-        """
+        """Broadcast updates using R-tree spatial index"""
         if not self.active_connections:
             return
         
@@ -462,12 +372,14 @@ class WebSocketManager:
             self.broadcast_count += 1
             
             if self.broadcast_count % 30 == 0:
-                print(f"📡 Broadcast #{self.broadcast_count} from R-tree: {len(flights_data)} flights, {len(satellites_data)} satellites")
+                print(f"📡 Broadcast #{self.broadcast_count}: {len(flights_data)} flights, {len(satellites_data)} satellites")
             
         except ValueError as e:
             print(f"❌ JSON error in broadcast: {e}")
         except Exception as e:
             print(f"❌ Broadcast error: {e}")
+            import traceback
+            traceback.print_exc()
     
     async def broadcast_loop(self):
         """Background broadcast loop"""
@@ -481,21 +393,37 @@ class WebSocketManager:
                 await asyncio.sleep(5)
     
     async def handle_client_message(self, websocket: WebSocket, message: str):
-        """Handle client messages"""
+        """
+        ✅ FIXED: Handle client messages including PING
+        """
         try:
             data = json.loads(message)
-            if data.get('type') == 'pong':
+            msg_type = data.get('type')
+            
+            # ✅ CRITICAL FIX: Respond to ping from client
+            if msg_type == 'ping':
+                await websocket.send_json({
+                    "type": "pong",
+                    "timestamp": time.time()
+                })
+                return
+            
+            elif msg_type == 'pong':
+                # Client responded to our ping
                 pass
-            elif data.get('type') == 'request_update':
+            
+            elif msg_type == 'request_update':
                 await self.send_initial_data(websocket)
-            elif data.get('type') == 'get_cache_stats':
+            
+            elif msg_type == 'get_cache_stats':
                 stats = {
                     "type": "cache_stats",
                     "data_store": data_store.get_stats(),
                     "spatial_index": spatial_service.get_stats() if spatial_service.is_ready else None
                 }
                 await websocket.send_json(stats)
-            elif data.get('type') == 'get_rtree_stats':
+            
+            elif msg_type == 'get_rtree_stats':
                 if spatial_service.spatial_index:
                     rtree_stats = spatial_service.spatial_index.get_stats()
                     await websocket.send_json({
@@ -507,8 +435,10 @@ class WebSocketManager:
                         "type": "rtree_stats",
                         "error": "R-tree not built yet"
                     })
-        except:
-            pass
+        except json.JSONDecodeError:
+            print(f"⚠️ Invalid JSON from client: {message[:100]}")
+        except Exception as e:
+            print(f"⚠️ Error handling client message: {e}")
 
 
 ws_manager = WebSocketManager()

@@ -1,12 +1,9 @@
 /**
- * WebSocket Hook - PRODUCTION-READY WITH ROBUST RECONNECTION
+ * WebSocket Hook - FINAL FIX FOR RECONNECTION LOOPS
  * 
- * Features:
- * ✅ Exponential backoff reconnection
- * ✅ Connection stability verification
- * ✅ Automatic reconnect attempt reset
- * ✅ Graceful degradation
- * ✅ User notifications on connection issues
+ * Prevents React Strict Mode double-mounting issues
+ * Stops unnecessary reconnections
+ * Only reconnects on actual failures
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
 
@@ -21,11 +18,11 @@ interface WebSocketConfig {
 }
 
 const DEFAULT_CONFIG: WebSocketConfig = {
-  maxReconnectAttempts: 10,        // Increased from 5
-  baseReconnectDelay: 1000,        // Start at 1 second
-  maxReconnectDelay: 30000,        // Cap at 30 seconds
-  connectionStabilityDelay: 2000,  // Wait 2s before considering connection stable
-  heartbeatInterval: 30000,        // Ping every 30 seconds
+  maxReconnectAttempts: 10,
+  baseReconnectDelay: 1000,
+  maxReconnectDelay: 30000,
+  connectionStabilityDelay: 5000, // ✅ Increased to 5s
+  heartbeatInterval: 20000, // ✅ 20s (less aggressive)
 };
 
 export function useWebSocket(onMessage: (data: any) => void, config: Partial<WebSocketConfig> = {}) {
@@ -40,50 +37,66 @@ export function useWebSocket(onMessage: (data: any) => void, config: Partial<Web
   const messageHandlerRef = useRef(onMessage);
   const lastPongTimeRef = useRef<number>(Date.now());
   const isCleanupRef = useRef(false);
+  const isConnectingRef = useRef(false);
+  const missedPongsRef = useRef(0);
+  const hasEverConnectedRef = useRef(false); // ✅ NEW: Track if we've ever connected
 
   const finalConfig: WebSocketConfig = { ...DEFAULT_CONFIG, ...config };
 
-  // Update message handler ref
   useEffect(() => {
     messageHandlerRef.current = onMessage;
   }, [onMessage]);
 
-  /**
-   * Calculate exponential backoff delay
-   */
   const getReconnectDelay = useCallback((attempt: number): number => {
     const delay = Math.min(
       finalConfig.baseReconnectDelay * Math.pow(2, attempt),
       finalConfig.maxReconnectDelay
     );
-    // Add jitter (±20%) to prevent thundering herd
     const jitter = delay * 0.2 * (Math.random() - 0.5);
     return Math.floor(delay + jitter);
-  }, [finalConfig]);
+  }, [finalConfig.baseReconnectDelay, finalConfig.maxReconnectDelay]);
 
-  /**
-   * Start heartbeat monitoring
-   */
   const startHeartbeat = useCallback(() => {
-    // Clear existing heartbeat
     if (heartbeatIntervalRef.current) {
       clearInterval(heartbeatIntervalRef.current);
     }
+
+    lastPongTimeRef.current = Date.now();
+    missedPongsRef.current = 0;
 
     heartbeatIntervalRef.current = setInterval(() => {
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         try {
           wsRef.current.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
           
-          // Check if we've received a pong recently
           const timeSinceLastPong = Date.now() - lastPongTimeRef.current;
-          if (timeSinceLastPong > finalConfig.heartbeatInterval * 2) {
-            console.warn('⚠️ WebSocket heartbeat timeout - connection may be dead');
-            setConnectionQuality('unstable');
+          
+          // ✅ Very lenient timeout - 3x heartbeat interval
+          if (timeSinceLastPong > finalConfig.heartbeatInterval * 3) {
+            missedPongsRef.current++;
             
-            // Force reconnect if no pong for 2 heartbeat intervals
-            if (wsRef.current) {
-              wsRef.current.close();
+            // ✅ Only log occasionally to avoid spam
+            if (missedPongsRef.current === 1) {
+              console.warn(`⚠️ No pong for ${(timeSinceLastPong / 1000).toFixed(0)}s`);
+            }
+            
+            if (connectionQuality === 'good') {
+              setConnectionQuality('unstable');
+            }
+            
+            // ✅ Only reconnect after 5 consecutive missed pongs
+            if (missedPongsRef.current >= 5) {
+              console.error('❌ 5 consecutive missed pongs - forcing reconnect');
+              if (wsRef.current) {
+                wsRef.current.close();
+              }
+            }
+          } else {
+            if (missedPongsRef.current > 0) {
+              missedPongsRef.current = 0;
+              if (connectionQuality !== 'good') {
+                setConnectionQuality('good');
+              }
             }
           }
         } catch (error) {
@@ -91,96 +104,89 @@ export function useWebSocket(onMessage: (data: any) => void, config: Partial<Web
         }
       }
     }, finalConfig.heartbeatInterval);
-  }, [finalConfig.heartbeatInterval]);
+  }, [finalConfig.heartbeatInterval, connectionQuality]);
 
-  /**
-   * Stop heartbeat monitoring
-   */
   const stopHeartbeat = useCallback(() => {
     if (heartbeatIntervalRef.current) {
       clearInterval(heartbeatIntervalRef.current);
       heartbeatIntervalRef.current = null;
     }
+    missedPongsRef.current = 0;
   }, []);
 
-  /**
-   * Reset reconnect attempts after stable connection
-   */
   const resetReconnectAttempts = useCallback(() => {
     console.log('✅ Connection stable - resetting reconnect counter');
     setReconnectAttempt(0);
     setConnectionQuality('good');
   }, []);
 
-  /**
-   * Schedule reconnection attempt
-   */
   const scheduleReconnect = useCallback((attempt: number) => {
-    // Clear existing timeout
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
+    // ✅ Don't reconnect if we've never successfully connected
+    // This prevents reconnection loops during React Strict Mode
+    if (!hasEverConnectedRef.current && attempt > 3) {
+      console.log('⚠️ Never successfully connected - stopping reconnect attempts');
+      setConnectionQuality('lost');
+      return;
     }
 
-    // Check if we've exceeded max attempts
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
     if (attempt >= finalConfig.maxReconnectAttempts) {
       console.error(`❌ Max reconnect attempts (${finalConfig.maxReconnectAttempts}) exceeded`);
       setConnectionQuality('lost');
-      
-      // Notify user
-      if (typeof window !== 'undefined') {
-        const event = new CustomEvent('websocket-connection-failed', {
-          detail: { attempts: attempt }
-        });
-        window.dispatchEvent(event);
-      }
       return;
     }
 
     const delay = getReconnectDelay(attempt);
-    console.log(`🔄 Scheduling reconnect attempt ${attempt + 1}/${finalConfig.maxReconnectAttempts} in ${delay}ms`);
+    console.log(`🔄 Reconnecting in ${delay}ms (attempt ${attempt + 1}/${finalConfig.maxReconnectAttempts})`);
 
     reconnectTimeoutRef.current = setTimeout(() => {
       if (!isCleanupRef.current) {
-        setReconnectAttempt(attempt + 1);
-        connect();
+        connectWithRetry(attempt + 1);
       }
     }, delay);
   }, [finalConfig.maxReconnectAttempts, getReconnectDelay]);
 
-  /**
-   * Connect to WebSocket
-   */
-  const connect = useCallback(() => {
-    // Don't reconnect if already connected
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      console.log('⚠️ WebSocket already connected');
+  const connectWithRetry = useCallback((attempt: number) => {
+    // ✅ Prevent multiple simultaneous connections
+    if (isConnectingRef.current) {
       return;
     }
 
-    // Don't reconnect during cleanup
-    if (isCleanupRef.current) {
-      console.log('⚠️ Skipping reconnect - component unmounting');
+    // ✅ Don't reconnect if already connected
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
       return;
     }
+
+    // ✅ Don't reconnect during cleanup
+    if (isCleanupRef.current) {
+      return;
+    }
+
+    isConnectingRef.current = true;
+    setReconnectAttempt(attempt);
 
     try {
-      console.log(`🔌 Connecting to WebSocket: ${WS_URL}/ws (attempt ${reconnectAttempt + 1})`);
+      console.log(`🔌 Connecting to ${WS_URL}/ws (attempt ${attempt + 1})`);
       const ws = new WebSocket(`${WS_URL}/ws`);
 
       ws.onopen = () => {
         console.log('✅ WebSocket connected');
+        isConnectingRef.current = false;
         setIsConnected(true);
-        setConnectionQuality('unstable'); // Start as unstable until verified
+        setConnectionQuality('unstable'); // Start as unstable
+        hasEverConnectedRef.current = true; // ✅ Mark as successfully connected
 
-        // ✅ FIX #1: Don't reset attempts immediately - wait for stability
-        // Clear any existing stability timeout
         if (stabilityTimeoutRef.current) {
           clearTimeout(stabilityTimeoutRef.current);
         }
 
-        // ✅ FIX #2: Verify connection stability before resetting counter
+        // ✅ Wait longer before declaring stable (5s)
         stabilityTimeoutRef.current = setTimeout(() => {
-          if (ws.readyState === WebSocket.OPEN) {
+          if (ws.readyState === WebSocket.OPEN && !isCleanupRef.current) {
             resetReconnectAttempts();
             startHeartbeat();
           }
@@ -191,14 +197,15 @@ export function useWebSocket(onMessage: (data: any) => void, config: Partial<Web
         try {
           const data = JSON.parse(event.data);
           
-          // Handle pong responses
           if (data.type === 'pong') {
             lastPongTimeRef.current = Date.now();
-            setConnectionQuality('good');
+            missedPongsRef.current = 0;
+            if (connectionQuality !== 'good') {
+              setConnectionQuality('good');
+            }
             return;
           }
 
-          // Handle ping requests from server
           if (data.type === 'ping') {
             if (ws.readyState === WebSocket.OPEN) {
               ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
@@ -206,7 +213,6 @@ export function useWebSocket(onMessage: (data: any) => void, config: Partial<Web
             return;
           }
 
-          // Pass message to handler
           messageHandlerRef.current(data);
         } catch (error) {
           console.error('❌ Error parsing WebSocket message:', error);
@@ -215,15 +221,16 @@ export function useWebSocket(onMessage: (data: any) => void, config: Partial<Web
 
       ws.onerror = (error) => {
         console.error('❌ WebSocket error:', error);
+        isConnectingRef.current = false;
         setConnectionQuality('unstable');
       };
 
       ws.onclose = (event) => {
-        console.log(`🔌 WebSocket disconnected: ${event.code} ${event.reason || '(no reason)'}`);
+        console.log(`🔌 WebSocket closed: ${event.code} ${event.reason || '(no reason)'}`);
+        isConnectingRef.current = false;
         setIsConnected(false);
         stopHeartbeat();
         
-        // Clear stability timeout
         if (stabilityTimeoutRef.current) {
           clearTimeout(stabilityTimeoutRef.current);
           stabilityTimeoutRef.current = null;
@@ -231,12 +238,14 @@ export function useWebSocket(onMessage: (data: any) => void, config: Partial<Web
 
         wsRef.current = null;
 
-        // ✅ FIX #3: Only auto-reconnect if not a clean close and not during cleanup
+        // ✅ Only auto-reconnect on unexpected close
         const isCleanClose = event.code === 1000 || event.code === 1001;
-        if (!isCleanClose && !isCleanupRef.current) {
+        const isComponentUnmounting = event.reason === 'Component unmounting';
+        
+        if (!isCleanClose && !isCleanupRef.current && !isComponentUnmounting) {
           setConnectionQuality('unstable');
-          scheduleReconnect(reconnectAttempt);
-        } else if (isCleanupRef.current) {
+          scheduleReconnect(attempt);
+        } else {
           console.log('✅ Clean shutdown - no reconnect');
         }
       };
@@ -244,13 +253,18 @@ export function useWebSocket(onMessage: (data: any) => void, config: Partial<Web
       wsRef.current = ws;
     } catch (error) {
       console.error('❌ Failed to create WebSocket:', error);
-      scheduleReconnect(reconnectAttempt);
+      isConnectingRef.current = false;
+      scheduleReconnect(attempt);
     }
-  }, [reconnectAttempt, scheduleReconnect, resetReconnectAttempts, startHeartbeat, stopHeartbeat, finalConfig.connectionStabilityDelay]);
+  }, [
+    finalConfig.connectionStabilityDelay,
+    connectionQuality,
+    resetReconnectAttempts,
+    startHeartbeat,
+    stopHeartbeat,
+    scheduleReconnect,
+  ]);
 
-  /**
-   * Send message with error handling
-   */
   const sendMessage = useCallback((data: any) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       try {
@@ -260,42 +274,57 @@ export function useWebSocket(onMessage: (data: any) => void, config: Partial<Web
         console.error('❌ Failed to send message:', error);
         return false;
       }
-    } else {
-      console.warn('⚠️ WebSocket not connected, cannot send message');
-      return false;
     }
+    return false;
   }, []);
 
-  /**
-   * Force reconnect
-   */
   const forceReconnect = useCallback(() => {
     console.log('🔄 Force reconnecting...');
+    
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    if (stabilityTimeoutRef.current) {
+      clearTimeout(stabilityTimeoutRef.current);
+      stabilityTimeoutRef.current = null;
+    }
+    
+    stopHeartbeat();
+    
     if (wsRef.current) {
       wsRef.current.close();
     }
-    setReconnectAttempt(0);
-    connect();
-  }, [connect]);
+    
+    isConnectingRef.current = false;
+    missedPongsRef.current = 0;
+    connectWithRetry(0);
+  }, [connectWithRetry, stopHeartbeat]);
 
-  // Initialize connection
+  // ✅ Initialize connection ONCE
   useEffect(() => {
     isCleanupRef.current = false;
-    connect();
+    
+    // ✅ Only connect if not already connecting/connected
+    if (!isConnectingRef.current && !wsRef.current) {
+      connectWithRetry(0);
+    }
 
-    // Cleanup
     return () => {
       console.log('🛑 WebSocket cleanup initiated');
       isCleanupRef.current = true;
+      isConnectingRef.current = false;
       
       stopHeartbeat();
       
       if (stabilityTimeoutRef.current) {
         clearTimeout(stabilityTimeoutRef.current);
+        stabilityTimeoutRef.current = null;
       }
       
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
       
       if (wsRef.current) {
@@ -303,7 +332,7 @@ export function useWebSocket(onMessage: (data: any) => void, config: Partial<Web
         wsRef.current = null;
       }
     };
-  }, []); // Only run once on mount
+  }, []); // ✅ Empty deps - only run once
 
   return {
     isConnected,
