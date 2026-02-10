@@ -1,5 +1,5 @@
 """
-Data Normalizers - TLE PRESERVATION FIXED
+Data Normalizers - TLE PRESERVATION
 Ensures TLE data flows from satellite_service → normalizer → data_store → R-tree → WebSocket
 """
 from typing import Dict, Any, Optional
@@ -13,7 +13,7 @@ timescale = load.timescale()
 
 def normalize_celestrak_object(tle_data: Dict[str, str]) -> Optional[SpatialObject]:
     """
-    ✅ FIXED: Preserve TLE data through entire pipeline
+      FIXED: Preserve TLE data through entire pipeline
     Convert Celestrak TLE to SpatialObject with proper validation
     """
     try:
@@ -27,7 +27,7 @@ def normalize_celestrak_object(tle_data: Dict[str, str]) -> Optional[SpatialObje
         
         # Propagate to current position (or use pre-propagated from cache)
         if 'lat' in tle_data and 'lng' in tle_data and 'altitude' in tle_data:
-            # ✅ Use pre-propagated position from satellite_service.position_cache
+            #   Use pre-propagated position from satellite_service.position_cache
             lat = float(tle_data['lat'])
             lng = float(tle_data['lng'])
             alt = float(tle_data['altitude'])
@@ -69,7 +69,7 @@ def normalize_celestrak_object(tle_data: Dict[str, str]) -> Optional[SpatialObje
         if not is_valid_number(inclination) or not is_valid_number(period_minutes):
             return None
         
-        # ✅ CRITICAL FIX: Always build TLE structure in extra
+        #   CRITICAL FIX: Always build TLE structure in extra
         tle_extra = {
             'name': str(tle_data['name']),
             'line1': str(tle_data['tle1']),
@@ -94,7 +94,7 @@ def normalize_celestrak_object(tle_data: Dict[str, str]) -> Optional[SpatialObje
                 'inclination': inclination,
                 'period_minutes': period_minutes,
                 'visible': bool(alt > 500),
-                'tle': tle_extra,  # ✅ Always included!
+                'tle': tle_extra,  #   Always included!
             }
         )
     except Exception as e:

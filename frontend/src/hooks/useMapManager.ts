@@ -8,7 +8,7 @@ export const useMapManager = () => {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [isGlobeView, setIsGlobeView] = useState(true);
   // const [currentZoom, setCurrentZoom] = useState(1.5);
-  const [currentZoom, setCurrentZoom] = useState<number>(ZOOM_CONFIG.DEFAULT_ZOOM);  // ✅ Use config
+  const [currentZoom, setCurrentZoom] = useState<number>(ZOOM_CONFIG.DEFAULT_ZOOM);  //   Use config
 
   const [isZooming, setIsZooming] = useState(false);
 
@@ -36,7 +36,7 @@ export const useMapManager = () => {
       lastZoomUpdate = now;
       // const newZoom = map.getZoom();
       // setCurrentZoom(newZoom);
-      const newZoom = clampZoom(map.getZoom());  // ✅ Clamp to valid range
+      const newZoom = clampZoom(map.getZoom());  //   Clamp to valid range
       setCurrentZoom(newZoom);
 
       if (zoomTimeout) {
@@ -51,13 +51,13 @@ export const useMapManager = () => {
     map.on('zoomend', () => {
       setIsZooming(false);
       // setCurrentZoom(map.getZoom());
-      const newZoom = clampZoom(map.getZoom());  // ✅ Clamp to valid range
+      const newZoom = clampZoom(map.getZoom());  //   Clamp to valid range
       setCurrentZoom(newZoom);
     });
 
     // setCurrentZoom(map.getZoom());
-    setCurrentZoom(clampZoom(map.getZoom()));  // ✅ Initial zoom clamped
-    console.log("✅ Map ready for markers");
+    setCurrentZoom(clampZoom(map.getZoom()));  //   Initial zoom clamped
+    console.log("  Map ready for markers");
   }, []);
 
   // const toggleGlobeView = useCallback(() => {
@@ -104,7 +104,7 @@ export const useMapManager = () => {
         }
       }
 
-      console.log(`✅ Projection switched to ${newProjection}`);
+      console.log(`  Projection switched to ${newProjection}`);
     } catch (error) {
       console.error("❌ Error toggling projection:", error);
     }

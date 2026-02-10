@@ -27,7 +27,7 @@ class SpatialService:
         self.rebuild_in_progress = False
         self.last_rebuild_time: Optional[datetime] = None
 
-        # ✅ FIX #3: Rebuild throttling
+        #   FIX #3: Rebuild throttling
         self.rebuild_scheduled = False
         self.min_rebuild_interval = 30  # Minimum 30 seconds between rebuilds
         self.pending_rebuild_task: Optional[asyncio.Task] = None
@@ -54,7 +54,7 @@ class SpatialService:
         # Trigger background data load
         asyncio.create_task(self._initial_data_load())
 
-        print("✅ Spatial service ready (loading data in background)")
+        print("  Spatial service ready (loading data in background)")
 
     async def _initial_data_load(self):
         """
@@ -102,7 +102,7 @@ class SpatialService:
                 return
 
             # FIXED: Only rebuild after confirming data is in store
-            print(f"✅ Data verification: {all_objects_count} objects in store")
+            print(f"  Data verification: {all_objects_count} objects in store")
             print(
                 f"   - AirLabs: {'✓' if airlabs_success else '✗'} ({self.stats['last_flights_count']} flights)"
             )
@@ -113,7 +113,7 @@ class SpatialService:
             # Build spatial index with verified data
             await self._rebuild_index()
 
-            print("✅ Initial spatial data loaded")
+            print("  Initial spatial data loaded")
             print(
                 f"📊 Stats: {self.stats['total_processed']} accepted, {self.stats['total_rejected']} rejected"
             )
@@ -174,7 +174,7 @@ class SpatialService:
                     self.stats["last_flights_count"] = len(spatial_objects)
 
                 print(
-                    f"✅ Cached {len(spatial_objects)} aircraft in data_store ({rejected} rejected)"
+                    f"  Cached {len(spatial_objects)} aircraft in data_store ({rejected} rejected)"
                 )
                 return (len(spatial_objects), rejected)
             else:
@@ -270,7 +270,7 @@ class SpatialService:
                 self.stats["last_satellites_count"] = len(spatial_objects)
 
                 print(
-                    f"✅ Cached {satellite_count} satellites, {debris_count} debris in data_store ({rejected} rejected)"
+                    f"  Cached {satellite_count} satellites, {debris_count} debris in data_store ({rejected} rejected)"
                 )
 
                 if rejected > 0:
@@ -295,7 +295,7 @@ class SpatialService:
             print("⏭️ Index rebuild already in progress")
             self.stats["rebuild_skipped_count"] += 1
             return
-        # ✅ Check if rebuild was too recent
+        #   Check if rebuild was too recent
         if self.last_rebuild_time:
             elapsed = (datetime.utcnow() - self.last_rebuild_time).total_seconds()
             if elapsed < self.min_rebuild_interval:
@@ -304,7 +304,7 @@ class SpatialService:
                 )
                 self.stats["rebuild_skipped_count"] += 1
 
-                # ✅ Schedule a rebuild for later if not already scheduled
+                #   Schedule a rebuild for later if not already scheduled
                 if not self.rebuild_scheduled:
                     self.rebuild_scheduled = True
                     delay = self.min_rebuild_interval - elapsed
@@ -355,10 +355,10 @@ class SpatialService:
 
             stats = new_index.get_stats()
             print(
-                f"✅ Spatial index rebuilt: {stats['size']} objects, depth {stats['depth']}"
+                f"  Spatial index rebuilt: {stats['size']} objects, depth {stats['depth']}"
             )
             print(f"📊 Memory estimate: {stats['estimated_memory_mb']:.2f} MB")
-            # ✅ Log rebuild efficiency
+            #   Log rebuild efficiency
             if self.stats["rebuild_skipped_count"] > 0:
                 efficiency = (
                     self.stats["rebuild_skipped_count"]

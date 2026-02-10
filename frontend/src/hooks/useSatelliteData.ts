@@ -1,5 +1,5 @@
 /**
- * Satellite Data Hook - FIXED WITH SMARTER RECONNECTION
+ * Satellite Data Hook 
  * 
  * Keeps data on temporary disconnects
  * Only clears on prolonged connection loss
@@ -58,7 +58,7 @@ export function useSatelliteData(_refreshInterval: number = 2000): {
   
   const hasReceivedDataRef = useRef(false);
   const lastConnectionStateRef = useRef(false);
-  const disconnectTimeRef = useRef<number | null>(null); // ✅ Track when disconnected
+  const disconnectTimeRef = useRef<number | null>(null); //   Track when disconnected
 
   // Initial data load
   const { 
@@ -93,7 +93,7 @@ export function useSatelliteData(_refreshInterval: number = 2000): {
       console.log(`📦 Loaded ${sats.length} satellites and ${deb.length} debris initially`);
 
       const withTLE = transformedSatellites.filter(s => s.tle);
-      console.log(`✅ ${withTLE.length} objects have TLE data`);
+      console.log(`  ${withTLE.length} objects have TLE data`);
     }
   }, [initialData]);
 
@@ -114,7 +114,7 @@ export function useSatelliteData(_refreshInterval: number = 2000): {
       setLastFetchTime(new Date());
       setStatus('ok');
       hasReceivedDataRef.current = true;
-      disconnectTimeRef.current = null; // ✅ Clear disconnect timer
+      disconnectTimeRef.current = null; // Clear disconnect timer
       console.log(`📡 Received initial data: ${sats.length} satellites, ${deb.length} debris`);
     } else if (message.type === 'position_update' && message.data?.satellites) {
       const transformedSatellites = message.data.satellites.map(transformSatelliteData);
@@ -131,7 +131,7 @@ export function useSatelliteData(_refreshInterval: number = 2000): {
       setLastFetchTime(new Date());
       setStatus('ok');
       hasReceivedDataRef.current = true;
-      disconnectTimeRef.current = null; // ✅ Clear disconnect timer
+      disconnectTimeRef.current = null; // Clear disconnect timer
 
       // Log occasionally
       if (Math.random() < 0.033) {
@@ -142,7 +142,7 @@ export function useSatelliteData(_refreshInterval: number = 2000): {
 
   const { isConnected, connectionQuality, forceReconnect } = useWebSocket(handleWebSocketMessage);
 
-  // ✅ IMPROVED: Handle disconnection with grace period
+  //   IMPROVED: Handle disconnection with grace period
   useEffect(() => {
     const wasConnected = lastConnectionStateRef.current;
     const isNowConnected = isConnected;
@@ -158,7 +158,7 @@ export function useSatelliteData(_refreshInterval: number = 2000): {
         console.log('⚠️ WebSocket disconnected - starting grace period');
         disconnectTimeRef.current = Date.now();
         
-        // ✅ Only mark as error after prolonged disconnect (30 seconds)
+        // Only mark as error after prolonged disconnect (30 seconds)
         setTimeout(() => {
           if (disconnectTimeRef.current && 
               Date.now() - disconnectTimeRef.current > 30000) {
@@ -172,7 +172,7 @@ export function useSatelliteData(_refreshInterval: number = 2000): {
     lastConnectionStateRef.current = isNowConnected;
   }, [isConnected, refetch]);
 
-  // ✅ IMPROVED: Monitor connection quality with grace period
+  // Monitor connection quality with grace period
   useEffect(() => {
     if (connectionQuality === 'lost') {
       // Only clear if disconnected for >30s

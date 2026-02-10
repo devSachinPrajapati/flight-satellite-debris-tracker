@@ -1,6 +1,6 @@
 /**
  * Viewport Utilities - Efficient Bounds Checking
- * ✅ Prevents rendering markers outside visible area
+ * Prevents rendering markers outside visible area
  */
 
 export interface ViewportBounds {
@@ -33,7 +33,7 @@ export const getViewportBounds = (map: any): ViewportBounds | null => {
 
 /**
  * Check if a coordinate is within viewport bounds
- * ✅ CRITICAL OPTIMIZATION: Prevents rendering off-screen markers
+ * Prevents rendering off-screen markers
  */
 export const isInViewport = (
   lat: number,
@@ -56,7 +56,7 @@ export const isInViewport = (
 };
 
 /**
- * ✅ OPTIMIZED: Add buffer zone around viewport for smooth panning
+ * Add buffer zone around viewport for smooth panning
  * Markers just outside viewport are pre-rendered for smoother experience
  * 
  * @param bounds Current viewport bounds
@@ -82,7 +82,7 @@ export const expandBounds = (
 
 /**
  * Filter objects to only those in viewport
- * ✅ CRITICAL OPTIMIZATION: Reduces marker count by 60-90% typically
+ * Reduces marker count by 60-90% typically
  */
 export const filterByViewport = <T extends { lat: number; lng: number }>(
   objects: T[],
@@ -113,7 +113,7 @@ export const getViewportArea = (bounds: ViewportBounds): number => {
 };
 
 /**
- * ✅ SMART CULLING: Prioritize markers by distance from viewport center
+ * SMART CULLING: Prioritize markers by distance from viewport center
  * Useful when marker count exceeds limit - keep closest ones
  */
 export const prioritizeByProximity = <T extends { lat: number; lng: number }>(

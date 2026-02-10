@@ -13,7 +13,7 @@ const MapViewToggle = ({ isGlobeView, onToggle }: MapViewToggleProps) => {
       title={isGlobeView ? "Switch to Flat Map" : "Switch to Globe View"}
       aria-label={isGlobeView ? "Switch to Flat Map" : "Switch to Globe View"}
     >
-      {/* ✅ FIX: Add visual feedback with animation */}
+      {/* Add visual feedback with animation */}
       <div className="relative">
         {isGlobeView ? (
           <MapIcon 
@@ -27,13 +27,13 @@ const MapViewToggle = ({ isGlobeView, onToggle }: MapViewToggleProps) => {
           />
         )}
         
-        {/* ✅ NEW: Active indicator */}
+        {/* Active indicator */}
         <div className={`absolute -bottom-1 -right-1 w-2 h-2 rounded-full transition-all duration-200 ${
           isGlobeView ? 'bg-blue-500' : 'bg-green-500'
         }`} />
       </div>
       
-      {/* ✅ NEW: Tooltip on hover */}
+      {/* Tooltip on hover */}
       <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
         {isGlobeView ? "Switch to Flat Map" : "Switch to Globe View"}
       </div>

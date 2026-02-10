@@ -4,14 +4,14 @@ interface StatsPanelProps {
   aircraftCount: number;
   satelliteCount: number;
   debrisCount: number;
-  lastUpdate?: Date | null; // ✅ FIXED: Accept both Date and null
+  lastUpdate?: Date | null; // Accept both Date and null
   onRefresh?: () => void;
 
   aircraftStatus?: "idle" | "ok" | "error";
   satelliteStatus?: "idle" | "ok" | "error";
   debrisStatus?: "idle" | "ok" | "error";
   fps?: number;
-  isConnected?: boolean; // ✅ NEW: WebSocket connection status
+  isConnected?: boolean; // WebSocket connection status
 }
 
 const StatsPanel = ({
@@ -24,7 +24,7 @@ const StatsPanel = ({
   satelliteStatus = "idle",
   debrisStatus = "idle",
   fps,
-  isConnected = false, // ✅ NEW: Default to false
+  isConnected = false, // Default to false
 }: StatsPanelProps) => {
   const formatTime = (date: Date | null | undefined) => {
     if (!date) return "Never";
@@ -50,7 +50,7 @@ const StatsPanel = ({
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
           Live Tracking Stats
-          {/* ✅ NEW: WebSocket Connection Indicator */}
+          {/* WebSocket Connection Indicator */}
           {isConnected && (
             <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-300">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
@@ -149,7 +149,7 @@ const StatsPanel = ({
           <div className="text-xs text-gray-500">
             Last Update: {formatTime(lastUpdate)}
           </div>
-          {/* ✅ NEW: Show real-time indicator when connected */}
+          {/* Show real-time indicator when connected */}
           {isConnected && (
             <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
               <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>

@@ -41,7 +41,7 @@ async def lifespan(app: FastAPI):
     ]
     
     # Don't wait - server is ready immediately!
-    print("✅ Server ready instantly!")
+    print("Server ready instantly!")
     print(f"📡 WebSocket broadcast: {settings.WEBSOCKET_BROADCAST_INTERVAL}s")
     print(f"✈️ Flight refresh: {settings.AIRLABS_FETCH_INTERVAL}s")
     print(f"🛰️ Satellite refresh: {settings.CELESTRAK_FETCH_INTERVAL}s")
@@ -57,7 +57,7 @@ async def lifespan(app: FastAPI):
             await task
         except asyncio.CancelledError:
             pass
-    print("✅ Shutdown complete")
+    print("Shutdown complete")
 
 
 app = FastAPI(

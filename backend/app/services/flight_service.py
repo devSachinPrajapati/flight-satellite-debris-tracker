@@ -44,7 +44,7 @@ class FlightService:
             flights = await self.fetch_from_airlabs()
             if flights:
                 self.update_cache_from_api(flights)
-                print(f"✅ Flight service ready with {len(self.flights_cache)} real flights")
+                print(f"  Flight service ready with {len(self.flights_cache)} real flights")
             else:
                 print("⚠️ No flights received from API")
         except Exception as e:
@@ -85,7 +85,7 @@ class FlightService:
 
                         avg_time = sum(self.api_response_times) / len(self.api_response_times)
                         print(
-                            f"✅ AirLabs API: {len(flights)} flights "
+                            f"  AirLabs API: {len(flights)} flights "
                             f"in {elapsed:.2f}s (avg: {avg_time:.2f}s)"
                         )
 

@@ -1,5 +1,5 @@
 /**
- * Aircraft Data Hook - FIXED WITH SMARTER RECONNECTION
+ * Aircraft Data Hook 
  * 
  * Keeps data on temporary disconnects
  * Only clears on prolonged connection loss
@@ -44,7 +44,7 @@ export function useAircraftData(_refreshInterval: number = 5000) {
   
   const hasReceivedDataRef = useRef(false);
   const lastConnectionStateRef = useRef(false);
-  const disconnectTimeRef = useRef<number | null>(null); // ✅ Track when disconnected
+  const disconnectTimeRef = useRef<number | null>(null); // Track when disconnected
 
   // Initial data load
   const { 
@@ -74,7 +74,7 @@ export function useAircraftData(_refreshInterval: number = 5000) {
       console.log(`📦 Loaded ${transformedAircraft.length} aircraft initially`);
       
       const withAirports = transformedAircraft.filter(a => a.dep_iata || a.arr_iata);
-      console.log(`✅ ${withAirports.length} flights have airport codes`);
+      console.log(`  ${withAirports.length} flights have airport codes`);
     }
   }, [initialData]);
 
@@ -86,7 +86,7 @@ export function useAircraftData(_refreshInterval: number = 5000) {
       setLastFetchTime(new Date());
       setStatus('ok');
       hasReceivedDataRef.current = true;
-      disconnectTimeRef.current = null; // ✅ Clear disconnect timer
+      disconnectTimeRef.current = null; //   Clear disconnect timer
       console.log(`📡 Received initial data: ${transformedAircraft.length} aircraft`);
     } else if (message.type === 'position_update' && message.data?.flights) {
       const transformedAircraft = message.data.flights.map(transformFlightToAircraft);
@@ -94,7 +94,7 @@ export function useAircraftData(_refreshInterval: number = 5000) {
       setLastFetchTime(new Date());
       setStatus('ok');
       hasReceivedDataRef.current = true;
-      disconnectTimeRef.current = null; // ✅ Clear disconnect timer
+      disconnectTimeRef.current = null; //   Clear disconnect timer
       
       // Log occasionally
       if (Math.random() < 0.033) {
@@ -105,7 +105,7 @@ export function useAircraftData(_refreshInterval: number = 5000) {
 
   const { isConnected, connectionQuality, forceReconnect } = useWebSocket(handleWebSocketMessage);
 
-  // ✅ IMPROVED: Handle disconnection with grace period
+  // Handle disconnection with grace period
   useEffect(() => {
     const wasConnected = lastConnectionStateRef.current;
     const isNowConnected = isConnected;
@@ -121,7 +121,7 @@ export function useAircraftData(_refreshInterval: number = 5000) {
         console.log('⚠️ WebSocket disconnected - starting grace period');
         disconnectTimeRef.current = Date.now();
         
-        // ✅ Only mark as error after prolonged disconnect (30 seconds)
+        //   Only mark as error after prolonged disconnect (30 seconds)
         setTimeout(() => {
           if (disconnectTimeRef.current && 
               Date.now() - disconnectTimeRef.current > 30000) {
@@ -135,7 +135,7 @@ export function useAircraftData(_refreshInterval: number = 5000) {
     lastConnectionStateRef.current = isNowConnected;
   }, [isConnected, refetch]);
 
-  // ✅ IMPROVED: Monitor connection quality with grace period
+  // Monitor connection quality with grace period
   useEffect(() => {
     if (connectionQuality === 'lost') {
       // Only clear if disconnected for >30s

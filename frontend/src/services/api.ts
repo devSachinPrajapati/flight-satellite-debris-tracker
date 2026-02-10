@@ -12,9 +12,6 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
-// ❌ REMOVED: Direct API calls to AirLabs/Celestrak
-// All data now comes from backend exclusively
-
 export const fetchWithTimeout = async (
   url: string,
   options?: RequestInit,

@@ -14,7 +14,7 @@ export const useAircraftPerformance = (aircraftHex?: string) => {
   const prevHexRef = useRef<string | undefined>(undefined);
 
   /**
-   * ✅ FIXED: Record performance data with PROPER v_speed calculation
+   * Record performance data with PROPER v_speed calculation
    */
   const recordPerformanceData = useCallback((aircraft: Aircraft) => {
     const hex = aircraft.hex;
@@ -40,7 +40,7 @@ export const useAircraftPerformance = (aircraftHex?: string) => {
       console.log(`🆕 Created new performance record for ${hex}`);
     }
 
-    // ✅ FIX: Calculate v_speed from CONSECUTIVE altitude changes
+    // Calculate v_speed from CONSECUTIVE altitude changes
     let v_speed = aircraft.v_speed;
     
     if (perfData.data_points.length > 0) {
@@ -77,7 +77,7 @@ export const useAircraftPerformance = (aircraftHex?: string) => {
       perfData.data_points = perfData.data_points.slice(-MAX_DATA_POINTS);
     }
 
-    // ✅ Calculate SPEED statistics (TRUE AVERAGE)
+    // Calculate SPEED statistics (TRUE AVERAGE)
     const allSpeeds = perfData.data_points
       .map(p => p.speed)
       .filter(s => !isNaN(s) && s > 0);
@@ -88,7 +88,7 @@ export const useAircraftPerformance = (aircraftHex?: string) => {
       perfData.min_speed = Math.min(...allSpeeds);
     }
 
-    // ✅ Calculate ALTITUDE statistics (TRUE AVERAGE)
+    // Calculate ALTITUDE statistics (TRUE AVERAGE)
     const allAltitudes = perfData.data_points
       .map(p => p.altitude)
       .filter(a => !isNaN(a) && a >= 0);
@@ -98,7 +98,7 @@ export const useAircraftPerformance = (aircraftHex?: string) => {
       perfData.max_altitude = Math.max(...allAltitudes);
     }
 
-    // ✅ Calculate CLIMB/DESCENT rates (from consecutive points)
+    // Calculate CLIMB/DESCENT rates (from consecutive points)
     if (perfData.data_points.length >= 3) {
       const climbRates: number[] = [];
       const descentRates: number[] = [];
@@ -156,8 +156,6 @@ export const useAircraftPerformance = (aircraftHex?: string) => {
         avg_alt: perfData.avg_altitude.toFixed(1),
         max_alt: perfData.max_altitude.toFixed(0),
         current_v_speed: v_speed?.toFixed(0) || 'N/A',
-        // climb_avg: perfData.climb_rate_avg.toFixed(1),
-        // descent_avg: perfData.descent_rate_avg.toFixed(1),
       });
     }
 
@@ -165,7 +163,7 @@ export const useAircraftPerformance = (aircraftHex?: string) => {
   }, []);
 
   /**
-   * ✅ React to aircraft changes and update performance data display
+   *   React to aircraft changes and update performance data display
    */
   useEffect(() => {
     if (!aircraftHex) {
@@ -185,7 +183,7 @@ export const useAircraftPerformance = (aircraftHex?: string) => {
     const perfData = performanceCache.get(aircraftHex);
 
     if (perfData) {
-      console.log('✅ Loading cached data:', aircraftHex, perfData.data_points.length, 'points');
+      console.log('  Loading cached data:', aircraftHex, perfData.data_points.length, 'points');
       setPerformance({ ...perfData });
     } else {
       console.log('⏳ No cached data for:', aircraftHex);

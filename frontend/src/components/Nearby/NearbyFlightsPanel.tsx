@@ -1,11 +1,12 @@
 /*
-✅ Select an aircraft → List shows 20 flights
-✅ Click "Load More" → List shows 40 flights
-✅ Wait 2 seconds (WebSocket update) → List still shows 40 flights 
-✅ Change radius → List resets to 20 flights
-✅ Toggle filter → List resets to 20 flights
-✅ Select different aircraft → List resets to 20 flights
+  Select an aircraft → List shows 20 flights
+  Click "Load More" → List shows 40 flights
+  Wait 2 seconds (WebSocket update) → List still shows 40 flights 
+  Change radius → List resets to 20 flights
+  Toggle filter → List resets to 20 flights
+  Select different aircraft → List resets to 20 flights
 */
+
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useMemo, useRef } from "react";
 import type { Aircraft, NearbyFlight } from "../../types";
@@ -52,7 +53,7 @@ const NearbyFlightsPanel = ({
   
   const ITEMS_PER_PAGE = 20;
 
-  // ✅ FIX: Track filter state separately from display state
+  // Track filter state separately from display state
   const prevFiltersRef = useRef({
     hex: selectedAircraft.hex,
     radiusKm,
@@ -60,7 +61,7 @@ const NearbyFlightsPanel = ({
     showSimilarAltitude,
   });
 
-  // ✅ FIX: Separate effect for filter changes (resets displayLimit)
+  // Separate effect for filter changes (resets displayLimit)
   useEffect(() => {
     const filtersChanged =
       prevFiltersRef.current.hex !== selectedAircraft.hex ||
@@ -82,7 +83,7 @@ const NearbyFlightsPanel = ({
     }
   }, [selectedAircraft.hex, radiusKm, showSameDirection, showSimilarAltitude]);
 
-  // ✅ FIX: Separate effect for data updates (preserves displayLimit)
+  // Separate effect for data updates (preserves displayLimit)
   useEffect(() => {
     const result = findNearbyFlightsAroundAircraft(
       allAircraft,
@@ -105,19 +106,19 @@ const NearbyFlightsPanel = ({
 
       setNearbyFlights(filtered);
       
-      // ✅ CRITICAL: Clamp displayLimit to available flights without resetting
+      // Clamp displayLimit to available flights without resetting
       setDisplayLimit(prev => Math.min(prev, filtered.length || ITEMS_PER_PAGE));
     }
   }, [selectedAircraft, allAircraft, radiusKm, showSameDirection, showSimilarAltitude]);
 
-  // ✅ OPTIMIZATION: Memoize expensive calculations
+  // Memoize expensive calculations
   const closest = useMemo(() => findClosestAircraft(nearbyFlights), [nearbyFlights]);
   const fastest = useMemo(() => findFastestAircraft(nearbyFlights), [nearbyFlights]);
   const lowest = useMemo(() => findLowestAltitudeAircraft(nearbyFlights), [nearbyFlights]);
 
   const totalFlights = nearbyFlights.length;
   
-  // ✅ OPTIMIZATION: Only recalculate when dependencies actually change
+  // Only recalculate when dependencies actually change
   const displayedFlights = useMemo(() => {
     return nearbyFlights.slice(0, displayLimit);
   }, [nearbyFlights, displayLimit]);

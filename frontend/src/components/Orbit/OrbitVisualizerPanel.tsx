@@ -109,7 +109,7 @@ const OrbitVisualizerPanel = ({
     return null;
   }
 
-  // CRITICAL FIX: Use satellite.orbit_type from backend instead of recalculating
+  // Use satellite.orbit_type from backend instead of recalculating
   const orbitType = satellite.orbit_type || prediction.orbit_type;
 
   // Get orbit description
@@ -157,10 +157,6 @@ const OrbitVisualizerPanel = ({
             {orbitType}
           </div>
           <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-            {/* {prediction.orbit_type === 'LEO' && 'Low Earth Orbit (160-2000 km)'}
-            {prediction.orbit_type === 'MEO' && 'Medium Earth Orbit (2000-35786 km)'}
-            {prediction.orbit_type === 'GEO' && 'Geostationary Orbit (~35786 km)'}
-            {prediction.orbit_type === 'HEO' && 'High Earth Orbit (>35786 km)'} */}
             {getOrbitDescription(orbitType)}
           </div>
         </div>

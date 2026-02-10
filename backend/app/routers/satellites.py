@@ -1,5 +1,5 @@
 """
-Satellite API Router - FIXED TLE DATA INCLUSION
+Satellite API Router - TLE DATA INCLUSION
 Ensures TLE data is always present in responses
 """
 from fastapi import APIRouter, HTTPException
@@ -38,7 +38,7 @@ def safe_float(value, default=0.0):
 
 def build_satellite_response(norad_id: str, sat_data: dict) -> dict:
     """
-    ✅ FIXED: Build satellite response with guaranteed TLE data
+    Build satellite response with guaranteed TLE data
     Always includes TLE structure, even if empty
     """
     # Validate coordinates
@@ -55,7 +55,7 @@ def build_satellite_response(norad_id: str, sat_data: dict) -> dict:
     if alt > 100000:
         raise ValueError(f"Invalid altitude for satellite {norad_id}: {alt} km")
     
-    # ✅ CRITICAL FIX: Always build TLE structure
+    # Always build TLE structure
     tle_data = sat_data.get('tle')
     if tle_data and isinstance(tle_data, dict):
         # TLE data exists - use it
@@ -65,7 +65,7 @@ def build_satellite_response(norad_id: str, sat_data: dict) -> dict:
             'line2': str(tle_data.get('line2', '')),
         }
     else:
-        # ✅ NO TLE DATA - Return empty structure (not None!)
+        # NO TLE DATA - Return empty structure (not None!)
         # This ensures frontend always has a TLE object to check
         tle_response = {
             'name': str(sat_data.get('name', 'Unknown')),
@@ -89,7 +89,7 @@ def build_satellite_response(norad_id: str, sat_data: dict) -> dict:
         'visible': bool(sat_data.get('visible', False)),
         'epoch': sat_data.get('epoch'),
         'conjunction_risk': bool(sat_data.get('conjunction_risk', False)),
-        'tle': tle_response,  # ✅ Always present, never None
+        'tle': tle_response,  # Always present, never None
     }
 
 
@@ -103,7 +103,7 @@ async def get_all_satellites():
     all_satellites = []
     rejected = 0
     
-    # ✅ Use position_cache (already propagated positions)
+    # Use position_cache (already propagated positions)
     for norad_id, sat_data in satellite_service.position_cache.items():
         try:
             sat_obj = build_satellite_response(norad_id, sat_data)
@@ -118,7 +118,7 @@ async def get_all_satellites():
     satellites = [s for s in all_satellites if s.get('object_type') == 'satellite']
     debris_list = [s for s in all_satellites if s.get('object_type') == 'debris']
     
-    print(f"✅ Satellite API: {len(satellites)} satellites, {len(debris_list)} debris ({rejected} rejected)")
+    print(f" Satellite API: {len(satellites)} satellites, {len(debris_list)} debris ({rejected} rejected)")
     
     return {
         "satellites": satellites + debris_list,
@@ -137,7 +137,7 @@ async def get_satellite(norad_id: str):
     if not satellite_service.is_ready:
         raise HTTPException(status_code=503, detail="Satellite service not ready")
     
-    # ✅ Get from position_cache (has TLE data)
+    #   Get from position_cache (has TLE data)
     sat_data = satellite_service.position_cache.get(norad_id)
     
     if not sat_data:

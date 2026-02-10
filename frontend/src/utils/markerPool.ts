@@ -142,8 +142,6 @@ export class MarkerPool {
     el.style.display = 'flex';
   }
 
-
-
   /**
    * Get pool statistics
    */

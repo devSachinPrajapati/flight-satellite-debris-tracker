@@ -1,5 +1,5 @@
 """
-WebSocket Manager - FIXED: Race condition handling + better error recovery
+WebSocket Manager 
 """
 from fastapi import WebSocket, WebSocketDisconnect
 from typing import List, Dict, Any
@@ -54,9 +54,9 @@ class WebSocketManager:
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
-        print(f"✅ WebSocket connected (Total: {len(self.active_connections)})")
+        print(f"  WebSocket connected (Total: {len(self.active_connections)})")
         
-        # ✅ FIX: Send initial data in background to avoid blocking
+        #   FIX: Send initial data in background to avoid blocking
         asyncio.create_task(self._send_initial_data_safe(websocket))
     
     def disconnect(self, websocket: WebSocket):
@@ -66,7 +66,7 @@ class WebSocketManager:
     
     async def _send_initial_data_safe(self, websocket: WebSocket):
         """
-        ✅ FIX: Safely send initial data with connection checks
+          FIX: Safely send initial data with connection checks
         """
         try:
             # Check if still connected before starting
@@ -130,13 +130,13 @@ class WebSocketManager:
             # Get data from R-tree spatial index
             flights_data = self._get_flights_from_rtree()
             
-            # ✅ FIX: Retry logic with connection checks
+            #   FIX: Retry logic with connection checks
             satellites_data = []
             max_retries = 5
             retry_delay = 0.5  # Start with shorter delay
             
             for attempt in range(max_retries):
-                # ✅ Check if client still connected
+                #   Check if client still connected
                 if websocket not in self.active_connections:
                     print(f"⚠️ Client disconnected during satellite retry (attempt {attempt + 1})")
                     return
@@ -145,7 +145,7 @@ class WebSocketManager:
                 
                 if satellites_data or attempt == max_retries - 1:
                     if attempt > 0:
-                        print(f"✅ Satellites loaded on attempt {attempt + 1}")
+                        print(f"  Satellites loaded on attempt {attempt + 1}")
                     break
                 
                 if attempt == 0:
@@ -192,7 +192,7 @@ class WebSocketManager:
     
     async def _send_if_connected(self, websocket: WebSocket, data: dict):
         """
-        ✅ FIX: Only send if websocket is still connected
+          FIX: Only send if websocket is still connected
         """
         if websocket not in self.active_connections:
             return
@@ -381,7 +381,7 @@ class WebSocketManager:
             
             json_str = json.dumps(message)
             
-            # ✅ FIX: Use list copy to avoid modification during iteration
+            #   FIX: Use list copy to avoid modification during iteration
             disconnected = []
             for connection in list(self.active_connections):
                 try:

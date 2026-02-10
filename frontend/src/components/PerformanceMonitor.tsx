@@ -11,17 +11,6 @@
 
 import React, { useState, useEffect } from "react";
 
-/*
-interface PerformanceStats {
-  fps: number;
-  totalObjects: number;
-  renderedObjects: number;
-  reductionPercent: number;
-  memoryUsage?: number;
-  markerCount: number;
-}
-*/
-
 interface PerformanceMonitorProps {
   fps: number;
   totalAircraft: number;

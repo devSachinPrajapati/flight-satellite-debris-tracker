@@ -29,16 +29,16 @@ const PerformanceDashboard = ({
   const [chartData, setChartData] = useState<any[]>([]);
   const [cacheStats, setCacheStats] = useState({ total_aircraft: 0, total_data_points: 0 });
 
-  // ✅ Store the latest aircraft data in a ref so interval can access it
+  // Store the latest aircraft data in a ref so interval can access it
   const latestAircraftRef = useRef<Aircraft>(aircraft);
   const dataCollectionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ✅ CRITICAL: Update the ref whenever aircraft prop changes
+  // Update the ref whenever aircraft prop changes
   useEffect(() => {
     latestAircraftRef.current = aircraft;
   }, [aircraft]);
 
-  // ✅ Set up interval-based data collection
+  //   Set up interval-based data collection
   useEffect(() => {
     console.log('🎯 Setting up data collection for:', aircraft.hex);
 
@@ -70,7 +70,7 @@ const PerformanceDashboard = ({
     };
   }, [aircraft.hex]);
 
-  // ✅ Update chart data whenever performance changes
+  //   Update chart data whenever performance changes
   useEffect(() => {
     if (performance && performance.data_points.length > 0) {
       const data = performance.data_points.map((point, index) => ({
@@ -85,7 +85,7 @@ const PerformanceDashboard = ({
     }
   }, [performance]);
 
-  // ✅ Update cache stats periodically
+  // Update cache stats periodically
   useEffect(() => {
     const interval = setInterval(() => {
       setCacheStats(getCacheStats());
@@ -93,7 +93,7 @@ const PerformanceDashboard = ({
     return () => clearInterval(interval);
   }, [getCacheStats]);
 
-  // ✅ Show loading state only if less than 2 points
+  // Show loading state only if less than 2 points
   if (!performance || performance.data_points.length < 2) {
     return (
       <div className="fixed right-4 top-20 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-96 z-50">
@@ -138,7 +138,7 @@ const PerformanceDashboard = ({
     );
   }
 
-  // ✅ Calculate data collection duration
+  // Calculate data collection duration
   const firstPoint = performance.data_points[0];
   const lastPoint = performance.data_points[performance.data_points.length - 1];
   const durationSeconds = (lastPoint.timestamp - firstPoint.timestamp) / 1000;
@@ -179,7 +179,7 @@ const PerformanceDashboard = ({
         </button>
       </div>
 
-      {/* ✅ Statistics Grid */}
+      {/* Statistics Grid */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
           <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">
@@ -230,7 +230,7 @@ const PerformanceDashboard = ({
         </div>
       </div>
 
-      {/* ✅ Current vs Historical Comparison */}
+      {/* Current vs Historical Comparison */}
       <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
         <div>
           <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">CURRENT VALUES</div>
@@ -255,10 +255,10 @@ const PerformanceDashboard = ({
             <div className="flex justify-between">
               <span className="text-gray-600 dark:text-gray-400">vs Avg:</span>
               <span className={`font-semibold ${Math.abs(aircraft.speed - performance.avg_speed) < 1
-                  ? 'text-gray-600'
-                  : aircraft.speed > performance.avg_speed
-                    ? 'text-green-600'
-                    : 'text-red-600'
+                ? 'text-gray-600'
+                : aircraft.speed > performance.avg_speed
+                  ? 'text-green-600'
+                  : 'text-red-600'
                 }`}>
                 {aircraft.speed > performance.avg_speed ? '+' : ''}
                 {(aircraft.speed - performance.avg_speed).toFixed(1)} kts
@@ -267,10 +267,10 @@ const PerformanceDashboard = ({
             <div className="flex justify-between">
               <span className="text-gray-600 dark:text-gray-400">vs Avg:</span>
               <span className={`font-semibold ${Math.abs(aircraft.alt - performance.avg_altitude) < 10
-                  ? 'text-gray-600'
-                  : aircraft.alt > performance.avg_altitude
-                    ? 'text-green-600'
-                    : 'text-red-600'
+                ? 'text-gray-600'
+                : aircraft.alt > performance.avg_altitude
+                  ? 'text-green-600'
+                  : 'text-red-600'
                 }`}>
                 {aircraft.alt > performance.avg_altitude ? '+' : ''}
                 {(aircraft.alt - performance.avg_altitude).toFixed(0)} ft
@@ -338,7 +338,7 @@ const PerformanceDashboard = ({
         </>
       )}
 
-      {/* ✅ FIXED: Vertical Speed Display */}
+      {/* Vertical Speed Display */}
       {performance.climb_rate_avg !== undefined &&
         performance.descent_rate_avg !== undefined && (
           <div className="grid grid-cols-2 gap-4 mb-4">

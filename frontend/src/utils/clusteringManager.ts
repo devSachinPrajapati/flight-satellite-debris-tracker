@@ -1,5 +1,4 @@
 /**
- * ClusteringManager.ts - OPTIMIZED FOR YOUR USE CASE
  * 
  * Grid-based clustering optimized for 210-880 objects across zoom levels 1.5-9.5
  * Clustering active ONLY at zoom 2-4 where congestion occurs
@@ -35,25 +34,6 @@ export interface ClusterConfig {
 export class ClusteringManager {
   private config: ClusterConfig;
 
-  // constructor(config: Partial<ClusterConfig> = {}) {
-  //   // ✅ OPTIMIZED: Based on your screenshot analysis
-  //   this.config = {
-  //     minZoomForClustering: config.minZoomForClustering ?? 2, // Start at zoom 2 (880 objects)
-  //     maxZoomForClustering: config.maxZoomForClustering ?? 4.5, // Stop at zoom 4.5 (857 objects)
-  //     gridSizeByZoom: config.gridSizeByZoom ?? {
-  //       // ✅ CRITICAL: These values are tuned for your data density
-  //       0: 40,  // Extreme world view - very aggressive clustering
-  //       1: 35,  // World view - aggressive (210 objects → ~30 clusters)
-  //       2: 20,  // Continental - moderate (880 objects → ~80 clusters) ⚠️ KEY ZOOM
-  //       3: 12,  // Regional - light (865 objects → ~120 clusters) ⚠️ KEY ZOOM
-  //       4: 6,   // Local - very light (857 objects → ~200 clusters) ⚠️ KEY ZOOM
-  //       5: 0,   // ✅ NO CLUSTERING - show all (perfect at 77 objects)
-  //     },
-  //     minClusterSize: config.minClusterSize ?? 3, // Only cluster if 3+ objects nearby
-  //     maxClusterSize: config.maxClusterSize ?? 500, // Reasonable max per cluster
-  //   };
-  // }
-
   constructor(config: Partial<ClusterConfig> = {}) {
     this.config = {
       minZoomForClustering: config.minZoomForClustering ?? ZOOM_CONFIG.THRESHOLDS.CLUSTERING_START,
@@ -64,58 +44,17 @@ export class ClusteringManager {
     };
   }
 
-  /**
-   * ✅ OPTIMIZED: Determine if clustering should be used for given zoom level
-   */
-  // public shouldCluster(zoom: number): boolean {
-  //   return (
-  //     zoom >= this.config.minZoomForClustering &&
-  //     zoom <= this.config.maxZoomForClustering
-  //   );
-  // }
 
   public shouldCluster(zoom: number): boolean {
-    return shouldCluster(zoom);  // ✅ Use centralized function
+    return shouldCluster(zoom);  //   Use centralized function
   }
 
   /**
    * Get grid size for current zoom level with smooth interpolation
    */
-  // private getGridSize(zoom: number): number {
-  //   const zoomLevel = Math.floor(zoom);
-    
-  //   // Return exact value if defined
-  //   if (this.config.gridSizeByZoom[zoomLevel] !== undefined) {
-  //     return this.config.gridSizeByZoom[zoomLevel];
-  //   }
-
-  //   // ✅ OPTIMIZED: Interpolate between defined zoom levels for smooth transitions
-  //   const definedZooms = Object.keys(this.config.gridSizeByZoom)
-  //     .map(Number)
-  //     .sort((a, b) => a - b);
-    
-  //   // Find surrounding zoom levels for interpolation
-  //   let lowerZoom = definedZooms[0];
-  //   let upperZoom = definedZooms[definedZooms.length - 1];
-    
-  //   for (let i = 0; i < definedZooms.length - 1; i++) {
-  //     if (zoom >= definedZooms[i] && zoom <= definedZooms[i + 1]) {
-  //       lowerZoom = definedZooms[i];
-  //       upperZoom = definedZooms[i + 1];
-  //       break;
-  //     }
-  //   }
-    
-  //   // Linear interpolation
-  //   const lowerSize = this.config.gridSizeByZoom[lowerZoom];
-  //   const upperSize = this.config.gridSizeByZoom[upperZoom];
-  //   const ratio = (zoom - lowerZoom) / (upperZoom - lowerZoom);
-    
-  //   return Math.round(lowerSize + (upperSize - lowerSize) * ratio);
-  // }
 
   private getGridSize(zoom: number): number {
-    return getClusterGridSize(zoom);  // ✅ Use centralized function
+    return getClusterGridSize(zoom);  //   Use centralized function
   }
   /**
    * Create grid cell key from coordinates
@@ -180,7 +119,7 @@ export class ClusteringManager {
   }
 
   /**
-   * ✅ OPTIMIZED: Determine cluster type based on objects
+   * Determine cluster type based on objects
    */
   private getClusterType(
     objects: (Aircraft | SatelliteObject)[]
@@ -216,7 +155,7 @@ export class ClusteringManager {
   }
 
   /**
-   * ✅ OPTIMIZED: Cluster aircraft objects
+   * Cluster aircraft objects
    */
   public clusterAircraft(aircraft: Aircraft[], zoom: number): ClusterPoint[] {
     if (!this.shouldCluster(zoom) || aircraft.length === 0) {
@@ -227,7 +166,7 @@ export class ClusteringManager {
   }
 
   /**
-   * ✅ OPTIMIZED: Cluster satellite objects
+   * Cluster satellite objects
    */
   public clusterSatellites(
     satellites: SatelliteObject[],
@@ -241,7 +180,7 @@ export class ClusteringManager {
   }
 
   /**
-   * ✅ OPTIMIZED: Cluster debris objects
+   * Cluster debris objects
    */
   public clusterDebris(debris: SatelliteObject[], zoom: number): ClusterPoint[] {
     if (!this.shouldCluster(zoom) || debris.length === 0) {
@@ -252,7 +191,7 @@ export class ClusteringManager {
   }
 
   /**
-   * ✅ OPTIMIZED: Generic clustering algorithm using spatial grid
+   * Generic clustering algorithm using spatial grid
    * Performance: O(n) where n is number of objects
    */
   private clusterObjects(
@@ -269,7 +208,7 @@ export class ClusteringManager {
 
     const grid = new Map<string, (Aircraft | SatelliteObject)[]>();
 
-    // ✅ OPTIMIZED: Single pass to distribute objects into grid cells
+    // Single pass to distribute objects into grid cells
     objects.forEach((obj) => {
       const key = this.getGridKey(obj.lat, obj.lng, gridSize);
       if (!grid.has(key)) {
@@ -278,7 +217,7 @@ export class ClusteringManager {
       grid.get(key)!.push(obj);
     });
 
-    // ✅ OPTIMIZED: Create clusters only for cells with enough objects
+    // Create clusters only for cells with enough objects
     const clusters: ClusterPoint[] = [];
 
     grid.forEach((cellObjects) => {
@@ -305,7 +244,7 @@ export class ClusteringManager {
   }
 
   /**
-   * ✅ NEW: Cluster all objects together (mixed clustering)
+   * Cluster all objects together (mixed clustering)
    */
   public clusterAll(
     aircraft: Aircraft[],
@@ -368,7 +307,7 @@ export class ClusteringManager {
   }
 
   /**
-   * ✅ NEW: Get render strategy recommendation
+   * Get render strategy recommendation
    */
   public getRenderStrategy(
     totalObjects: number,
@@ -407,7 +346,7 @@ export class ClusteringManager {
   }
 
   /**
-   * ✅ NEW: Debug info for optimization
+   * Debug info for optimization
    */
   public getDebugInfo(zoom: number): string {
     return `
@@ -421,22 +360,7 @@ export class ClusteringManager {
   }
 }
 
-// ✅ OPTIMIZED: Create singleton with YOUR calibrated settings
-// export const clusteringManager = new ClusteringManager({
-//   minZoomForClustering: 2,    // Start clustering at zoom 2 (880 objects)
-//   maxZoomForClustering: 4.5,  // Stop clustering at zoom 4.5 (857 objects)
-//   gridSizeByZoom: {
-//     0: 40,  // Extreme world view
-//     1: 35,  // World view (210 objects)
-//     2: 20,  // Continental (880 objects) ⚠️ CRITICAL
-//     3: 12,  // Regional (865 objects) ⚠️ CRITICAL
-//     4: 6,   // Local (857 objects) ⚠️ CRITICAL
-//     5: 0,   // No clustering (77 objects - perfect!)
-//   },
-//   minClusterSize: 3,          // Only cluster if 3+ objects in same grid cell
-//   maxClusterSize: 500,        // Max objects per cluster
-// });
-
+// Create singleton with YOUR calibrated settings
 export const clusteringManager = new ClusteringManager({
   minZoomForClustering: ZOOM_CONFIG.THRESHOLDS.CLUSTERING_START,
   maxZoomForClustering: ZOOM_CONFIG.THRESHOLDS.CLUSTERING_END,

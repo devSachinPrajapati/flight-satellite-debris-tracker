@@ -101,7 +101,7 @@ class AirportService:
             cache_age = (datetime.utcnow() - cached["cached_at"]).total_seconds()
             if cache_age < 300:  # 5 minutes
                 # return cached["data"][:limit]
-                # ✅ Return all or limited based on parameter
+                #   Return all or limited based on parameter
                 return cached["data"][:limit] if limit else cached["data"]
         
         # Fetch from API
@@ -138,9 +138,9 @@ class AirportService:
                         self.api_call_count += 1
                         self.last_api_call = datetime.utcnow()
                         
-                        print(f"✅ Fetched {len(schedules)} {schedule_type} for {airport_code}")
+                        print(f"  Fetched {len(schedules)} {schedule_type} for {airport_code}")
                         # return schedules[:limit]
-                        # ✅ Return all or limited
+                        #   Return all or limited
                         return schedules[:limit] if limit else schedules
                     else:
                         print(f"⚠️ Schedules API error {resp.status}")

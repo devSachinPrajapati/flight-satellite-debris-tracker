@@ -15,7 +15,7 @@ interface FeatureButtonsProps {
   onObjectSelect: (data: SelectedObject | null) => void;
 }
 
-// ✅ Feature type definition for better state management
+// Feature type definition for better state management
 type ActiveFeature = 'nearby' | 'airport' | 'performance' | 'satellite' | 'orbit' | null;
 
 const FeatureButtons: React.FC<FeatureButtonsProps> = ({
@@ -24,7 +24,7 @@ const FeatureButtons: React.FC<FeatureButtonsProps> = ({
   mapRef,
   onObjectSelect,
 }) => {
-  // ✅ Single active feature state (only one panel open at a time)
+  //   Single active feature state (only one panel open at a time)
   const [activeFeature, setActiveFeature] = useState<ActiveFeature>(null);
 
   // Selected items for panels
@@ -32,13 +32,13 @@ const FeatureButtons: React.FC<FeatureButtonsProps> = ({
   const [selectedPerformanceAircraft, setSelectedPerformanceAircraft] = useState<Aircraft | null>(null);
   const [selectedSatelliteTracker, setSelectedSatelliteTracker] = useState<SatelliteObject | null>(null);
   const [selectedOrbitSatellite, setSelectedOrbitSatellite] = useState<SatelliteObject | null>(null);
-  // ✅ NEW: Selected aircraft for nearby flights
+  //   NEW: Selected aircraft for nearby flights
   const [selectedNearbyAircraft, setSelectedNearbyAircraft] = useState<Aircraft | null>(null);
 
-  // ✅ Track previous selected object to detect changes
+  //   Track previous selected object to detect changes
   const prevSelectedObjectRef = useRef<SelectedObject | null>(null);
 
-  // ✅ Auto-update feature panels when selected object changes
+  //   Auto-update feature panels when selected object changes
   useEffect(() => {
     const prevObject = prevSelectedObjectRef.current;
     const currentObject = selectedObject;
@@ -63,13 +63,13 @@ const FeatureButtons: React.FC<FeatureButtonsProps> = ({
 
     console.log('🔄 Object changed, updating active feature:', activeFeature);
 
-    // ✅ Auto-update the active feature panel with new object
+    //   Auto-update the active feature panel with new object
     switch (activeFeature) {
       case 'nearby':
-        // ✅ NEW: Update nearby flights when aircraft changes
+        //   NEW: Update nearby flights when aircraft changes
         if (currentObject.type === 'aircraft') {
           setSelectedNearbyAircraft(currentObject.data as Aircraft);
-          console.log('✅ Updated nearby flights center aircraft:', (currentObject.data as Aircraft).hex);
+          console.log('  Updated nearby flights center aircraft:', (currentObject.data as Aircraft).hex);
         } else {
           setActiveFeature(null);
           infoToast("Nearby flights requires aircraft selection.");
@@ -95,7 +95,7 @@ const FeatureButtons: React.FC<FeatureButtonsProps> = ({
       case 'performance':
         if (currentObject.type === 'aircraft') {
           setSelectedPerformanceAircraft(currentObject.data as Aircraft);
-          console.log('✅ Updated performance aircraft:', (currentObject.data as Aircraft).hex);
+          console.log('  Updated performance aircraft:', (currentObject.data as Aircraft).hex);
         } else {
           setActiveFeature(null);
           infoToast("Performance dashboard requires aircraft selection.");
@@ -131,7 +131,7 @@ const FeatureButtons: React.FC<FeatureButtonsProps> = ({
     return null;
   }, []);
 
-  // ✅ Button handlers
+  //   Button handlers
   const handleNearbyFlights = useCallback(() => {
     if (selectedObject?.type === 'aircraft') {
       setSelectedNearbyAircraft(selectedObject.data as Aircraft);
@@ -183,7 +183,7 @@ const FeatureButtons: React.FC<FeatureButtonsProps> = ({
     }
   }, [selectedObject, activeFeature]);
 
-  // ✅ Generic close handler
+  //   Generic close handler
   const handleCloseFeature = useCallback(() => {
     setActiveFeature(null);
   }, []);
@@ -248,8 +248,8 @@ const FeatureButtons: React.FC<FeatureButtonsProps> = ({
         </button>
       </div>
 
-      {/* ✅ FIXED: Feature Panels - Only one visible at a time */}
-      {/* ✅ NEW: NearbyFlightsPanel now requires selected aircraft */}
+      {/*   FIXED: Feature Panels - Only one visible at a time */}
+      {/*   NEW: NearbyFlightsPanel now requires selected aircraft */}
       {activeFeature === 'nearby' && selectedNearbyAircraft && (
         <div className="absolute left-[57rem] top-1 z-40">
           <NearbyFlightsPanel

@@ -27,9 +27,9 @@ export const useRenderStats = (
     renderedDebris: 0,
   });
 
-  // ✅ FIXED: Always filter by viewport - no exceptions!
+  //  Always filter by viewport - no exceptions!
   const filteredByViewport = useMemo(() => {
-    // ✅ CRITICAL FIX: Filter ALWAYS, even during zoom
+    // Filter ALWAYS, even during zoom
     // The "flickering" concern is handled by the marker pool reuse
     const visibleAircraft = viewportManager.filterAircraft(aircraft);
     const visibleSatellites = viewportManager.filterSatellites(satellites);
@@ -45,13 +45,13 @@ export const useRenderStats = (
       renderedDebris: visibleDebris.length,
     });
 
-    // ✅ Log viewport filtering effectiveness
+    // Log viewport filtering effectiveness
     if (Math.random() < 0.1) { // 10% sampling to avoid spam
       const totalObjects = aircraft.length + satellites.length + debris.length;
       const renderedObjects = visibleAircraft.length + visibleSatellites.length + visibleDebris.length;
       const culled = totalObjects - renderedObjects;
       const culledPercent = ((culled / totalObjects) * 100).toFixed(1);
-      
+
       console.log(`🎯 Viewport Culling: ${culled} objects culled (${culledPercent}%) | Zoom: ${currentZoom.toFixed(1)}`);
     }
 
@@ -60,7 +60,7 @@ export const useRenderStats = (
       satellites: visibleSatellites,
       debris: visibleDebris,
     };
-  }, [aircraft, satellites, debris, currentZoom, isZooming]); // ✅ Keep isZooming for reactivity
+  }, [aircraft, satellites, debris, currentZoom, isZooming]); //   Keep isZooming for reactivity
 
   // Log viewport stats periodically
   useEffect(() => {

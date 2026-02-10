@@ -11,7 +11,7 @@ import type { Aircraft, SatelliteObject } from "../../types";
 import SearchPanel from "./SearchPanel";
 
 interface ObjectsListProps {
-  // ✅ NOW: These are viewport-filtered objects from the map
+  //   NOW: These are viewport-filtered objects from the map
   allAircraft: Aircraft[];
   allSatellites: SatelliteObject[];
   allDebris: SatelliteObject[];
@@ -39,7 +39,7 @@ const ObjectsList = ({
 
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // ✅ OPTIMIZATION: Client-side filtering WITHIN viewport objects
+  //   OPTIMIZATION: Client-side filtering WITHIN viewport objects
   const filteredData = useMemo(() => {
     const query = searchQuery.toLowerCase();
 

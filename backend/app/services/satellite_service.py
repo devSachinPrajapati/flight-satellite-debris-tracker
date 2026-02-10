@@ -19,7 +19,7 @@ class SatelliteService:
         self.last_api_call: Optional[datetime] = None
         self.is_ready = False
         self._initial_fetch_task: Optional[asyncio.Task] = None
-        # ✅ FIX #3: Track problematic satellites
+        #   FIX #3: Track problematic satellites
         self.failed_satellites: Dict[str, str] = {}  # norad_id -> error reason
         
     async def initialize(self):
@@ -29,7 +29,7 @@ class SatelliteService:
             
         print("⚡ Satellite service initializing...")
         self.is_ready = True
-        print("✅ Satellite service ready (fetching TLE data in background)")
+        print("  Satellite service ready (fetching TLE data in background)")
         
         if not self._initial_fetch_task:
             self._initial_fetch_task = asyncio.create_task(self._fetch_tle_async())
@@ -43,8 +43,8 @@ class SatelliteService:
                 self.update_cache_from_tle(tle_data)
                 # Propagate all positions immediately after TLE fetch
                 self._propagate_all_satellites()
-                print(f"✅ TLE data loaded: {len(self.tle_cache)} objects, {len(self.position_cache)} positions cached")
-                                # ✅ Log failed satellites summary
+                print(f"  TLE data loaded: {len(self.tle_cache)} objects, {len(self.position_cache)} positions cached")
+                                #   Log failed satellites summary
                 if self.failed_satellites:
                     print(f"⚠️ {len(self.failed_satellites)} satellites failed propagation:")
                     for norad_id, reason in list(self.failed_satellites.items())[:5]:
@@ -70,7 +70,7 @@ class SatelliteService:
                     if resp.status == 200:
                         text = await resp.text()
                         source = url.split('GROUP=')[1].split('&')[0] if 'GROUP=' in url else 'unknown'
-                        print(f"✅ Fetched TLE: {source}")
+                        print(f"  Fetched TLE: {source}")
                         return text
                     else:
                         print(f"⚠️ TLE fetch failed: {url} (status {resp.status})")
@@ -265,7 +265,7 @@ class SatelliteService:
         elapsed = time.time() - start
         
         rate = propagated_count / elapsed if elapsed > 0 else 0
-        print(f"✅ Propagated {propagated_count}/{total_satellites} satellites in {elapsed:.2f}s ({rate:.0f} sat/s, {failed_count} failed)")
+        print(f"  Propagated {propagated_count}/{total_satellites} satellites in {elapsed:.2f}s ({rate:.0f} sat/s, {failed_count} failed)")
     
     def _propagate_batch(self, batch: list, t) -> list:
         """
@@ -344,7 +344,7 @@ class SatelliteService:
                 })
                 
             except Exception as e:
-                 # ✅ Better error tracking
+                 #   Better error tracking
                 error_type = type(e).__name__
                 error_msg = f'{error_type}: {str(e)[:50]}'  # Truncate long errors
                 

@@ -1,5 +1,4 @@
 /**
- * Viewport Manager - FIXED FOR STABLE ZOOM
  * Objects remain visible when zooming in, new objects are added progressively
  */
 import type * as maptilersdk from '@maptiler/sdk';
@@ -12,7 +11,7 @@ class ViewportManager {
   private lastZoom: number = 1.5;
   private debugMode: boolean = false;
 
-  // ✅ NEW: Cache of selected objects for stable rendering
+  // Cache of selected objects for stable rendering
   private selectedObjectIds = {
     aircraft: new Set<string>(),
     satellites: new Set<string>(),
@@ -30,7 +29,7 @@ class ViewportManager {
     const bounds = this.map.getBounds();
     const newZoom = this.map.getZoom();
 
-    // ✅ NEW: Clear cache when zooming OUT (fewer objects)
+    // Clear cache when zooming OUT (fewer objects)
     if (newZoom < this.lastZoom - 0.5) {
       this.selectedObjectIds.aircraft.clear();
       this.selectedObjectIds.satellites.clear();
@@ -84,20 +83,8 @@ class ViewportManager {
     return lat >= south && lat <= north && lngInRange;
   }
 
-  // private getTotalRenderLimit(): number {
-  //   const zoom = this.lastZoom;
-
-  //   if (zoom < 1.5) return 50;
-  //   if (zoom < 2.5) return 120;
-  //   if (zoom < 3.5) return 250;
-  //   if (zoom < 4.5) return 400;
-  //   if (zoom < 5.5) return 600;
-  //   if (zoom < 6.5) return 800;
-  //   if (zoom < 7.5) return 1200;
-  //   return 2000;
-  // }
    private getTotalRenderLimit(): number {
-    return getRenderLimit(this.lastZoom);  // ✅ Use centralized function
+    return getRenderLimit(this.lastZoom);  // Use centralized function
   }
 
   private getObjectTypeQuota(type: 'aircraft' | 'satellite' | 'debris'): number {
@@ -116,7 +103,7 @@ class ViewportManager {
   }
 
   /**
-   * ✅ NEW: Stable object selection with priority scoring
+   * Stable object selection with priority scoring
    * Previously selected objects get priority, new objects fill remaining slots
    */
   private selectObjectsStable<T extends { lat: number; lng: number }>(
@@ -195,7 +182,7 @@ class ViewportManager {
   }
 
   /**
-   * ✅ FIXED: Filter aircraft with stable selection
+   * Filter aircraft with stable selection
    */
   filterAircraft(aircraft: Aircraft[]): Aircraft[] {
     this.updateBounds();
@@ -213,7 +200,7 @@ class ViewportManager {
       this.isInViewport(ac.lat, ac.lng)
     );
 
-    // ✅ NEW: Use stable selection
+    // Use stable selection
     return this.selectObjectsStable(
       inViewport,
       limit,
@@ -223,7 +210,7 @@ class ViewportManager {
   }
 
   /**
-   * ✅ FIXED: Filter satellites with stable selection
+   * Filter satellites with stable selection
    */
   filterSatellites(satellites: SatelliteObject[]): SatelliteObject[] {
     this.updateBounds();
@@ -241,7 +228,7 @@ class ViewportManager {
       this.isInViewport(sat.lat, sat.lng)
     );
 
-    // ✅ NEW: Use stable selection
+    // Use stable selection
     return this.selectObjectsStable(
       inViewport,
       limit,
@@ -251,7 +238,7 @@ class ViewportManager {
   }
 
   /**
-   * ✅ FIXED: Filter debris with stable selection
+   * Filter debris with stable selection
    */
   filterDebris(debris: SatelliteObject[]): SatelliteObject[] {
     this.updateBounds();
@@ -269,7 +256,7 @@ class ViewportManager {
       this.isInViewport(deb.lat, deb.lng)
     );
 
-    // ✅ NEW: Use stable selection
+    //   NEW: Use stable selection
     return this.selectObjectsStable(
       inViewport,
       limit,

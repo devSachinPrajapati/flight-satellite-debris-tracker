@@ -48,14 +48,8 @@ export class LODManager {
   /**
    * Determine LOD level for current zoom
    */
-  // getLODLevel(zoom: number): LODLevel {
-  //   if (zoom >= this.config.high) return 'high';
-  //   if (zoom >= this.config.medium) return 'medium';
-  //   if (zoom >= this.config.low) return 'low';
-  //   return 'minimal';
-  // }
   getLODLevel(zoom: number): LODLevel {
-    return getConfigLODLevel(zoom);  // ✅ Use centralized function
+    return getConfigLODLevel(zoom);  //   Use centralized function
   }
 
   /**
@@ -150,7 +144,7 @@ export class LODManager {
   }
 
   /**
-   * ✅ NEW: Simplify debris for rendering
+   * Simplify debris for rendering
    */
   simplifyDebris(
     debris: any,
@@ -211,7 +205,7 @@ export class LODManager {
   }
 
   /**
-   * ✅ FIXED: Check if LOD level actually changed (not just zoom value)
+   * Check if LOD level actually changed (not just zoom value)
    */
   needsUpdate(
     currentZoom: number,

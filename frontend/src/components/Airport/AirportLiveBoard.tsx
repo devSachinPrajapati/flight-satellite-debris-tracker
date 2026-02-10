@@ -31,7 +31,7 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
   const [error, setError] = useState<string | null>(null);
 
   // ============================================
-  // ✅ OPTIMIZATION: Load airport info ONCE on mount
+  // Load airport info ONCE on mount
   // ============================================
   useEffect(() => {
     const loadStaticAirportInfo = async () => {
@@ -44,7 +44,7 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
 
       try {
         console.log("📍 Loading static airport info (cached)...");
-        const airportRes = await fetchAirportByCode(iataCode, true); // ✅ Use cache
+        const airportRes = await fetchAirportByCode(iataCode, true); //   Use cache
 
         if (airportRes.success && airportRes.data) {
           setAirport(airportRes.data);
@@ -58,10 +58,10 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
     };
 
     loadStaticAirportInfo();
-  }, [iataCode]); // ✅ Only runs when iataCode changes
+  }, [iataCode]); // Only runs when iataCode changes
 
   // ============================================
-  // ✅ OPTIMIZATION: Refresh schedules/stats separately
+  // schedules/stats separately
   // ============================================
   useEffect(() => {
     const loadDynamicData = async () => {
@@ -75,7 +75,7 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
       try {
         console.log("🔄 Refreshing schedules and stats...");
         
-        // ✅ Only fetch dynamic data (schedules, delays, stats)
+        // Only fetch dynamic data (schedules, delays, stats)
         const [arrivalsRes, departuresRes, delayedRes, statsData] =
           await Promise.all([
             fetchAirportSchedules(iataCode, "arrivals"),
@@ -84,23 +84,23 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
             calculateAirportStats(iataCode),
           ]);
 
-        // ✅ Set all flight data
+        // Set all flight data
         if (arrivalsRes.success && arrivalsRes.data) {
           setArrivals(arrivalsRes.data);
-          console.log(`✅ Loaded ${arrivalsRes.data.length} arrivals`);
+          console.log(`Loaded ${arrivalsRes.data.length} arrivals`);
         }
 
         if (departuresRes.success && departuresRes.data) {
           setDepartures(departuresRes.data);
-          console.log(`✅ Loaded ${departuresRes.data.length} departures`);
+          console.log(`Loaded ${departuresRes.data.length} departures`);
         }
 
         if (delayedRes.success && delayedRes.data) {
           setDelayed(delayedRes.data);
-          console.log(`✅ Loaded ${delayedRes.data.length} delayed flights`);
+          console.log(`Loaded ${delayedRes.data.length} delayed flights`);
         }
 
-        // ✅ Set stats from backend response
+        // Set stats from backend response
         setStats(statsData);
       } catch (err) {
         console.error("Error loading dynamic data:", err);
@@ -110,10 +110,10 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
       }
     };
 
-    // ✅ Load immediately on mount
+    // Load immediately on mount
     loadDynamicData();
 
-    // ✅ Auto-refresh ONLY schedules/stats every 60 seconds
+    // Auto-refresh ONLY schedules/stats every 60 seconds
     // Airport info is NOT refetched (uses cache)
     const interval = setInterval(() => {
       console.log("⏰ Auto-refresh triggered (60s interval)");
@@ -180,7 +180,7 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
     </tr>
   );
 
-  // ✅ Helper to get current tab data
+  // Helper to get current tab data
   const getCurrentFlights = () => {
     switch (activeTab) {
       case "arrivals":
@@ -326,7 +326,7 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
         </button>
       </div>
 
-      {/* ✅ Scrollable table container - shows ALL flights */}
+      {/* Scrollable table container - shows ALL flights */}
       <div className="overflow-auto flex-1" style={{ maxHeight: "500px" }}>
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0 z-10">
@@ -352,7 +352,7 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-            {/* ✅ Render ALL flights without limit */}
+            {/* Render ALL flights without limit */}
             {currentFlights.map(renderScheduleRow)}
           </tbody>
         </table>
@@ -370,7 +370,7 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
           </div>
         )}
       </div>
-      {/* ✅ Footer with flight count */}
+      {/* Footer with flight count */}
       {currentFlights.length > 0 && (
         <>
           <div className="bg-gray-50 dark:bg-gray-800 px-6 py-3 text-sm text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
@@ -378,7 +378,7 @@ const AirportLiveBoard = ({ iataCode, onClose }: AirportLiveBoardProps) => {
             {currentFlights.length !== 1 ? "s" : ""} • Updates every minute
           </div>
           
-          {/* ✅ API Limitation Notice */}
+          {/* API Limitation Notice */}
           {currentFlights.length === 100 && (
             <div className="bg-blue-50 dark:bg-blue-900/20 px-6 py-2 text-xs text-blue-700 dark:text-blue-300 border-t border-blue-200 dark:border-blue-800 flex items-center gap-2">
               <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">

@@ -1,7 +1,7 @@
 /**
  * Airport Service - ALL DATA FROM BACKEND ONLY
- * ✅ NO DIRECT CALLS TO AIRLABS
- * ✅ CACHING: Airport info cached, schedules refreshed
+ *   NO DIRECT CALLS TO AIRLABS
+ *   CACHING: Airport info cached, schedules refreshed
  */
 import type {
   Airport,
@@ -40,7 +40,7 @@ const getCachedAirport = (code: string): Airport | null => {
     return null;
   }
   
-  console.log(`✅ Cache HIT for airport ${code} (age: ${Math.round(age / 1000 / 60)}min)`);
+  console.log(`  Cache HIT for airport ${code} (age: ${Math.round(age / 1000 / 60)}min)`);
   return cached.data;
 };
 
@@ -71,7 +71,7 @@ export const fetchAirportByCode = async (
   code: string,
   useCache: boolean = true
 ): Promise<APIResponse<Airport>> => {
-  // ✅ VALIDATION: Check for empty/invalid code
+  //   VALIDATION: Check for empty/invalid code
   if (!code || code.trim().length === 0) {
     console.error("❌ Airport code is empty or invalid");
     return {
@@ -83,7 +83,7 @@ export const fetchAirportByCode = async (
 
   const normalizedCode = code.trim().toUpperCase();
 
-  // ✅ Check cache first (if enabled)
+  //   Check cache first (if enabled)
   if (useCache) {
     const cached = getCachedAirport(normalizedCode);
     if (cached) {
@@ -105,7 +105,7 @@ export const fetchAirportByCode = async (
 
     const data = await response.json();
 
-    // ✅ Cache the result
+    // Cache the result
     if (useCache) {
       cacheAirport(normalizedCode, data as Airport);
     }
@@ -133,7 +133,7 @@ export const fetchAirportSchedules = async (
   iataCode: string,
   type: "arrivals" | "departures" = "arrivals"
 ): Promise<APIResponse<AirportSchedule[]>> => {
-  // ✅ VALIDATION: Check for empty/invalid code
+  // VALIDATION: Check for empty/invalid code
   if (!iataCode || iataCode.trim().length === 0) {
     console.error("❌ Airport IATA code is empty or invalid");
     return {
@@ -177,7 +177,7 @@ export const fetchAirportSchedules = async (
 export const fetchDelayedFlights = async (
   iataCode: string
 ): Promise<APIResponse<AirportSchedule[]>> => {
-  // ✅ VALIDATION: Check for empty/invalid code
+  // VALIDATION: Check for empty/invalid code
   if (!iataCode || iataCode.trim().length === 0) {
     console.error("❌ Airport IATA code is empty or invalid");
     return {
@@ -220,7 +220,7 @@ export const fetchDelayedFlights = async (
 export const calculateAirportStats = async (
   iataCode: string
 ): Promise<AirportStats> => {
-  // ✅ VALIDATION: Check for empty/invalid code
+  // VALIDATION: Check for empty/invalid code
   if (!iataCode || iataCode.trim().length === 0) {
     console.error("❌ Airport IATA code is empty or invalid for stats");
     // Return default stats instead of making invalid API call

@@ -14,7 +14,6 @@ import FeatureButtons from "./components/Features/FeaturesButton";
 import { useAircraftData } from "./hooks/useAircraftData";
 import { useSatelliteData } from "./hooks/useSatelliteData";
 import { useMapControls } from "./hooks/useMapControls";
-// import { useSearch } from "./hooks/useSearch";
 import useFPS from "./hooks/useFPS";
 import { useMapManager } from "./hooks/useMapManager";
 import { useMarkerManager } from "./hooks/useMarkerManager";
@@ -75,7 +74,7 @@ const App = () => {
     processBatchedMarkers,
   } = useMarkerManager(mapRef, handleObjectSelect);
 
-  // ✅ CRITICAL: Render stats gives us viewport-filtered objects
+  //  Render stats gives us viewport-filtered objects
   const { renderStats, filteredByViewport } = useRenderStats(
     aircraft,
     satellites,
@@ -84,12 +83,8 @@ const App = () => {
     isZooming
   );
 
-  // ❌ REMOVED: Search is now handled inside ObjectsList component
-  // const { filteredAircraft, filteredSatellites, filteredDebris } = useSearch(...);
-
   useEffect(() => {
     const handleConnectionFailed = (event: CustomEvent) => {
-      // Show user-friendly error
       errorToast(`Unable to connect to server after ${event.detail.attempts} attempts. Please refresh the page.`);
     };
 

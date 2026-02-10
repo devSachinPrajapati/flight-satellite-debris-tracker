@@ -23,7 +23,7 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
 
     console.log("🌍 Initializing Globe View...");
 
-    // ✅ FIX: Create map with proper projection
+    //   Create map with proper projection
     const map = new maptilersdk.Map({
       container: mapContainerRef.current,
       apiKey: apiKey,
@@ -47,7 +47,7 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
     });
 
     map.on("load", () => {
-      console.log("✅ Globe View loaded successfully");
+      console.log("  Globe View loaded successfully");
       mapRef.current = map;
       onMapLoad(map);
     });
@@ -56,7 +56,7 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       console.error("❌ Map error:", e);
     });
 
-    // 🚀 SMOOTH ROTATION: Use requestAnimationFrame for smoother rotation
+    // Use requestAnimationFrame for smoother rotation
     let userInteracting = false;
     let rotationFrameId: number | null = null;
     let inactivityTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -72,7 +72,7 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
     const shouldRotate = (): boolean => {
       if (!mapRef.current) return false;
       const currentZoom = mapRef.current.getZoom();
-      // ✅ FIX: Only rotate in globe view
+      //  Only rotate in globe view
       const projection = mapRef.current.getProjection();
       return currentZoom <= ZOOM_THRESHOLD && projection.type === 'globe';
     };
@@ -154,7 +154,7 @@ const MapContainer = ({ onMapLoad }: MapContainerProps) => {
       }
     });
 
-    // ✅ NEW: Stop rotation when projection changes to mercator
+    //  Stop rotation when projection changes to mercator
     map.on("projectionchange", () => {
       const projection = map.getProjection();
       console.log(`📐 Projection changed to: ${projection.type}`);

@@ -136,7 +136,7 @@ class RTreeIndex:
         self.size = len(objects)
         self._calculate_depth()
         
-        print(f"✅ R-tree built: {self.size} objects, depth {self.depth}")
+        print(f"  R-tree built: {self.size} objects, depth {self.depth}")
     
     def query_viewport(
         self,
